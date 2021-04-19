@@ -1,0 +1,6 @@
+*.DS_STORE
+*.pyc
+.ipynb_checkpoints/
+.idea*
+
+loan_full.csv

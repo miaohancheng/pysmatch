@@ -1,0 +1,11 @@
+README.md
+setup.cfg
+setup.py
+pysmatch/Matcher.py
+pysmatch/__init__.py
+pysmatch/functions.py
+pysmatch.egg-info/PKG-INFO
+pysmatch.egg-info/SOURCES.txt
+pysmatch.egg-info/dependency_links.txt
+pysmatch.egg-info/requires.txt
+pysmatch.egg-info/top_level.txt
