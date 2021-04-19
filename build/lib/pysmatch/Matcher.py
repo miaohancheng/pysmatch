@@ -54,7 +54,7 @@ class Matcher:
         self.yvar_escaped = "Q('{}')".format(self.yvar)
         self.y, self.X = patsy.dmatrices('{} ~ {}'.format(self.yvar_escaped, '+'.join(self.xvars_escaped)),
                                          data=self.data, return_type='dataframe')
-        self.xvars = [i for i in self.data.columns if i not in self.exclude]
+        # self.xvars = [i for i in self.data.columns if i not in self.exclude]
         self.test = self.data[self.data[yvar] == True]
         self.control = self.data[self.data[yvar] == False]
         self.testn = len(self.test)
@@ -66,9 +66,34 @@ class Matcher:
         print('n majority:', len(self.data[self.data[yvar] == self.majority]))
         print('n minority:', len(self.data[self.data[yvar] == self.minority]))
 
+    def fit_balance_progress_tree(self, num):
+        print("Fitting Models on Balanced Samples , model number :" + str(num))
+        try:
+            df = self.balanced_sample()
+            df = pd.concat([uf.drop_static_cols(df[df[self.yvar] == 1], yvar=self.yvar),
+                            uf.drop_static_cols(df[df[self.yvar] == 0], yvar=self.yvar)],
+                           sort=True)
+            y_samp, X_samp = patsy.dmatrices(self.formula, data=df, return_type='dataframe')
+            X_samp.drop(self.yvar, axis=1, errors='ignore', inplace=True)
+            categorical_features_indices = np.where(X_samp.dtypes == 'object')[0]
+            model = CatBoostClassifier(iterations=100, depth=8
+                                       , eval_metric='AUC', l2_leaf_reg=3,
+                                       cat_features=categorical_features_indices
+                                       , learning_rate=0.05, loss_function='Logloss',
+                                       logging_level='Verbose')
+            model.fit(X_samp, y_samp, plot=True)
+            self.model_accuracy.append(self._scores_to_accuracy(model, X_samp, y_samp))
+            self.models.append(model)
+            return {
+                'model_num': num,
+                'accuracy': self._scores_to_accuracy(model, X_samp, y_samp)
+            }
+        except Exception as e:
+            self.errors = self.errors + 1  # to avoid infinite loop for misspecified matrix
+            print('Error: {}'.format(e))
+
     def fit_balance_progress(self, num):
         # sample from majority to create balance dataset
-        # uf.progress(num + 1, self.nmodels, prestr="Fitting Models on Balanced Samples")
         print("Fitting Models on Balanced Samples , model number :" + str(num))
         try:
             df = self.balanced_sample()
@@ -116,6 +141,7 @@ class Matcher:
                     How many workers should be worked
         """
         # reset models if refitting
+        self.model_type = model_type
         if len(self.models) > 0:
             self.models = []
         if len(self.model_accuracy) > 0:
@@ -136,15 +162,30 @@ class Matcher:
             num_cores = int(mp.cpu_count())
             print("This computer has: " + str(num_cores) + " cores , The workers should be :" + str(
                 min(num_cores, n_jobs)))
-            pool = Pool(min(num_cores, n_jobs))
-            pool.map(self.fit_balance_progress, range(self.nmodels))
-            print("\nAverage Accuracy:", "{}%".
-                  format(round(np.mean(self.model_accuracy) * 100, 2)))
+            if self.model_type == 'line':
+                pool = Pool(min(num_cores, n_jobs))
+                pool.map(self.fit_balance_progress, range(self.nmodels))
+                print("\nAverage Accuracy:", "{}%".
+                      format(round(np.mean(self.model_accuracy) * 100, 2)))
+            else:
+                pool = Pool(min(num_cores, n_jobs))
+                pool.map(self.fit_balance_progress_tree, range(self.nmodels))
+                print("\nAverage Accuracy:", "{}%".
+                      format(round(np.mean(self.model_accuracy) * 100, 2)))
         else:
             # ignore any imbalance and fit one model
             print('Fitting 1 (Unbalanced) Model...')
-            glm = GLM(self.y, self.X, family=sm.families.Binomial())
-            res = glm.fit()
+            if self.model_type == 'line':
+                glm = GLM(self.y, self.X, family=sm.families.Binomial())
+                res = glm.fit()
+            else:
+                categorical_features_indices = np.where(self.X.dtypes == 'object')[0]
+                model = CatBoostClassifier(iterations=100, depth=8
+                                           , eval_metric='AUC', l2_leaf_reg=3,
+                                           cat_features=categorical_features_indices
+                                           , learning_rate=0.05, loss_function='Logloss',
+                                           logging_level='Verbose')
+                model.fit(self.X, self.y, plot=True)
             self.model_accuracy.append(self._scores_to_accuracy(res, self.X, self.y))
             self.models.append(res)
             print("\nAccuracy", round(np.mean(self.model_accuracy[0]) * 100, 2))
@@ -159,9 +200,20 @@ class Matcher:
         None
         """
         scores = np.zeros(len(self.X))
-        for i in range(self.nmodels):
-            m = self.models[i]
-            scores += m.predict(self.X[m.params.index])
+        if self.model_type == 'line':
+            for i in range(self.nmodels):
+                m = self.models[i]
+                scores += m.predict(self.X[m.params.index])
+
+        else:
+            for i in range(self.nmodels):
+                m = self.models[i]
+                scores += [i[1] for i in m.predict(self.X,
+                                                   prediction_type='Probability',
+                                                   ntree_start=0,
+                                                   ntree_end=0,
+                                                   thread_count=-1,
+                                                   verbose=None)]
         self.data['scores'] = scores / self.nmodels
 
     def match(self, threshold=0.001, nmatches=1, method='min', max_rand=10):
@@ -540,7 +592,15 @@ class Matcher:
         fm['weight'] = 1 / fm['weight']
         self.matched_data = fm
 
-    @staticmethod
-    def _scores_to_accuracy(m, X, y):
-        preds = [[1.0 if i >= .5 else 0.0 for i in m.predict(X)]]
+    def _scores_to_accuracy(self, m, X, y):
+        if self.model_type == 'line':
+            preds = [[1.0 if i >= .5 else 0.0 for i in m.predict(X)]]
+
+        else:
+            preds = [[1.0 if i[1] >= .5 else 0.0 for i in m.predict(X,
+                                                                    prediction_type='Probability',
+                                                                    ntree_start=0,
+                                                                    ntree_end=0,
+                                                                    thread_count=-1,
+                                                                    verbose=None)]]
         return (y.to_numpy().T == preds).sum() * 1.0 / len(y)
