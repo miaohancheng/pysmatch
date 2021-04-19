@@ -1,11 +1,11 @@
 `pysmatch`
 =====
 
-Based on  
+Based on  pymatch https://github.com/benmiroglio/pymatch  
 
-[pymatch]: https://github.com/benmiroglio/pymatch 
+The origin project has a few bugs and cannot connect with the creator.
 
-The origin project has a few bugs and cannot connect with the creator
+This project fixes bugs and adds parallel computing and model selection.
 
 # Installation
 
