@@ -80,7 +80,7 @@ class Matcher:
                                        , eval_metric='AUC', l2_leaf_reg=3,
                                        cat_features=categorical_features_indices
                                        , learning_rate=0.05, loss_function='Logloss',
-                                       logging_level='Slient')
+                                       logging_level='Silent')
             model.fit(X_samp, y_samp, plot=False)
             self.model_accuracy.append(self._scores_to_accuracy(model, X_samp, y_samp))
             self.models.append(model)
