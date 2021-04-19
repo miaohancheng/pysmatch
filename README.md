@@ -7,6 +7,8 @@ The origin project has a few bugs and cannot connect with the creator.
 
 This project fixes bugs and adds parallel computing and model selection.
 
+中文文档 https://github.com/mhcone/pysmatch/blob/main/README_CHINESE.md
+
 # Installation
 
 Install through pip!
