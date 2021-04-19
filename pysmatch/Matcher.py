@@ -80,8 +80,8 @@ class Matcher:
                                        , eval_metric='AUC', l2_leaf_reg=3,
                                        cat_features=categorical_features_indices
                                        , learning_rate=0.05, loss_function='Logloss',
-                                       logging_level='Verbose')
-            model.fit(X_samp, y_samp, plot=True)
+                                       logging_level='Slient')
+            model.fit(X_samp, y_samp, plot=False)
             self.model_accuracy.append(self._scores_to_accuracy(model, X_samp, y_samp))
             self.models.append(model)
             return {
@@ -165,11 +165,15 @@ class Matcher:
             if self.model_type == 'line':
                 pool = Pool(min(num_cores, n_jobs))
                 pool.map(self.fit_balance_progress, range(self.nmodels))
+                pool.close()
+                pool.join()
                 print("\nAverage Accuracy:", "{}%".
                       format(round(np.mean(self.model_accuracy) * 100, 2)))
             elif self.model_type == 'tree':
                 pool = Pool(min(num_cores, n_jobs))
                 pool.map(self.fit_balance_progress_tree, range(self.nmodels))
+                pool.close()
+                pool.join()
                 print("\nAverage Accuracy:", "{}%".
                       format(round(np.mean(self.model_accuracy) * 100, 2)))
             else:
@@ -188,8 +192,8 @@ class Matcher:
                                            , eval_metric='AUC', l2_leaf_reg=3,
                                            cat_features=categorical_features_indices
                                            , learning_rate=0.05, loss_function='Logloss',
-                                           logging_level='Verbose')
-                model.fit(self.X, self.y, plot=True)
+                                           logging_level='Silent')
+                model.fit(self.X, self.y, plot=False)
                 self.model_accuracy.append(self._scores_to_accuracy(model, self.X, self.y))
                 self.models.append(model)
             print("\nAccuracy", round(np.mean(self.model_accuracy[0]) * 100, 2))
@@ -205,12 +209,12 @@ class Matcher:
         """
         scores = np.zeros(len(self.X))
         if self.model_type == 'line':
-            for i in range(self.nmodels):
+            for i in range(len(self.models)):
                 m = self.models[i]
                 scores += m.predict(self.X[m.params.index])
 
         else:
-            for i in range(self.nmodels):
+            for i in range(len(self.models)):
                 m = self.models[i]
                 scores += [i[1] for i in m.predict(self.X,
                                                    prediction_type='Probability',
