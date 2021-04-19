@@ -167,18 +167,22 @@ class Matcher:
                 pool.map(self.fit_balance_progress, range(self.nmodels))
                 print("\nAverage Accuracy:", "{}%".
                       format(round(np.mean(self.model_accuracy) * 100, 2)))
-            else:
+            elif self.model_type == 'tree':
                 pool = Pool(min(num_cores, n_jobs))
                 pool.map(self.fit_balance_progress_tree, range(self.nmodels))
                 print("\nAverage Accuracy:", "{}%".
                       format(round(np.mean(self.model_accuracy) * 100, 2)))
+            else:
+                print('wrong model_type arguement :' + self.model_type)
         else:
             # ignore any imbalance and fit one model
             print('Fitting 1 (Unbalanced) Model...')
             if self.model_type == 'line':
                 glm = GLM(self.y, self.X, family=sm.families.Binomial())
                 res = glm.fit()
-            else:
+                self.model_accuracy.append(self._scores_to_accuracy(res, self.X, self.y))
+                self.models.append(res)
+            elif self.model_type == 'tree':
                 categorical_features_indices = np.where(self.X.dtypes == 'object')[0]
                 model = CatBoostClassifier(iterations=100, depth=8
                                            , eval_metric='AUC', l2_leaf_reg=3,
@@ -186,8 +190,8 @@ class Matcher:
                                            , learning_rate=0.05, loss_function='Logloss',
                                            logging_level='Verbose')
                 model.fit(self.X, self.y, plot=True)
-            self.model_accuracy.append(self._scores_to_accuracy(res, self.X, self.y))
-            self.models.append(res)
+                self.model_accuracy.append(self._scores_to_accuracy(model, self.X, self.y))
+                self.models.append(model)
             print("\nAccuracy", round(np.mean(self.model_accuracy[0]) * 100, 2))
 
     def predict_scores(self):
