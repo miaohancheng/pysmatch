@@ -9,6 +9,11 @@ This project fixes bugs and adds parallel computing and model selection.
 
 中文文档 https://github.com/mhcone/pysmatch/blob/main/README_CHINESE.md
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=miaohancheng/pysmatch&type=Date)](https://star-history.com/#miaohancheng/pysmatch&Date)
+
+
 # Installation
 
 Install through pip!
