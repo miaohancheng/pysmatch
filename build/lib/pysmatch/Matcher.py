@@ -36,7 +36,7 @@ class Matcher:
         t = t.dropna(axis=1, how="all")
         c = c.dropna(axis=1, how="all")
         c.index += len(t)
-        self.data = t.dropna(axis=1, how='all').append(c.dropna(axis=1, how='all'), sort=True)
+        self.data = pd.concat([t.dropna(axis=1, how='all'), c.dropna(axis=1, how='all')], ignore_index=True)
         self.control_color = "#1F77B4"
         self.test_color = "#FF7F0E"
         self.yvar = yvar
@@ -71,8 +71,8 @@ class Matcher:
         try:
             df = self.balanced_sample()
             df = pd.concat([uf.drop_static_cols(df[df[self.yvar] == 1], yvar=self.yvar),
-                            uf.drop_static_cols(df[df[self.yvar] == 0], yvar=self.yvar)],
-                           sort=True)
+                        uf.drop_static_cols(df[df[self.yvar] == 0], yvar=self.yvar)],
+                       ignore_index=True)
             y_samp, X_samp = patsy.dmatrices(self.formula, data=df, return_type='dataframe')
             X_samp.drop(self.yvar, axis=1, errors='ignore', inplace=True)
             categorical_features_indices = np.where(X_samp.dtypes == 'object')[0]
@@ -293,7 +293,7 @@ class Matcher:
             data = self.data
         minor, major = data[data[self.yvar] == self.minority], \
                        data[data[self.yvar] == self.majority]
-        return major.sample(len(minor)).append(minor, sort=True).dropna()
+        return pd.concat([major.sample(len(minor)), minor], ignore_index=True).dropna()
 
     def plot_scores(self):
         """

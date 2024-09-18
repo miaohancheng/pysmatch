@@ -11,7 +11,7 @@ dependencies = [
     'catboost' 
     ]
 
-VERSION = "0.0.0.5"
+VERSION = "0.0.0.6"
 
 setup(
     name='pysmatch',
@@ -26,3 +26,5 @@ setup(
     include_package_data=True,
     install_requires=dependencies
 )
+
+

@@ -1,3 +1,5 @@
+LICENSE
+LICENSE.txt
 README.md
 setup.cfg
 setup.py
