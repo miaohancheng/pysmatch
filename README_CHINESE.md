@@ -27,7 +27,7 @@ psm算法简介：https://zhuanlan.zhihu.com/p/152200488
 pip install pysmatch
 ```
 
-目前最新版本为0.0.0.5,支持了catboost和pandas2.0
+目前最新版本为0.1,支持了catboost和pandas2.0
 
 #### 示例
 

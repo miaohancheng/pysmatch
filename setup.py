@@ -1,17 +1,17 @@
 from setuptools import setup
 
 dependencies = [
-    'seaborn',
-    'statsmodels',
-    'scipy',
-    'patsy',
-    'matplotlib',
-    'pandas',
-    'numpy',
-    'catboost' 
+    'catboost>=1.2.7',
+    'matplotlib>=3.7.1',
+    'numpy>=1.26.4',
+    'pandas>=2.1.4',
+    'patsy>=0.5.6',
+    'scipy>=1.13.1',
+    'seaborn>=0.12.2',
+    'statsmodels>=0.14.3'
     ]
 
-VERSION = "0.0.0.6"
+VERSION = "0.1"
 
 setup(
     name='pysmatch',
