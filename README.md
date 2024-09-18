@@ -1,7 +1,7 @@
 `pysmatch`
 =====
 
-Based on  pymatch https://github.com/benmiroglio/pymatch  
+Based on [pymatch](https://github.com/benmiroglio/pymatch )
 
 The origin project has a few bugs and cannot connect with the creator.
 
@@ -21,11 +21,11 @@ $ pip install pysmatch
 
 #
 
-The best way to get familiar with the package is to work through an example. The example below leaves out much of the theory behind matching and focuses on the application within `pymatch`. If interested, Sekhon gives a nice overview in his [Introduction to the Matching package in R](http://sekhon.berkeley.edu/papers/MatchingJSS.pdf).
+The best way to get familiar with the package is to work through an example. The example below leaves out much of the theory behind matching and focuses on the application within `pysmatch`. If interested, Sekhon gives a nice overview in his [Introduction to the Matching package in R](http://sekhon.berkeley.edu/papers/MatchingJSS.pdf).
 
 # Example
 
-The following example demonstrates how to the use the `pymatch` package to match [Lending Club Loan Data](https://www.kaggle.com/wendykan/lending-club-loan-data). Follow the link to download the dataset from Kaggle (you'll have to create an account, it's fast and free!). You can follow along this document or download the corresponding [Example.ipynb](https://github.com/benmiroglio/pymatch/blob/master/Example.ipynb) notebook (just be sure to change the path when loading data!).
+The following example demonstrates how to the use the `pysmatch` package to match [Lending Club Loan Data](https://www.kaggle.com/wendykan/lending-club-loan-data). Follow the link to download the dataset from Kaggle (you'll have to create an account, it's fast and free!). You can follow along this document or download the corresponding [Example.ipynb](https://github.com/miaohancheng/pysmatch/blob/main/Example.ipynb) notebook (just be sure to change the path when loading data!).
 
 Here we match Lending Club users that fully paid off loans (control) to those that defaulted (test). The example is contrived, however a use case for this could be that we want to analyze user sentiment with the platform. Users that default on loans may have worse sentiment because they are predisposed to a bad situation--influencing their perception of the product. Before analyzing sentiment, we can match users that paid their loans in full to users that defaulted based on the characteristics we can observe. If matching is successful, we could then make a statement about the **causal effect** defaulting has on sentiment if we are confident our samples are sufficiently balanced and our model is free from omitted variable bias.
 
@@ -455,13 +455,13 @@ For example, the first plot pair shows:
         * Kolmogorov-Smirnov Goodness of fit Test (KS-test)
             This test statistic is calculated on 1000
             permuted samples of the data, generating
-            an imperical p-value.  See `pymatch.functions.ks_boot()`
+            an imperical p-value.  See `pysmatch.functions.ks_boot()`
             This is an adaptation of the [`ks.boot()`](https://www.rdocumentation.org/packages/Matching/versions/4.9-2/topics/ks.boot) method in 
             the R "Matching" package
         * Chi-Square Distance:
             Similarly this distance metric is calculated on 
             1000 permuted samples. 
-            See `pymatch.functions.grouped_permutation_test()`
+            See `pysmatch.functions.grouped_permutation_test()`
 
     * Other included Stats:
         * Standarized mean and median differences.
