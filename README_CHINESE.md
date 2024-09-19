@@ -1,122 +1,697 @@
-### pysmatch 
+# `pysmatch`
 
-本项目基于
-pymatch  https://github.com/benmiroglio/pymatch 进行修改；原项目无法运行且无法联系创建人
-本项目新增部分特性：
+[![PyPI version](https://badge.fury.io/py/pysmatch.svg)](https://badge.fury.io/py/pysmatch)
 
-1. 模型可选择基于catboost的树模型（支持分类变量）和常见的线性模型
-2. 模型增加并行计算功能，模型数量多的情况下加快执行速度
+`pysmatch` 是 [`pymatch`](https://github.com/benmiroglio/pymatch) 的改进和扩展版本，为 Python 提供了一个稳健的倾向得分匹配工具。该包修复了原项目中的已知错误，并引入了并行计算和模型选择等新功能，提升了性能和灵活性。
 
-psm算法简介：https://zhuanlan.zhihu.com/p/152200488
+[English Documentation](https://github.com/mhcone/pysmatch/blob/main/README.md)
 
+## 特性
 
+- **错误修复**：解决了原 `pymatch` 项目中的已知问题。
+- **并行计算**：利用多核 CPU 加速计算过程。
+- **模型选择**：支持线性模型（逻辑回归）和基于树的模型（如决策树）进行倾向得分估计。
 
-> PSM解决的是**选择偏差**问题（即控制混杂因素），倾向得分配比就是利用倾向评分值，从对照组中为处理做中的每个个体寻找一个或多个背景特征相同或相似的个体作为对照。这样就最大程度降低了其他混杂因素的干扰。
+## 安装
 
-> 比如，想研究‘读研究生’对于收入的影响。一种简单的做法是直接对比‘读过’和‘没有读过’这两类群体的收入差异，但这种做法并不科学。因为还可能存在其他变量影响着研究结果，如性别，年龄，父母学历，父母是否做教育工作等因素都会干扰到研究。
+`pysmatch` 已发布到 PyPI，可以通过 pip 进行安装：
 
-> 因此，PSM正是为了减少这种干扰。PSM可实现找到类似的两类人，他们的基本特征都基本一致，主要区别在于‘是否读过’研究生。这样可减少干扰因素差异带来的数据偏差和混杂干扰。
-
-------
-
-
-
-#### 安装
-
-```shell
+```bash
 pip install pysmatch
 ```
 
-目前最新版本为0.1,支持了catboost和pandas2.0
+## 快速开始
 
-#### 示例
+了解 pysmatch 的最佳方式是通过一个示例。以下指南将引导您使用 pysmatch 对 [Lending Club 贷款数据](https://www.kaggle.com/wendykan/lending-club-loan-data) 进行倾向得分匹配。
 
-载入包
+
+您可以跟随本文档，或者下载对应的 [Example.ipynb](https://github.com/mhcone/pysmatch/blob/main/Example.ipynb) 笔记本。
+
+**快速开始**
+
+
+
+了解 pysmatch 的最佳方式是通过一个示例。以下指南将引导您使用 pysmatch 对 [Lending Club 贷款数据](https://www.kaggle.com/wendykan/lending-club-loan-data) 进行倾向得分匹配。
+
+
+
+您可以跟随本文档，或者下载对应的 [Example.ipynb](https://github.com/mhcone/pysmatch/blob/main/Example.ipynb) 笔记本。
+
+
+
+**下载数据集**
+
+
+
+要复现此示例，您需要从 Kaggle 下载 loan.csv 数据集：
+
+
+
+​	1.	如果您还没有 Kaggle 账户，请免费注册一个。
+
+​	2.	访问 [Lending Club 贷款数据](https://www.kaggle.com/wendykan/lending-club-loan-data) 页面。
+
+​	3.	下载 loan.csv 文件。
+
+
+
+**注意**：请确保将数据集放在与您的脚本相同的目录，或相应地更新文件路径。
+
+
+
+**示例**
+
+
+
+在此示例中，我们旨在根据可观察的特征，将完全偿还贷款的 Lending Club 用户（对照组）与违约的用户（测试组）进行匹配。这使我们能够在控制混杂变量的情况下，分析违约对用户情绪等变量的因果影响。
+ **目录**
+
+
+
+​	•	[数据准备](#数据准备)
+
+​	•	[拟合倾向得分模型](#拟合倾向得分模型)
+
+​	•	[预测倾向得分](#预测倾向得分)
+
+​	•	[调整匹配阈值](#调整匹配阈值)
+
+​	•	[匹配数据](#匹配数据)
+
+​	•	[评估匹配质量](#评估匹配质量)
+
+​	•	[结论](#结论)
+
+​	•	[附加资源](#附加资源)
+
+​	•	[贡献](#贡献)
+
+​	•	[许可证](#许可证)
+
+----
+
+## **数据准备**
+
+
+
+首先，我们导入必要的库，并抑制任何警告以获得更清晰的输出。
+
 
 ```python
-%load_ext autoreload
-%autoreload 2
-%matplotlib inline
-
 import warnings
 warnings.filterwarnings('ignore')
-from pysmatch.Matcher import Matcher
+
 import pandas as pd
 import numpy as np
+from pysmatch.Matcher import Matcher
+
+%matplotlib inline
 ```
 
-读取文件
+接下来，我们加载数据集，并选择与我们分析相关的列。
+
+Load the dataset (`loan.csv`) and select a subset of columns.
 
 ```python
-path = "./misc/loan.csv"
-data = pd.read_csv(path)
+# Define the file path and the fields to load
+path = "loan.csv"
+fields = [
+    "loan_amnt",
+    "funded_amnt",
+    "funded_amnt_inv",
+    "term",
+    "int_rate",
+    "installment",
+    "grade",
+    "sub_grade",
+    "loan_status"
+]
+
+# Load the data
+data = pd.read_csv(path, usecols=fields)
 ```
 
-创建测试和控制组
+**了解变量**
+
+
+
+​	•	**loan_amnt**：借款人申请的贷款金额。
+
+​	•	**funded_amnt**：截至目前承诺给该贷款的总金额。
+
+​	•	**funded_amnt_inv**：投资者为该贷款提供的总金额。
+
+​	•	**term**：贷款的付款期数（以月为单位）。
+
+​	•	**int_rate**：贷款的利率。
+
+​	•	**installment**：借款人每月应付的还款额。
+
+​	•	**grade**：Lending Club 分配的贷款等级。
+
+​	•	**sub_grade**：Lending Club 分配的贷款子等级。
+
+​	•	**loan_status**：贷款的当前状态。
+
+
+
+**创建测试组和对照组**
+
+
+
+我们创建两个组：
+
+
+
+​	•	**测试组**：违约的用户。
+
+​	•	**对照组**：完全偿还贷款的用户。
+
+
+
+然后，我们将 loan_status 编码为二元处理指标。
 
 ```python
-test = data[data.loan_status == "Default"]
-control = data[data.loan_status == "Fully Paid"]
-test['loan_status'] = 1
-control['loan_status'] = 0
+# Create test group (defaulted loans)
+test = data[data.loan_status == "Default"].copy()
+test['loan_status'] = 1  # Treatment group indicator
+
+# Create control group (fully paid loans)
+control = data[data.loan_status == "Fully Paid"].copy()
+control['loan_status'] = 0  # Control group indicator
 ```
 
-初始化Matcher
 
+----
+
+## **拟合倾向得分模型**
+
+
+
+我们初始化 Matcher 对象，指定结果变量（yvar）以及要从模型中排除的变量（例如，唯一标识符）。
 ```python
+# Initialize the Matcher
 m = Matcher(test, control, yvar="loan_status", exclude=[])
 ```
-训练模型获取得分，在样本不均衡场景使用balance=True，model_type枚举值为"line" 和 "tree"
+
+输出:
 
 ```python
+Formula:
+loan_status ~ loan_amnt + funded_amnt + funded_amnt_inv + term + int_rate + installment + grade + sub_grade
+n majority: 207723
+n minority: 1219
+```
+## **处理类别不平衡**
 
-np.random.seed(20210419)
 
-m.fit_scores(balance=True, nmodels=10,n_jobs = 5,model_type='tree')
+我们的数据存在显著的类别不平衡，对照组（完全偿还贷款）数量远超测试组（违约贷款）。为了解决这个问题，我们在拟合倾向得分模型时设置 balance=True，这告诉 pysmatch 对多数类进行欠采样，以创建平衡的数据集用于模型训练。
+
+我们还指定 nmodels=100 来在不同的随机样本上训练 100 个模型，确保多数类的更多部分参与模型训练。
+
+
+## **模型选择和并行计算**
+
+使用 pysmatch，您可以在倾向得分估计中选择线性模型（逻辑回归）或基于树的模型（如决策树）。您还可以通过指定作业数（n_jobs）利用并行计算来加速模型拟合。
+
+```python
+# Set random seed for reproducibility
+np.random.seed(42)
+
+# Fit propensity score models
+m.fit_scores(balance=True, nmodels=100, n_jobs=5, model_type='linear')
 ```
 
-
-Average Accuracy: 86.64%，而线性模型同样数据集的表现为66%
-
-
-树模型在准确率方面效果远超线性模型，优先建议使用树模型
-
-预测得分、展示得分
+输出:
 
 ```python
+Fitting 100 Models on Balanced Samples...
+Average Accuracy: 70.21%
+```
+
+**注意**：平均准确率表明了在给定观察到的特征下类别的可分性。显著高于 50% 的准确率表明匹配是合适的。
+
+
+## **预测倾向得分**
+
+
+
+拟合模型后，我们为数据集中的所有观察值预测倾向得分。
+```python
+# Predict propensity scores
 m.predict_scores()
+```
+
+我们可以可视化测试组和对照组的倾向得分分布。
+```python
+# Plot propensity score distributions
 m.plot_scores()
 ```
 
-![img](Example_files/Example_Chinese_01_0.png)
 
-查找匹配阈值
+![png](Example_files/Example_15_0.png)
+
+
+
+**解读**:图表显示测试组（违约贷款）通常具有较高的倾向得分，表明模型可以根据观察到的特征区分两个组。
+
+---
+
+## **调整匹配阈值**
+
+匹配阈值决定了两个倾向得分被认为匹配所需的相似程度。较小的阈值会产生更接近的匹配，但可能会减少匹配对的数量。
+
+我们使用 tune_threshold 方法找到一个平衡匹配质量和样本量的合适阈值。
 
 ```python
 m.tune_threshold(method='random')
 ```
 
-![img](Example_files/Example_Chinese_02_0.png)
 
-匹配数据
+![png](Example_files/Example_19_0.png)
 
-每次匹配会生成独立的match_id，用于标志一对唯一的匹配数据
+根据图表，阈值为 0.0001 时保留了测试组的 100%。我们将使用此阈值进行匹配。
 
+---
+
+## **匹配数据**
+
+
+
+我们使用 match 方法执行匹配，指定匹配方法、每个观察值的匹配数量和阈值。
 ```python
-m.match(method="min", nmatches=1, threshold=0.0005)
+# Perform matching
+m.match(method="min", nmatches=1, threshold=0.0001)
 ```
 
-输出匹配结果
+**理解匹配参数**
+
+
+
+​	•	**method**:
+
+​	•	"min"：根据倾向得分差的最小值找到最接近的匹配。
+
+​	• "random"：在阈值内随机选择匹配。
+
+​	•	**nmatches**: 为测试组中的每个观察值找到的匹配数量。
+
+​	•	**threshold**: 匹配对之间允许的倾向得分最大差值。
+
+## **处理多重匹配**
+
+
+
+允许重复匹配意味着一个对照组观察值可以匹配多个测试组观察值。我们可以评估在匹配数据集中对照组观察值的使用频率。
+
 
 ```python
+# Assess record frequency in matches
+m.record_frequency()
+```
+
+输出:
+
+```python
+   freq  n_records
+0     1       2264
+1     2         68
+2     3         10
+3     4          2
+```
+
+为了在后续分析中考虑这一点，我们根据观察值的频率为其分配权重。
+```python
+# Assign weights to matched data
+m.assign_weight_vector()
+```
+
+## **检查匹配数据**
+
+```python
+# View a sample of the matched data
 m.matched_data.sort_values("match_id").head(6)
 ```
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>record_id</th>
+      <th>weight</th>
+      <th>loan_amnt</th>
+      <th>funded_amnt</th>
+      <th>funded_amnt_inv</th>
+      <th>term</th>
+      <th>int_rate</th>
+      <th>installment</th>
+      <th>grade</th>
+      <th>sub_grade</th>
+      <th>loan_status</th>
+      <th>scores</th>
+      <th>match_id</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0</td>
+      <td>1.0</td>
+      <td>18000.0</td>
+      <td>18000.0</td>
+      <td>17975.000000</td>
+      <td>60 months</td>
+      <td>17.27</td>
+      <td>449.97</td>
+      <td>D</td>
+      <td>D3</td>
+      <td>1</td>
+      <td>0.644783</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>2192</th>
+      <td>191970</td>
+      <td>1.0</td>
+      <td>2275.0</td>
+      <td>2275.0</td>
+      <td>2275.000000</td>
+      <td>36 months</td>
+      <td>16.55</td>
+      <td>80.61</td>
+      <td>D</td>
+      <td>D2</td>
+      <td>0</td>
+      <td>0.644784</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>1488</th>
+      <td>80665</td>
+      <td>1.0</td>
+      <td>18400.0</td>
+      <td>18400.0</td>
+      <td>18250.000000</td>
+      <td>36 months</td>
+      <td>16.29</td>
+      <td>649.53</td>
+      <td>C</td>
+      <td>C4</td>
+      <td>0</td>
+      <td>0.173057</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>1</td>
+      <td>1.0</td>
+      <td>21250.0</td>
+      <td>21250.0</td>
+      <td>21003.604048</td>
+      <td>60 months</td>
+      <td>14.27</td>
+      <td>497.43</td>
+      <td>C</td>
+      <td>C2</td>
+      <td>1</td>
+      <td>0.173054</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>2</td>
+      <td>1.0</td>
+      <td>5600.0</td>
+      <td>5600.0</td>
+      <td>5600.000000</td>
+      <td>60 months</td>
+      <td>15.99</td>
+      <td>136.16</td>
+      <td>D</td>
+      <td>D2</td>
+      <td>1</td>
+      <td>0.777273</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>1828</th>
+      <td>153742</td>
+      <td>1.0</td>
+      <td>12000.0</td>
+      <td>12000.0</td>
+      <td>12000.000000</td>
+      <td>60 months</td>
+      <td>18.24</td>
+      <td>306.30</td>
+      <td>D</td>
+      <td>D5</td>
+      <td>0</td>
+      <td>0.777270</td>
+      <td>2</td>
+    </tr>
+  </tbody>
+</table>
 
-|      | record_id | weight   | funded_amnt | funded_amnt_inv | grade | installment | int_rate | loan_amnt | loan_status | sub_grade | term      | scores   | match_id |
-| ---- | --------- | -------- | ----------- | --------------- | ----- | ----------- | -------- | --------- | ----------- | --------- | --------- | -------- | -------- |
-| 0    | 0         | 1        | 40000       | 40000           | B     | 867.71      | 10.90%   | 40000     | 1           | B4        | 60 months | 0.660292 | 0        |
-| 2414 | 6440      | 0.076923 | 40000       | 40000           | B     | 867.71      | 10.90%   | 40000     | 0           | B4        | 60 months | 0.660292 | 0        |
-| 1    | 1         | 1        | 10000       | 10000           | B     | 332.05      | 11.98%   | 10000     | 1           | B5        | 36 months | 0.489164 | 1        |
-| 3002 | 12785     | 0.058824 | 10000       | 10000           | B     | 332.05      | 11.98%   | 10000     | 0           | B5        | 36 months | 0.489164 | 1        |
-| 2    | 2         | 1        | 40000       | 40000           | B     | 1328.2      | 11.98%   | 40000     | 1           | B5        | 36 months | 0.784762 | 2        |
-| 3085 | 14255     | 0.058824 | 40000       | 40000           | B     | 1328.2      | 11.98%   | 40000     | 0           | B5        | 36 months | 0.784762 | 2        |
+	•	record_id：每个观察值的唯一标识符。
+	•	weight：匹配数据集中对照组观察值频率的倒数。
+	•	match_id：匹配对的标识符。
+
+
+---
+
+## **评估匹配质量**
+
+
+
+匹配后，评估测试组和对照组之间协变量是否平衡至关重要。
+
+
+
+**分类变量**
+
+
+
+我们使用卡方检验和比例差异图比较匹配前后分类变量的分布。
+```python
+# Compare categorical variables
+categorical_results = m.compare_categorical(return_table=True)
+```
+
+
+
+![png](Example_files/Example_32_0.png)
+
+
+
+![png](Example_files/Example_32_1.png)
+
+
+
+![png](Example_files/Example_32_2.png)
+
+
+**解读**:匹配后的 p 值均高于 0.05，表明我们无法拒绝分布独立于组标签的原假设。比例差异也显著减少。
+
+
+**连续变量**
+
+
+
+对于连续变量，我们使用经验累积分布函数（ECDF）和 Kolmogorov-Smirnov 检验等统计测试。
+```python
+# Compare continuous variables
+continuous_results = m.compare_continuous(return_table=True)
+```
+
+**解读**: 匹配后，测试组和对照组的 ECDF 几乎相同，统计测试的 p 值高于 0.05，表明平衡良好。
+
+![png](Example_files/Example_35_0.png)
+
+
+
+![png](Example_files/Example_35_1.png)
+
+
+
+![png](Example_files/Example_35_2.png)
+
+
+
+![png](Example_files/Example_35_3.png)
+
+
+
+![png](Example_files/Example_35_4.png)
+
+
+
+**结果总结**
+
+```python
+# Display categorical results
+print(categorical_results)
+```
+
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>var</th>
+      <th>before</th>
+      <th>after</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>term</td>
+      <td>0.0</td>
+      <td>0.433155</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>grade</td>
+      <td>0.0</td>
+      <td>0.532530</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>sub_grade</td>
+      <td>0.0</td>
+      <td>0.986986</td>
+    </tr>
+  </tbody>
+</table>
+
+
+```python
+# Display continuous results
+print(continuous_results)
+```
+
+
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>var</th>
+      <th>ks_before</th>
+      <th>ks_after</th>
+      <th>grouped_chisqr_before</th>
+      <th>grouped_chisqr_after</th>
+      <th>std_median_diff_before</th>
+      <th>std_median_diff_after</th>
+      <th>std_mean_diff_before</th>
+      <th>std_mean_diff_after</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>loan_amnt</td>
+      <td>0.0</td>
+      <td>0.530</td>
+      <td>0.000</td>
+      <td>1.000</td>
+      <td>0.207814</td>
+      <td>0.067942</td>
+      <td>0.229215</td>
+      <td>0.013929</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>funded_amnt</td>
+      <td>0.0</td>
+      <td>0.541</td>
+      <td>0.000</td>
+      <td>1.000</td>
+      <td>0.208364</td>
+      <td>0.067942</td>
+      <td>0.234735</td>
+      <td>0.013929</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>funded_amnt_inv</td>
+      <td>0.0</td>
+      <td>0.573</td>
+      <td>0.933</td>
+      <td>1.000</td>
+      <td>0.242035</td>
+      <td>0.067961</td>
+      <td>0.244418</td>
+      <td>0.013981</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>int_rate</td>
+      <td>0.0</td>
+      <td>0.109</td>
+      <td>0.000</td>
+      <td>0.349</td>
+      <td>0.673904</td>
+      <td>0.091925</td>
+      <td>0.670445</td>
+      <td>0.079891</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>installment</td>
+      <td>0.0</td>
+      <td>0.428</td>
+      <td>0.004</td>
+      <td>1.000</td>
+      <td>0.169177</td>
+      <td>0.042140</td>
+      <td>0.157699</td>
+      <td>0.014590</td>
+    </tr>
+  </tbody>
+</table>
+
+## **结论**
+
+
+使用 pysmatch，我们成功地将违约用户与完全偿还贷款的用户进行了匹配，在所有协变量上实现了平衡。这个平衡的数据集现在可以用于因果推断或进一步分析，例如评估违约对用户情绪的影响。
+
+**注意**: 在实际应用中，可能无法总是实现完美的平衡。在这种情况下，考虑调整匹配参数或包含其他协变量。您还可以在后续分析中控制残留的不平衡。
+
+
+
+## **附加资源**
+
+
+
+​	•	**Sekhon, J. S.** (2011). *Multivariate and propensity score matching software with automated balance optimization: The Matching package for R*. Journal of Statistical Software, 42(7), 1-52. [Link](http://sekhon.berkeley.edu/papers/MatchingJSS.pdf)
+
+​	•	**Rosenbaum, P. R., & Rubin, D. B.** (1983). *The central role of the propensity score in observational studies for causal effects*. Biometrika, 70(1), 41-55.
+
+
+
+## **贡献**
+
+
+
+我们欢迎社区的贡献。如果您遇到任何问题或有改进建议，请在 GitHub 上提交问题或拉取请求。
+
+
+**如何贡献**
+
+
+	1.	Fork 此仓库。
+	2.	为您的功能或错误修复创建一个新分支。
+	3.	使用清晰的信息提交您的更改。
+	4.	向主仓库提交拉取请求。
+
+
+
+
+## **License**
+
+
+
+pysmatch 使用 MIT 许可证。
+
+
+**免责声明**: 此示例中使用的数据仅用于演示目的。请确保您在分析中使用任何数据集时拥有相应的权利和权限。
+
+
