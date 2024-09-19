@@ -24,7 +24,7 @@ pip install pysmatch
 
 The best way to get familiar with the package is to work through an example. The example below leaves out much of the theory behind matching and focuses on the application within `pysmatch`. If interested, Sekhon gives a nice overview in his [Introduction to the Matching package in R](http://sekhon.berkeley.edu/papers/MatchingJSS.pdf).
 
-**Example**
+ **Example**
 
 
 
@@ -58,7 +58,7 @@ In this example, we aim to match Lending Club users who fully paid off loans (co
 
 ----
 
-**Data Preparation**
+## **Data Preparation**
 
 
 
@@ -98,7 +98,7 @@ fields = [
 data = pd.read_csv(path, usecols=fields)
 ```
 
-**Understanding the Variables**
+## **Understanding the Variables**
 
 
 
@@ -151,7 +151,7 @@ control['loan_status'] = 0  # Control group indicator
 
 ----
 
-**Fitting Propensity Score Models**
+##  **Fitting Propensity Score Models**
 
 
 
@@ -170,7 +170,7 @@ loan_status ~ loan_amnt + funded_amnt + funded_amnt_inv + term + int_rate + inst
 n majority: 207723
 n minority: 1219
 ```
-**Addressing Class Imbalance**
+## **Addressing Class Imbalance**
 
 
 
@@ -182,7 +182,7 @@ We also specify nmodels=100 to train 100 models on different random samples of t
 
 
 
-**Model Selection and Parallel Computing**
+## **Model Selection and Parallel Computing**
 
 
 
@@ -206,7 +206,7 @@ Average Accuracy: 70.21%
 **Note**: The average accuracy indicates the separability of the classes given the observed features. An accuracy significantly above 50% suggests that matching is appropriate.
 
 
-**Predicting Propensity Scores**
+## **Predicting Propensity Scores**
 
 
 
@@ -234,7 +234,7 @@ m.plot_scores()
 
 ---
 
-**Tuning the Matching Threshold**
+## **Tuning the Matching Threshold**
 
 
 
@@ -255,7 +255,7 @@ Based on the plot, a threshold of 0.0001 retains 100% of the test group. We will
 
 ---
 
-**Matching the Data**
+## **Matching the Data**
 
 
 
@@ -280,7 +280,7 @@ m.match(method="min", nmatches=1, threshold=0.0001)
 
 ​	•	**threshold**: Maximum allowed difference in propensity scores between matched pairs.
 
-**Handling Multiple Matches**
+## **Handling Multiple Matches**
 
 
 
@@ -314,7 +314,7 @@ To account for this in subsequent analyses, we assign weights to each observatio
 m.assign_weight_vector()
 ```
 
-**Examining the Matched Data**
+## **Examining the Matched Data**
 
 ```python
 # View a sample of the matched data
@@ -444,7 +444,7 @@ m.matched_data.sort_values("match_id").head(6)
 
 ---
 
-**Assessing the Match Quality**
+## **Assessing the Match Quality**
 
 
 
@@ -634,7 +634,7 @@ print(continuous_results)
   </tbody>
 </table>
 
-**Conclusion**
+## **Conclusion**
 
 
 
@@ -646,7 +646,7 @@ Using pysmatch, we successfully matched users who defaulted on loans with those 
 
 
 
-**Additional Resources**
+## **Additional Resources**
 
 
 
@@ -656,7 +656,7 @@ Using pysmatch, we successfully matched users who defaulted on loans with those 
 
 
 
-**Contributing**
+## **Contributing**
 
 
 
@@ -678,7 +678,7 @@ We welcome contributions from the community. If you encounter any issues or have
 
 
 
-**License**
+## **License**
 
 
 
