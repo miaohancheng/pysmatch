@@ -15,6 +15,9 @@ dependencies = [
 
 VERSION = "0.3"
 
+with open('README.md', 'r') as f:
+    long_description = f.read()
+
 setup(
     name='pysmatch',
     packages=['pysmatch'],
@@ -22,6 +25,8 @@ setup(
     description='PSM for Python',
     author='Miao HanCheng',
     author_email='hanchengmiao@gmail.com',
+    long_description_content_type='text/markdown',
+    long_description=long_description,
     url='https://github.com/mhcone/pysmatch',
     download_url='https://github.com/mhcone/pysmatch/archive/{}.tar.gz'.format(VERSION),
     keywords=['logistic', 'regression', 'matching', 'observational', 'machine learning', 'inference','pysmatch'],
