@@ -2,6 +2,8 @@
 
 [![PyPI version](https://badge.fury.io/py/pysmatch.svg)](https://badge.fury.io/py/pysmatch)
 
+**PSM（Propensity Score Matching，倾向得分匹配）** 是一种统计方法，用于处理观察性研究中的选择偏差问题，尤其是在评估处理效果时。通过计算处理和未处理组每个观察单元的倾向得分——即在给定观察到的协变量条件下接受处理的条件概率，并基于这些得分来匹配处理组和控制组的个体，使得两组在协变量上更为相似。这种方法能够在非随机化的研究设计中模仿随机化实验的效果，以估计干预的因果效应。
+
 `pysmatch` 是 [`pymatch`](https://github.com/benmiroglio/pymatch) 的改进和扩展版本，为 Python 提供了一个稳健的倾向得分匹配工具。该包修复了原项目中的已知错误，并引入了并行计算和模型选择等新功能，提升了性能和灵活性。
 
 [English Documentation](https://github.com/mhcone/pysmatch/blob/main/README.md)
