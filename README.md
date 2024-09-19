@@ -439,6 +439,9 @@ m.matched_data.sort_values("match_id").head(6)
   </tbody>
 </table>
 
+	•	record_id: Unique identifier for each observation.
+	•	weight: Inverse of the frequency of the control observation in the matched dataset.
+	•	match_id: Identifier for matched pairs.
 
 
 
@@ -475,6 +478,7 @@ categorical_results = m.compare_categorical(return_table=True)
 
 ![png](Example_files/Example_32_2.png)
 
+**Interpretation**: The p-values after matching are all above 0.05, indicating that we cannot reject the null hypothesis that the distributions are independent of the group label. The proportional differences have also decreased significantly.
 
 
 **Continuous Variables**
