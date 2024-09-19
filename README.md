@@ -691,7 +691,3 @@ pysmatch is licensed under the MIT License.
 
 
 **Disclaimer**: The data used in this example is for demonstration purposes only. Ensure that you have the rights and permissions to use any datasets in your analyses.
-
-
-
-By incorporating these improvements, the pysmatch README provides a clearer, more professional, and user-friendly guide to understanding and using the package effectively.
