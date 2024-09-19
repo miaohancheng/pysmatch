@@ -9,10 +9,11 @@ dependencies = [
     'scipy>=1.13.1',
     'seaborn>=0.12.2',
     'statsmodels>=0.14.3',
-    'scikit-learn>=1.5.2'
+    'scikit-learn>=1.5.2',
+    'imbalanced-learn>=0.12.3'
     ]
 
-VERSION = "0.2"
+VERSION = "0.3"
 
 setup(
     name='pysmatch',

@@ -21,21 +21,23 @@ m = Matcher(test, control, yvar="loan_status", exclude=[])
 
 
 # for reproducibility
-np.random.seed(20170925)
+np.random.seed(20240919)
 
-m.fit_scores(balance=True, nmodels=10,n_jobs=3,model_type='tree')
+m.fit_scores(balance=True, nmodels=10,n_jobs=3,model_type='linear')
+# m.fit_scores(balance=True, nmodels=10,n_jobs=3,model_type='tree')
 
 
 m.predict_scores()
 
 m.plot_scores()
 m.tune_threshold(method='random')
-m.match(method="min", nmatches=1, threshold=0.0005)
+m.match(method="min", nmatches=1, threshold=0.0001)
 
 m.record_frequency()
 m.assign_weight_vector()
-m.matched_data.sort_values("match_id").head(6)
-categorical_results = m.compare_categorical(return_table=True)
+print("top 6 matched data")
+print(m.matched_data.sort_values("match_id").head(6))
+categorical_results = m.compare_categorical(return_table=True,plot_result=True)
 print(categorical_results)
-cc = m.compare_continuous(return_table=True)
+cc = m.compare_continuous(return_table=True,plot_result=True)
 print(cc)
