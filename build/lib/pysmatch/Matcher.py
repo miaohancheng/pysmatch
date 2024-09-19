@@ -4,7 +4,7 @@ import pysmatch.functions as uf
 from catboost import CatBoostClassifier
 from multiprocessing.pool import ThreadPool as Pool
 import multiprocessing as mp
-
+from sklearn.linear_model import LogisticRegression
 
 class Matcher:
     """
@@ -26,42 +26,45 @@ class Matcher:
         Useful for unique idenifiers
     """
 
-    def __init__(self, test, control, yvar, formula=None, exclude=[]):
-        # configure plots for ipynb
+    def __init__(self, test, control, yvar, formula=None, exclude=None):
+        if exclude is None:
+            exclude = []
         plt.rcParams["figure.figsize"] = (10, 5)
-        # variables generated during matching
         aux_match = ['scores', 'match_id', 'weight', 'record_id']
-        # assign unique indices to test and control
-        t, c = [i.copy().reset_index(drop=True) for i in (test, control)]
+        t = test.copy().reset_index(drop=True)
+        c = control.copy().reset_index(drop=True)
         t = t.dropna(axis=1, how="all")
         c = c.dropna(axis=1, how="all")
         c.index += len(t)
-        self.data = pd.concat([t.dropna(axis=1, how='all'), c.dropna(axis=1, how='all')], ignore_index=True)
+        self.data = pd.concat([t, c], ignore_index=True)
         self.control_color = "#1F77B4"
         self.test_color = "#FF7F0E"
         self.yvar = yvar
         self.exclude = exclude + [self.yvar] + aux_match
         self.formula = formula
-        self.nmodels = 1  # for now
+        self.nmodels = 1
         self.models = []
         self.swdata = None
         self.model_accuracy = []
+        self.errors = 0
         self.data[yvar] = self.data[yvar].astype(int)  # should be binary 0, 1
-        self.xvars = [i for i in self.data.columns if i not in self.exclude and i != yvar]
+        self.xvars = [i for i in self.data.columns if i not in self.exclude]
         self.data = self.data.dropna(subset=self.xvars)
         self.matched_data = []
-        self.xvars_escaped = ["Q('{}')".format(x) for x in self.xvars]
-        self.yvar_escaped = "Q('{}')".format(self.yvar)
-        self.y, self.X = patsy.dmatrices('{} ~ {}'.format(self.yvar_escaped, '+'.join(self.xvars_escaped)),
-                                         data=self.data, return_type='dataframe')
-        # self.xvars = [i for i in self.data.columns if i not in self.exclude]
-        self.test = self.data[self.data[yvar] == True]
-        self.control = self.data[self.data[yvar] == False]
+        self.xvars_escaped = [f"Q('{x}')" for x in self.xvars]
+        self.yvar_escaped = f"Q('{self.yvar}')"
+        self.y, self.X = patsy.dmatrices(
+            f'{self.yvar_escaped} ~ {" + ".join(self.xvars_escaped)}',
+            data=self.data, return_type='dataframe')
+        self.design_info = self.X.design_info
+        self.test = self.data[self.data[yvar] == 1]
+        self.control = self.data[self.data[yvar] == 0]
         self.testn = len(self.test)
         self.controln = len(self.control)
-        self.minority, self.majority = [i[1] for i in sorted(zip([self.testn, self.controln],
-                                                                 [1, 0]),
-                                                             key=lambda x: x[0])]
+        if self.testn <= self.controln:
+            self.minority, self.majority = 1, 0
+        else:
+            self.minority, self.majority = 0, 1
         print('Formula:\n{} ~ {}'.format(yvar, '+'.join(self.xvars)))
         print('n majority:', len(self.data[self.data[yvar] == self.majority]))
         print('n minority:', len(self.data[self.data[yvar] == self.minority]))
@@ -73,7 +76,9 @@ class Matcher:
             df = pd.concat([uf.drop_static_cols(df[df[self.yvar] == 1], yvar=self.yvar),
                         uf.drop_static_cols(df[df[self.yvar] == 0], yvar=self.yvar)],
                        ignore_index=True)
-            y_samp, X_samp = patsy.dmatrices(self.formula, data=df, return_type='dataframe')
+            y_samp = df[self.yvar]
+            # 使用保存的设计信息生成特征矩阵
+            X_samp = patsy.build_design_matrices([self.design_info], df, return_type='dataframe')[0]
             X_samp.drop(self.yvar, axis=1, errors='ignore', inplace=True)
             categorical_features_indices = np.where(X_samp.dtypes == 'object')[0]
             model = CatBoostClassifier(iterations=100, depth=8
@@ -82,15 +87,12 @@ class Matcher:
                                        , learning_rate=0.05, loss_function='Logloss',
                                        logging_level='Silent')
             model.fit(X_samp, y_samp, plot=False)
-            self.model_accuracy.append(self._scores_to_accuracy(model, X_samp, y_samp))
-            self.models.append(model)
-            return {
-                'model_num': num,
-                'accuracy': self._scores_to_accuracy(model, X_samp, y_samp)
-            }
+            accuracy = self._scores_to_accuracy(model, X_samp, y_samp)
+            return {'model': model, 'accuracy': accuracy}
         except Exception as e:
             self.errors = self.errors + 1  # to avoid infinite loop for misspecified matrix
             print('Error: {}'.format(e))
+            return {'model': None, 'accuracy': None}
 
     def fit_balance_progress(self, num):
         # sample from majority to create balance dataset
@@ -100,21 +102,21 @@ class Matcher:
             df = pd.concat([uf.drop_static_cols(df[df[self.yvar] == 1], yvar=self.yvar),
                             uf.drop_static_cols(df[df[self.yvar] == 0], yvar=self.yvar)],
                            sort=True)
-            y_samp, X_samp = patsy.dmatrices(self.formula, data=df, return_type='dataframe')
+            y_samp = df[self.yvar]
+            # 使用保存的设计信息生成特征矩阵
+            X_samp = patsy.build_design_matrices([self.design_info], df, return_type='dataframe')[0]
             X_samp.drop(self.yvar, axis=1, errors='ignore', inplace=True)
-            glm = GLM(y_samp, X_samp, family=sm.families.Binomial())
-            res = glm.fit()
-            self.model_accuracy.append(self._scores_to_accuracy(res, X_samp, y_samp))
-            self.models.append(res)
-            return {
-                'model_num': num,
-                'accuracy': self._scores_to_accuracy(res, X_samp, y_samp)
-            }
+            model = LogisticRegression(max_iter=1000)
+            model.fit(X_samp, y_samp.values.ravel())
+            # self.model_accuracy.append(self._scores_to_accuracy(res, X_samp, y_samp))
+            accuracy =self._scores_to_accuracy(model, X_samp, y_samp)
+            return {'model': model, 'accuracy': accuracy}
         except Exception as e:
             self.errors = self.errors + 1  # to avoid infinite loop for misspecified matrix
             print('Error: {}'.format(e))
+            return {'model': None, 'accuracy': None}
 
-    def fit_scores(self, balance=True, nmodels=None, n_jobs=1, model_type='line'):
+    def fit_scores(self, balance=True, nmodels=None, n_jobs=1, model_type='linear'):
         """
         Fits logistic regression model(s) used for
         generating propensity scores
@@ -135,7 +137,7 @@ class Matcher:
         Args:
             model_type: str
                 value:tree , Use catboost model to calc score
-                value:line , Use line model to calc score
+                value:linear , Use linear model to calc score
                 todo
             n_jobs: int
                     How many workers should be worked
@@ -162,18 +164,26 @@ class Matcher:
             num_cores = int(mp.cpu_count())
             print("This computer has: " + str(num_cores) + " cores , The workers should be :" + str(
                 min(num_cores, n_jobs)))
-            if self.model_type == 'line':
-                pool = Pool(min(num_cores, n_jobs))
-                pool.map(self.fit_balance_progress, range(self.nmodels))
-                pool.close()
-                pool.join()
+            if self.model_type == 'linear':
+                with Pool(min(num_cores, n_jobs)) as pool:
+                    results = pool.map(self.fit_balance_progress, range(self.nmodels))
+                for res in results:
+                    if res['model'] is not None:
+                        self.models.append(res['model'])
+                        self.model_accuracy.append(res['accuracy'])
+                    else:
+                        self.errors += 1
                 print("\nAverage Accuracy:", "{}%".
                       format(round(np.mean(self.model_accuracy) * 100, 2)))
             elif self.model_type == 'tree':
-                pool = Pool(min(num_cores, n_jobs))
-                pool.map(self.fit_balance_progress_tree, range(self.nmodels))
-                pool.close()
-                pool.join()
+                with Pool(min(num_cores, n_jobs)) as pool:
+                    results = pool.map(self.fit_balance_progress_tree, range(self.nmodels))
+                for res in results:
+                    if res['model'] is not None:
+                        self.models.append(res['model'])
+                        self.model_accuracy.append(res['accuracy'])
+                    else:
+                        self.errors += 1
                 print("\nAverage Accuracy:", "{}%".
                       format(round(np.mean(self.model_accuracy) * 100, 2)))
             else:
@@ -181,11 +191,11 @@ class Matcher:
         else:
             # ignore any imbalance and fit one model
             print('Fitting 1 (Unbalanced) Model...')
-            if self.model_type == 'line':
-                glm = GLM(self.y, self.X, family=sm.families.Binomial())
-                res = glm.fit()
-                self.model_accuracy.append(self._scores_to_accuracy(res, self.X, self.y))
-                self.models.append(res)
+            if self.model_type == 'linear':
+                model = LogisticRegression(max_iter=1000)
+                model.fit(self.X, self.y.values.ravel())
+                self.model_accuracy.append(self._scores_to_accuracy(model, self.X, self.y))
+                self.models.append(model)
             elif self.model_type == 'tree':
                 categorical_features_indices = np.where(self.X.dtypes == 'object')[0]
                 model = CatBoostClassifier(iterations=100, depth=8
@@ -208,21 +218,15 @@ class Matcher:
         None
         """
         scores = np.zeros(len(self.X))
-        if self.model_type == 'line':
-            for i in range(len(self.models)):
-                m = self.models[i]
-                scores += m.predict(self.X[m.params.index])
+        if self.model_type == 'linear':
+            model_preds = np.array([m.predict_proba(self.X)[:, 1] for m in self.models])
 
         else:
-            for i in range(len(self.models)):
-                m = self.models[i]
-                scores += [i[1] for i in m.predict(self.X,
-                                                   prediction_type='Probability',
-                                                   ntree_start=0,
-                                                   ntree_end=0,
-                                                   thread_count=-1,
-                                                   verbose=None)]
-        self.data['scores'] = scores / self.nmodels
+            model_preds = np.array([
+                m.predict(self.X, prediction_type='Probability')[:, 1] for m in self.models
+            ])
+        scores = np.mean(model_preds, axis=0)
+        self.data['scores'] = scores
 
     def match(self, threshold=0.001, nmatches=1, method='min', max_rand=10):
         """
@@ -601,7 +605,7 @@ class Matcher:
         self.matched_data = fm
 
     def _scores_to_accuracy(self, m, X, y):
-        if self.model_type == 'line':
+        if self.model_type == 'linear':
             preds = [[1.0 if i >= .5 else 0.0 for i in m.predict(X)]]
 
         else:
