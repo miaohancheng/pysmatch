@@ -5,6 +5,9 @@ from catboost import CatBoostClassifier
 from multiprocessing.pool import ThreadPool as Pool
 import multiprocessing as mp
 from sklearn.linear_model import LogisticRegression
+from imblearn.over_sampling import RandomOverSampler
+from sklearn.model_selection import train_test_split
+
 
 class Matcher:
     """
@@ -69,163 +72,78 @@ class Matcher:
         print('n majority:', len(self.data[self.data[yvar] == self.majority]))
         print('n minority:', len(self.data[self.data[yvar] == self.minority]))
 
-    def fit_balance_progress_tree(self, num):
-        print("Fitting Models on Balanced Samples , model number :" + str(num))
-        try:
-            df = self.balanced_sample()
-            df = pd.concat([uf.drop_static_cols(df[df[self.yvar] == 1], yvar=self.yvar),
-                        uf.drop_static_cols(df[df[self.yvar] == 0], yvar=self.yvar)],
-                       ignore_index=True)
-            y_samp = df[self.yvar]
-            # 使用保存的设计信息生成特征矩阵
-            X_samp = patsy.build_design_matrices([self.design_info], df, return_type='dataframe')[0]
-            X_samp.drop(self.yvar, axis=1, errors='ignore', inplace=True)
-            categorical_features_indices = np.where(X_samp.dtypes == 'object')[0]
-            model = CatBoostClassifier(iterations=100, depth=8
-                                       , eval_metric='AUC', l2_leaf_reg=3,
-                                       cat_features=categorical_features_indices
-                                       , learning_rate=0.05, loss_function='Logloss',
-                                       logging_level='Silent')
-            model.fit(X_samp, y_samp, plot=False)
-            accuracy = self._scores_to_accuracy(model, X_samp, y_samp)
-            return {'model': model, 'accuracy': accuracy}
-        except Exception as e:
-            self.errors = self.errors + 1  # to avoid infinite loop for misspecified matrix
-            print('Error: {}'.format(e))
-            return {'model': None, 'accuracy': None}
+    def fit_model(self, index, X, y, model_type, balance):
+        X_train, _, y_train, _ = train_test_split(X, y, train_size=0.7, random_state=index)
 
-    def fit_balance_progress(self, num):
-        # sample from majority to create balance dataset
-        print("Fitting Models on Balanced Samples , model number :" + str(num))
-        try:
-            df = self.balanced_sample()
-            df = pd.concat([uf.drop_static_cols(df[df[self.yvar] == 1], yvar=self.yvar),
-                            uf.drop_static_cols(df[df[self.yvar] == 0], yvar=self.yvar)],
-                           sort=True)
-            y_samp = df[self.yvar]
-            # 使用保存的设计信息生成特征矩阵
-            X_samp = patsy.build_design_matrices([self.design_info], df, return_type='dataframe')[0]
-            X_samp.drop(self.yvar, axis=1, errors='ignore', inplace=True)
-            model = LogisticRegression(max_iter=1000)
-            model.fit(X_samp, y_samp.values.ravel())
-            # self.model_accuracy.append(self._scores_to_accuracy(res, X_samp, y_samp))
-            accuracy =self._scores_to_accuracy(model, X_samp, y_samp)
-            return {'model': model, 'accuracy': accuracy}
-        except Exception as e:
-            self.errors = self.errors + 1  # to avoid infinite loop for misspecified matrix
-            print('Error: {}'.format(e))
-            return {'model': None, 'accuracy': None}
+        if balance:
+            ros = RandomOverSampler(random_state=index)
+            X_resampled, y_resampled = ros.fit_resample(X_train, y_train)
+        else:
+            X_resampled, y_resampled = X_train, y_train
+
+        if model_type == 'linear':
+            model = LogisticRegression(max_iter=100)
+            model.fit(X_resampled, y_resampled.iloc[:, 0])
+            accuracy = model.score(X_resampled, y_resampled)
+        elif model_type == 'tree':
+            cat_features_indices = np.where(X_resampled.dtypes == 'object')[0]
+            model = CatBoostClassifier(iterations=100, depth=6,
+                                       eval_metric='AUC', l2_leaf_reg=3,
+                                       cat_features=cat_features_indices,
+                                       learning_rate=0.02, loss_function='Logloss',
+                                       logging_level='Silent')
+            model.fit(X_resampled, y_resampled.iloc[:, 0], plot=False)
+            accuracy = model.score(X_resampled, y_resampled)
+        print(f"Model {index + 1}/{self.nmodels} trained. Accuracy: {accuracy:.2%}")
+        return {'model': model, 'accuracy': accuracy}
 
     def fit_scores(self, balance=True, nmodels=None, n_jobs=1, model_type='linear'):
-        """
-        Fits logistic regression model(s) used for
-        generating propensity scores
-
-        Parameters
-        ----------
-        balance : bool
-            Should balanced datasets be used?
-            (n_control == n_test)
-        nmodels : int
-            How many models should be fit?
-            Score becomes the average of the <nmodels> models if nmodels > 1
-
-        Returns
-        -------
-        None
-
-        Args:
-            model_type: str
-                value:tree , Use catboost model to calc score
-                value:linear , Use linear model to calc score
-                todo
-            n_jobs: int
-                    How many workers should be worked
-        """
-        # reset models if refitting
+        self.models, self.model_accuracy = [], []
         self.model_type = model_type
-        if len(self.models) > 0:
-            self.models = []
-        if len(self.model_accuracy) > 0:
-            self.model_accuracy = []
-        if not self.formula:
-            # use all columns in the model
-            self.xvars_escaped = ["Q('{}')".format(x) for x in self.xvars]
-            self.yvar_escaped = "Q('{}')".format(self.yvar)
-            self.formula = '{} ~ {}'.format(self.yvar_escaped, '+'.join(self.xvars_escaped))
+        num_cores = mp.cpu_count()
+        print(f"This computer has: {num_cores} cores, The workers will be: {min(num_cores, n_jobs)}")
+
+        if balance and nmodels is None:
+            minor, major = [self.data[self.data[self.yvar] == i] for i in (self.minority, self.majority)]
+            nmodels = int(np.ceil((len(major) / len(minor)) / 10) * 10)
+
+        nmodels = max(1, nmodels)
+
         if balance:
-            if nmodels is None:
-                # fit multiple models based on imbalance severity (rounded up to nearest tenth)
-                minor, major = [self.data[self.data[self.yvar] == i] for i in (self.minority,
-                                                                               self.majority)]
-                nmodels = int(np.ceil((len(major) / len(minor)) / 10) * 10)
-            self.nmodels = nmodels
-            self.errors = 0
-            num_cores = int(mp.cpu_count())
-            print("This computer has: " + str(num_cores) + " cores , The workers should be :" + str(
-                min(num_cores, n_jobs)))
-            if self.model_type == 'linear':
-                with Pool(min(num_cores, n_jobs)) as pool:
-                    results = pool.map(self.fit_balance_progress, range(self.nmodels))
-                for res in results:
-                    if res['model'] is not None:
-                        self.models.append(res['model'])
-                        self.model_accuracy.append(res['accuracy'])
-                    else:
-                        self.errors += 1
-                print("\nAverage Accuracy:", "{}%".
-                      format(round(np.mean(self.model_accuracy) * 100, 2)))
-            elif self.model_type == 'tree':
-                with Pool(min(num_cores, n_jobs)) as pool:
-                    results = pool.map(self.fit_balance_progress_tree, range(self.nmodels))
-                for res in results:
-                    if res['model'] is not None:
-                        self.models.append(res['model'])
-                        self.model_accuracy.append(res['accuracy'])
-                    else:
-                        self.errors += 1
-                print("\nAverage Accuracy:", "{}%".
-                      format(round(np.mean(self.model_accuracy) * 100, 2)))
-            else:
-                print('wrong model_type arguement :' + self.model_type)
+            with Pool(min(num_cores, n_jobs)) as pool:
+                results = pool.starmap(self.fit_model,
+                                       [(i, self.X, self.y, self.model_type, balance) for i in range(nmodels)])
+            for res in results:
+                self.models.append(res['model'])
+                self.model_accuracy.append(res['accuracy'])
+            print("\nAverage Accuracy:", "{:.2f}%".format(np.mean(self.model_accuracy) * 100))
         else:
-            # ignore any imbalance and fit one model
-            print('Fitting 1 (Unbalanced) Model...')
-            if self.model_type == 'linear':
-                model = LogisticRegression(max_iter=1000)
-                model.fit(self.X, self.y.values.ravel())
-                self.model_accuracy.append(self._scores_to_accuracy(model, self.X, self.y))
-                self.models.append(model)
-            elif self.model_type == 'tree':
-                categorical_features_indices = np.where(self.X.dtypes == 'object')[0]
-                model = CatBoostClassifier(iterations=100, depth=8
-                                           , eval_metric='AUC', l2_leaf_reg=3,
-                                           cat_features=categorical_features_indices
-                                           , learning_rate=0.05, loss_function='Logloss',
-                                           logging_level='Silent')
-                model.fit(self.X, self.y, plot=False)
-                self.model_accuracy.append(self._scores_to_accuracy(model, self.X, self.y))
-                self.models.append(model)
-            print("\nAccuracy", round(np.mean(self.model_accuracy[0]) * 100, 2))
+            result = self.fit_model(0, self.X, self.y, self.model_type, balance)
+            self.models.append(result['model'])
+            self.model_accuracy.append(result['accuracy'])
+            print("\nAccuracy:", "{:.2f}%".format(self.model_accuracy[0] * 100))
 
     def predict_scores(self):
         """
-        Predict Propensity scores for each observation.
-        Adds a "scores" columns to self.data
+        Predict propensity scores for each observation.
+        Adds a "scores" column to self.data
 
         Returns
         -------
         None
         """
-        scores = np.zeros(len(self.X))
-        if self.model_type == 'linear':
-            model_preds = np.array([m.predict_proba(self.X)[:, 1] for m in self.models])
+        model_preds = []
 
-        else:
-            model_preds = np.array([
-                m.predict(self.X, prediction_type='Probability')[:, 1] for m in self.models
-            ])
+        for m in self.models:
+            if self.model_type == 'linear':
+                preds = m.predict_proba(self.X)[:, 1]
+            elif self.model_type == 'tree':
+                preds = m.predict(self.X, prediction_type='Probability')[:, 1]
+            model_preds.append(preds)
+
+        model_preds = np.array(model_preds)
         scores = np.mean(model_preds, axis=0)
+
         self.data['scores'] = scores
 
     def match(self, threshold=0.001, nmatches=1, method='min', max_rand=10):
@@ -265,7 +183,6 @@ class Matcher:
         ctrl_scores = self.data[self.data[self.yvar] == False][['scores']]
         result, match_ids = [], []
         for i in range(len(test_scores)):
-            # uf.progress(i+1, len(test_scores), 'Matching Control to Test...')
             match_id = i
             score = test_scores.iloc[i]
             if method == 'random':
@@ -277,7 +194,6 @@ class Matcher:
                 raise (AssertionError, "Invalid method parameter, use ('random', 'min')")
             if len(matches) == 0:
                 continue
-            # randomly choose nmatches indices, if len(matches) > nmatches
             select = nmatches if method != 'random' else np.random.choice(range(1, max_rand + 1), 1)
             chosen = np.random.choice(matches.index, min(select, nmatches), replace=False)
             result.extend([test_scores.index[i]] + list(chosen))
@@ -296,7 +212,7 @@ class Matcher:
         if not data:
             data = self.data
         minor, major = data[data[self.yvar] == self.minority], \
-                       data[data[self.yvar] == self.majority]
+            data[data[self.yvar] == self.majority]
         return pd.concat([major.sample(len(minor)), minor], ignore_index=True).dropna()
 
     def plot_scores(self):
@@ -342,7 +258,7 @@ class Matcher:
         else:
             print("{} is a continuous variable".format(col))
 
-    def compare_continuous(self, save=False, return_table=False):
+    def compare_continuous(self, save=False, return_table=False,plot_result = True):
         """
         Plots the ECDFs for continuous features before and
         after matching. Each chart title contains test results
@@ -397,29 +313,29 @@ class Matcher:
                 pa, trutha = uf.grouped_permutation_test(uf.chi2_distance, tra, coa)
                 ksb = round(uf.ks_boot(trb, cob, nboots=1000), 6)
                 ksa = round(uf.ks_boot(tra, coa, nboots=1000), 6)
+                if plot_result:
+                    # plotting
+                    f, (ax1, ax2) = plt.subplots(1, 2, sharey=True, sharex=True, figsize=(12, 5))
+                    ax1.plot(xcb.x, xcb.y, label='Control', color=self.control_color)
+                    ax1.plot(xtb.x, xtb.y, label='Test', color=self.test_color)
+                    ax1.plot(xcb.x, xcb.y, label='Control', color=self.control_color)
+                    ax1.plot(xtb.x, xtb.y, label='Test', color=self.test_color)
 
-                # plotting
-                f, (ax1, ax2) = plt.subplots(1, 2, sharey=True, sharex=True, figsize=(12, 5))
-                ax1.plot(xcb.x, xcb.y, label='Control', color=self.control_color)
-                ax1.plot(xtb.x, xtb.y, label='Test', color=self.test_color)
-                ax1.plot(xcb.x, xcb.y, label='Control', color=self.control_color)
-                ax1.plot(xtb.x, xtb.y, label='Test', color=self.test_color)
-
-                title_str = '''
-                ECDF for {} {} Matching
-                KS p-value: {}
-                Grouped Perm p-value: {}
-                Std. Median Difference: {}
-                Std. Mean Difference: {}
-                '''
-                ax1.set_title(title_str.format(col, "before", ksb, pb,
-                                               std_diff_med_before, std_diff_mean_before))
-                ax2.plot(xca.x, xca.y, label='Control')
-                ax2.plot(xta.x, xta.y, label='Test')
-                ax2.set_title(title_str.format(col, "after", ksa, pa,
-                                               std_diff_med_after, std_diff_mean_after))
-                ax2.legend(loc="lower right")
-                plt.xlim((0, np.percentile(xta.x, 99)))
+                    title_str = '''
+                    ECDF for {} {} Matching
+                    KS p-value: {}
+                    Grouped Perm p-value: {}
+                    Std. Median Difference: {}
+                    Std. Mean Difference: {}
+                    '''
+                    ax1.set_title(title_str.format(col, "before", ksb, pb,
+                                                   std_diff_med_before, std_diff_mean_before))
+                    ax2.plot(xca.x, xca.y, label='Control')
+                    ax2.plot(xta.x, xta.y, label='Test')
+                    ax2.set_title(title_str.format(col, "after", ksa, pa,
+                                                   std_diff_med_after, std_diff_mean_after))
+                    ax2.legend(loc="lower right")
+                    plt.xlim((0, np.percentile(xta.x, 99)))
 
                 test_results.append({
                     "var": col,
@@ -447,7 +363,7 @@ class Matcher:
 
         return pd.DataFrame(test_results)[var_order] if return_table else None
 
-    def compare_categorical(self, return_table=False):
+    def compare_categorical(self, return_table=False,plot_result=True):
         """
         Plots the proportional differences of each enumerated
         discete column for test and control.
@@ -495,13 +411,13 @@ class Matcher:
                 df = dbefore.join(dafter)
                 test_results_i = self.prop_test(col)
                 test_results.append(test_results_i)
-
-                # plotting
-                df.plot.bar(alpha=.8)
-                plt.title(title_str.format(col, test_results_i["before"],
-                                           test_results_i["after"]))
-                lim = max(.09, abs(df).max().max()) + .01
-                plt.ylim((-lim, lim))
+                if plot_result:
+                    # plotting
+                    df.plot.bar(alpha=.8)
+                    plt.title(title_str.format(col, test_results_i["before"],
+                                               test_results_i["after"]))
+                    lim = max(.09, abs(df).max().max()) + .01
+                    plt.ylim((-lim, lim))
         return pd.DataFrame(test_results)[['var', 'before', 'after']] if return_table else None
 
     def prep_prop_test(self, data, var):
@@ -549,7 +465,7 @@ class Matcher:
         Returns the proportion of data retained after matching
         """
         return len(self.matched_data[self.matched_data[self.yvar] == self.minority]) * 1.0 / \
-               len(self.data[self.data[self.yvar] == self.minority])
+            len(self.data[self.data[self.yvar] == self.minority])
 
     def tune_threshold(self, method, nmatches=1, rng=np.arange(0, .001, .0001)):
         """
@@ -597,22 +513,18 @@ class Matcher:
         return freqs
 
     def assign_weight_vector(self):
-        record_freqs = self.matched_data.groupby("record_id") \
-            .count()[['match_id']].reset_index()
-        record_freqs.columns = ["record_id", "weight"]
-        fm = record_freqs.merge(self.matched_data, on="record_id")
-        fm['weight'] = 1 / fm['weight']
-        self.matched_data = fm
+        record_freqs = self.matched_data.groupby('record_id').size().reset_index(name='count')
+        record_freqs['weight'] = 1 / record_freqs['count']
+        self.matched_data = self.matched_data.merge(record_freqs[['record_id', 'weight']], on='record_id')
 
     def _scores_to_accuracy(self, m, X, y):
         if self.model_type == 'linear':
-            preds = [[1.0 if i >= .5 else 0.0 for i in m.predict(X)]]
-
+            preds = m.predict(X)
         else:
-            preds = [[1.0 if i[1] >= .5 else 0.0 for i in m.predict(X,
-                                                                    prediction_type='Probability',
-                                                                    ntree_start=0,
-                                                                    ntree_end=0,
-                                                                    thread_count=-1,
-                                                                    verbose=None)]]
-        return (y.to_numpy().T == preds).sum() * 1.0 / len(y)
+            preds = m.predict(X, prediction_type='Probability', ntree_start=0, ntree_end=0, thread_count=-1,
+                              verbose=None)[:, 1]
+
+        preds = (preds >= 0.5).astype(float)
+
+        accuracy = np.mean(preds == y.to_numpy())
+        return accuracy
