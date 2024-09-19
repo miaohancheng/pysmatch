@@ -27,17 +27,6 @@ pip install pysmatch
 
 您可以跟随本文档，或者下载对应的 [Example.ipynb](https://github.com/mhcone/pysmatch/blob/main/Example.ipynb) 笔记本。
 
-**快速开始**
-
-
-
-了解 pysmatch 的最佳方式是通过一个示例。以下指南将引导您使用 pysmatch 对 [Lending Club 贷款数据](https://www.kaggle.com/wendykan/lending-club-loan-data) 进行倾向得分匹配。
-
-
-
-您可以跟随本文档，或者下载对应的 [Example.ipynb](https://github.com/mhcone/pysmatch/blob/main/Example.ipynb) 笔记本。
-
-
 
 **下载数据集**
 
