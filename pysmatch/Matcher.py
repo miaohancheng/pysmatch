@@ -1,4 +1,5 @@
 from __future__ import print_function
+import matplotlib.pyplot as plt
 from pysmatch import *
 import pysmatch.functions as uf
 from catboost import CatBoostClassifier
@@ -202,19 +203,6 @@ class Matcher:
         self.matched_data['match_id'] = match_ids
         self.matched_data['record_id'] = self.matched_data.index
 
-    def select_from_design(self, cols):
-        d = pd.DataFrame()
-        for c in cols:
-            d = pd.concat([d, self.X.select(lambda x: x.startswith(c), axis=1)], axis=1, sort=True)
-        return d
-
-    def balanced_sample(self, data=None):
-        if not data:
-            data = self.data
-        minor, major = data[data[self.yvar] == self.minority], \
-            data[data[self.yvar] == self.majority]
-        return pd.concat([major.sample(len(minor)), minor], ignore_index=True).dropna()
-
     def plot_scores(self):
         """
         Plots the distribution of propensity scores before matching between
@@ -229,6 +217,7 @@ class Matcher:
         plt.title("Propensity Scores Before Matching")
         plt.ylabel("Percentage (%)")
         plt.xlabel("Scores")
+        plt.show()
 
     def prop_test(self, col):
         """
@@ -336,6 +325,7 @@ class Matcher:
                                                    std_diff_med_after, std_diff_mean_after))
                     ax2.legend(loc="lower right")
                     plt.xlim((0, np.percentile(xta.x, 99)))
+                    plt.show()
 
                 test_results.append({
                     "var": col,
@@ -494,6 +484,7 @@ class Matcher:
         plt.ylabel("Proportion Retained")
         plt.xlabel("Threshold")
         plt.xticks(rng)
+        plt.show()
 
     def record_frequency(self):
         """
