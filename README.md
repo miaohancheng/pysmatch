@@ -16,7 +16,7 @@
 
 - **Bug Fixes**: Addresses known issues from the original `pymatch` project.
 - **Parallel Computing**: Speeds up computation by utilizing multiple CPU cores.
-- **Model Selection**: Supports both linear (logistic regression) and tree-based models for propensity score estimation.
+- **Model Selection**: Supports linear models (logistic regression), tree-based models (e.g., CatBoost), and K-Nearest Neighbors (KNN) for propensity score estimation.
 
 ## Installation
 
@@ -192,14 +192,13 @@ We also specify nmodels=100 to train 100 models on different random samples of t
 
 
 
-With pysmatch, you can choose between linear models (logistic regression) and tree-based models (e.g., decision trees) for propensity score estimation. You can also leverage parallel computing to speed up model fitting by specifying the number of jobs (n_jobs).
-
+With pysmatch, you can choose between linear models (logistic regression), tree-based models (e.g., CatBoost), and K-Nearest Neighbors (KNN) for propensity score estimation. You can also leverage parallel computing to speed up model fitting by specifying the number of jobs (n_jobs).
 ```python
 # Set random seed for reproducibility
 np.random.seed(42)
 
 # Fit propensity score models
-m.fit_scores(balance=True, nmodels=100, n_jobs=5, model_type='linear')
+m.fit_scores(balance=True, nmodels=100, n_jobs=5, model_type='linear')# model_type='linear', model_type='tree'
 ```
 
 Output:

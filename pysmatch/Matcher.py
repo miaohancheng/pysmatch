@@ -1,5 +1,8 @@
 from __future__ import print_function
 import matplotlib.pyplot as plt
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.preprocessing import StandardScaler
+
 from pysmatch import *
 import pysmatch.functions as uf
 from catboost import CatBoostClassifier
@@ -53,6 +56,7 @@ class Matcher:
         self.errors = 0
         self.data[yvar] = self.data[yvar].astype(int)  # should be binary 0, 1
         self.xvars = [i for i in self.data.columns if i not in self.exclude]
+        self.original_xvars = self.xvars.copy()
         self.data = self.data.dropna(subset=self.xvars)
         self.matched_data = []
         self.xvars_escaped = [f"Q('{x}')" for x in self.xvars]
@@ -72,7 +76,25 @@ class Matcher:
         print('Formula:\n{} ~ {}'.format(yvar, '+'.join(self.xvars)))
         print('n majority:', len(self.data[self.data[yvar] == self.majority]))
         print('n minority:', len(self.data[self.data[yvar] == self.minority]))
+    def preprocess_data(self, X, fit_scaler=False, index=None):
+        X_encoded = pd.get_dummies(X)
 
+        if not hasattr(self, 'X_columns'):
+            self.X_columns = X_encoded.columns
+        else:
+            X_encoded = X_encoded.reindex(columns=self.X_columns, fill_value=0)
+
+        if fit_scaler:
+            scaler = StandardScaler()
+            X_scaled = scaler.fit_transform(X_encoded)
+            if not hasattr(self, 'scalers'):
+                self.scalers = {}
+            self.scalers[index] = scaler
+        else:
+            scaler = self.scalers[index]
+            X_scaled = scaler.transform(X_encoded)
+
+        return X_scaled
     def fit_model(self, index, X, y, model_type, balance):
         X_train, _, y_train, _ = train_test_split(X, y, train_size=0.7, random_state=index)
 
@@ -82,10 +104,15 @@ class Matcher:
         else:
             X_resampled, y_resampled = X_train, y_train
 
+        if model_type in ['linear', 'knn']:
+            X_processed = self.preprocess_data(X_resampled, fit_scaler=True, index=index)
+        else:
+            X_processed = X_resampled
+
         if model_type == 'linear':
             model = LogisticRegression(max_iter=100)
-            model.fit(X_resampled, y_resampled.iloc[:, 0])
-            accuracy = model.score(X_resampled, y_resampled)
+            model.fit(X_processed, y_resampled.iloc[:, 0])
+            accuracy = model.score(X_processed, y_resampled)
         elif model_type == 'tree':
             cat_features_indices = np.where(X_resampled.dtypes == 'object')[0]
             model = CatBoostClassifier(iterations=100, depth=6,
@@ -95,6 +122,12 @@ class Matcher:
                                        logging_level='Silent')
             model.fit(X_resampled, y_resampled.iloc[:, 0], plot=False)
             accuracy = model.score(X_resampled, y_resampled)
+        elif model_type == 'knn':
+            model = KNeighborsClassifier(n_neighbors=5)
+            model.fit(X_processed, y_resampled.iloc[:, 0])
+            accuracy = model.score(X_processed, y_resampled)
+        else:
+            raise ValueError("Invalid model_type. Choose from 'linear', 'tree', or 'knn'.")
         print(f"Model {index + 1}/{self.nmodels} trained. Accuracy: {accuracy:.2%}")
         return {'model': model, 'accuracy': accuracy}
 
@@ -135,11 +168,20 @@ class Matcher:
         """
         model_preds = []
 
-        for m in self.models:
+        for idx, m in enumerate(self.models):
+            if self.model_type in ['linear', 'knn']:
+                X_processed = self.preprocess_data(self.X, fit_scaler=False, index=idx)
+            else:
+                X_processed = self.X
+
             if self.model_type == 'linear':
-                preds = m.predict_proba(self.X)[:, 1]
+                preds = m.predict_proba(X_processed)[:, 1]
             elif self.model_type == 'tree':
                 preds = m.predict(self.X, prediction_type='Probability')[:, 1]
+            elif self.model_type == 'knn':
+                preds = m.predict_proba(X_processed)[:, 1]
+            else:
+                raise ValueError("Invalid model_type. Choose from 'linear', 'tree', or 'knn'.")
             model_preds.append(preds)
 
         model_preds = np.array(model_preds)

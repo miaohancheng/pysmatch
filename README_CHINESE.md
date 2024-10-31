@@ -15,7 +15,7 @@
 
 - **错误修复**：解决了原 `pymatch` 项目中的已知问题。
 - **并行计算**：利用多核 CPU 加速计算过程。
-- **模型选择**：支持线性模型（逻辑回归）和基于树的模型（如决策树）进行倾向得分估计。
+- **模型选择**：支持线性模型（逻辑回归）、树模型（如 CatBoost），以及 K 近邻（KNN）模型进行倾向评分估计。
 
 ## 安装
 
@@ -207,14 +207,13 @@ n minority: 1219
 
 ## **模型选择和并行计算**
 
-使用 pysmatch，您可以在倾向得分估计中选择线性模型（逻辑回归）或基于树的模型（如决策树）。您还可以通过指定作业数（n_jobs）利用并行计算来加速模型拟合。
-
+使用 pysmatch，您可以在倾向评分估计中选择线性模型（逻辑回归）、树模型（例如 CatBoost）和 K 近邻（KNN）模型。您还可以通过指定作业数量（n_jobs）利用并行计算来加速模型拟合。
 ```python
 # Set random seed for reproducibility
 np.random.seed(42)
 
 # Fit propensity score models
-m.fit_scores(balance=True, nmodels=100, n_jobs=5, model_type='linear')
+m.fit_scores(balance=True, nmodels=100, n_jobs=5, model_type='linear') # model_type='knn',model_type='tree'
 ```
 
 输出:

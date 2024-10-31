@@ -4,3 +4,4 @@
 .idea*
 
 loan_full.csv
+/catboost_info/

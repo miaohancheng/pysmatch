@@ -1,18 +1,20 @@
 Metadata-Version: 2.1
 Name: pysmatch
-Version: 0.3
-Summary: PSM for Python
+Version: 0.4
+Summary: Propensity Score Matching(PSM) on python
 Home-page: https://github.com/mhcone/pysmatch
-Download-URL: https://github.com/mhcone/pysmatch/archive/0.3.tar.gz
+Download-URL: https://github.com/mhcone/pysmatch/archive/0.4.tar.gz
 Author: Miao HanCheng
 Author-email: hanchengmiao@gmail.com
-Keywords: logistic,regression,matching,observational,machine learning,inference,pysmatch
+Keywords: logistic,regression,matching,observational,machine learning,inference,pysmatch,Propensity Score Matching
 Description-Content-Type: text/markdown
 License-File: LICENSE
 
 # `pysmatch`
 
 [![PyPI version](https://badge.fury.io/py/pysmatch.svg)](https://badge.fury.io/py/pysmatch)
+[![Downloads](https://static.pepy.tech/badge/pysmatch)](https://pepy.tech/project/pysmatch)
+![GitHub License](https://img.shields.io/github/license/miaohancheng/pysmatch)
 
 
 **Propensity Score Matching (PSM)** is a statistical technique used to address selection bias in observational studies, particularly in the assessment of treatment effects. It involves calculating the propensity score—the probability of receiving treatment given observed covariates—for each unit in both treatment and control groups. Units are then matched based on these scores, making the groups more comparable on the covariates. This method attempts to mimic the effects of a randomized experiment in non-randomized study designs, aiming to estimate the causal effects of an intervention.
@@ -26,7 +28,7 @@ License-File: LICENSE
 
 - **Bug Fixes**: Addresses known issues from the original `pymatch` project.
 - **Parallel Computing**: Speeds up computation by utilizing multiple CPU cores.
-- **Model Selection**: Supports both linear (logistic regression) and tree-based models for propensity score estimation.
+- **Model Selection**: Supports linear models (logistic regression), tree-based models (e.g., CatBoost), and K-Nearest Neighbors (KNN) for propensity score estimation.
 
 ## Installation
 
@@ -202,14 +204,13 @@ We also specify nmodels=100 to train 100 models on different random samples of t
 
 
 
-With pysmatch, you can choose between linear models (logistic regression) and tree-based models (e.g., decision trees) for propensity score estimation. You can also leverage parallel computing to speed up model fitting by specifying the number of jobs (n_jobs).
-
+With pysmatch, you can choose between linear models (logistic regression), tree-based models (e.g., CatBoost), and K-Nearest Neighbors (KNN) for propensity score estimation. You can also leverage parallel computing to speed up model fitting by specifying the number of jobs (n_jobs).
 ```python
 # Set random seed for reproducibility
 np.random.seed(42)
 
 # Fit propensity score models
-m.fit_scores(balance=True, nmodels=100, n_jobs=5, model_type='linear')
+m.fit_scores(balance=True, nmodels=100, n_jobs=5, model_type='linear')# model_type='linear', model_type='tree'
 ```
 
 Output:
