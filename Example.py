@@ -1,4 +1,3 @@
-print(1)
 import warnings
 warnings.filterwarnings('ignore')
 from pysmatch.Matcher import Matcher
