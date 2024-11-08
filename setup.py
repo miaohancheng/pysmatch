@@ -1,4 +1,5 @@
 from setuptools import setup
+import os
 
 dependencies = [
     'catboost>=1.2.7',
@@ -13,15 +14,13 @@ dependencies = [
     'imbalanced-learn>=0.12.3'
     ]
 
-VERSION = "0.5"
-
 with open('README.md', 'r') as f:
     long_description = f.read()
 
 setup(
     name='pysmatch',
     packages=['pysmatch'],
-    version=VERSION,
+    version=os.getenv('PACKAGE_VERSION', '0.1'),
     description='Propensity Score Matching(PSM) on python',
     author='Miao HanCheng',
     author_email='hanchengmiao@gmail.com',
