@@ -264,12 +264,12 @@ Based on the plot, a threshold of 0.0001 retains 100% of the test group. We will
 
 
 
-We perform the matching using the match method, specifying the matching method, number of matches per observation, and the threshold.
-
+We have enhanced the matching method to include an option to control whether matching is done with or without replacement. You can specify the matching method, the number of matches per observation, the threshold, and whether to allow replacement in the matching process.
 ```python
 # Perform matching
-m.match(method="min", nmatches=1, threshold=0.0001)
+m.match(method="min", nmatches=1, threshold=0.0001, replacement=False)
 ```
+This command will execute the matching process using the minimum difference strategy, ensuring 1:1 matching without replacement. The threshold is set to determine how close the propensity scores need to be to consider a match suitable.
 
 **Understanding the Matching Parameters**
 
@@ -284,6 +284,8 @@ m.match(method="min", nmatches=1, threshold=0.0001)
 ​	•	**nmatches**: Number of matches to find for each observation in the test group.
 
 ​	•	**threshold**: Maximum allowed difference in propensity scores between matched pairs.
+
+​	•   **replacement**: Whether to allow replacement in the matching process.
 
 ## **Handling Multiple Matches**
 

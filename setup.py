@@ -13,7 +13,7 @@ dependencies = [
     'imbalanced-learn>=0.12.3'
     ]
 
-VERSION = "0.4"
+VERSION = "0.5"
 
 with open('README.md', 'r') as f:
     long_description = f.read()

@@ -189,10 +189,10 @@ class Matcher:
 
         self.data['scores'] = scores
 
-    def match(self, threshold=0.001, nmatches=1, method='min', max_rand=10):
+    def match(self, threshold=0.001, nmatches=1, method='min', max_rand=10, replacement=False):
         """
         Finds suitable match(es) for each record in the minority
-        dataset, if one exists. Records are exlcuded from the final
+        dataset, if one exists. Records are excluded from the final
         matched dataset if there are no suitable matches.
 
         self.matched_data contains the matched dataset once this
@@ -201,8 +201,8 @@ class Matcher:
         Parameters
         ----------
         threshold : float
-            threshold for fuzzy matching matching
-            i.e. |score_x - score_y| >= theshold
+            threshold for fuzzy matching
+            i.e. |score_x - score_y| <= threshold
         nmatches : int
             How majority profiles should be matched
             (at most) to minority profiles
@@ -213,37 +213,55 @@ class Matcher:
             "min" - choose the profile with the closest score
         max_rand : int
             max number of profiles to consider when using random tie-breaks
+        replacement : bool
+            Whether to allow replacement in the matching process
 
         Returns
         -------
         None
         """
-        if 'scores' not in self.data.columns:
+        if 'scores' not in self.data.columns:  # Check if the propensity scores are already calculated
             print("Propensity Scores have not been calculated. Using defaults...")
-            self.fit_scores()
-            self.predict_scores()
-        test_scores = self.data[self.data[self.yvar] == True][['scores']]
-        ctrl_scores = self.data[self.data[self.yvar] == False][['scores']]
-        result, match_ids = [], []
-        for i in range(len(test_scores)):
+            self.fit_scores()  # Fit the propensity score models
+            self.predict_scores()  # Predict propensity scores for the data
+
+        test_scores = self.data[self.data[self.yvar] == True][['scores']]  # Get scores for the test group
+        ctrl_scores = self.data[self.data[self.yvar] == False][['scores']]  # Get scores for the control group
+        result, match_ids = [], []  # Initialize the result list and match ids
+        used_indices = set()  # Keep track of used indices if no replacement is allowed
+
+        for i in range(len(test_scores)):  # Iterate through each test score
             match_id = i
             score = test_scores.iloc[i]
-            if method == 'random':
-                bool_match = abs(ctrl_scores - score) <= threshold
+            if method == 'random':  # If the method is random
+                bool_match = abs(ctrl_scores - score) <= threshold  # Find all control scores within the threshold
                 matches = ctrl_scores.loc[bool_match[bool_match.scores].index]
-            elif method == 'min':
-                matches = abs(ctrl_scores - score).sort_values('scores').head(nmatches)
+            elif method == 'min':  # If the method is minimum difference
+                matches = abs(ctrl_scores - score).sort_values('scores').head(nmatches)  # Find the closest scores
             else:
-                raise (AssertionError, "Invalid method parameter, use ('random', 'min')")
-            if len(matches) == 0:
+                raise ValueError("Invalid method parameter, use ('random', 'min')")
+
+            if len(matches) == 0:  # If no matches are found, continue to the next
                 continue
-            select = nmatches if method != 'random' else np.random.choice(range(1, max_rand + 1), 1)
-            chosen = np.random.choice(matches.index, min(select, nmatches), replace=False)
-            result.extend([test_scores.index[i]] + list(chosen))
-            match_ids.extend([i] * (len(chosen) + 1))
-        self.matched_data = self.data.loc[result]
-        self.matched_data['match_id'] = match_ids
-        self.matched_data['record_id'] = self.matched_data.index
+
+            if not replacement:  # If replacement is not allowed
+                matches = matches[~matches.index.isin(used_indices)]  # Exclude already used indices
+
+            if len(matches) == 0:  # Check again if there are matches after filtering
+                continue
+
+            select = nmatches if method != 'random' else np.random.choice(range(1, max_rand + 1), 1)  # Select number of matches
+            chosen = np.random.choice(matches.index, min(select, nmatches), replace=False)  # Choose the indices for matching
+
+            if not replacement:  # If no replacement, update the used indices
+                used_indices.update(chosen)
+
+            result.extend([test_scores.index[i]] + list(chosen))  # Append the matched indices to the result
+            match_ids.extend([i] * (len(chosen) + 1))  # Append the match_id for each pair
+
+        self.matched_data = self.data.loc[result]  # Create the matched dataset
+        self.matched_data['match_id'] = match_ids  # Assign match_id to each row in the matched dataset
+        self.matched_data['record_id'] = self.matched_data.index  # Assign record_id to each row in the matched dataset
 
     def plot_scores(self):
         """

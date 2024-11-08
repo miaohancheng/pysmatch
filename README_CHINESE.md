@@ -271,12 +271,13 @@ m.tune_threshold(method='random')
 ## **匹配数据**
 
 
+我们改进了匹配方法，增加了一个选项来控制匹配过程中是否允许有放回匹配。您可以指定匹配方法、每个观察的匹配数、阈值，以及是否允许在匹配过程中有放回。
 
-我们使用 match 方法执行匹配，指定匹配方法、每个观察值的匹配数量和阈值。
 ```python
 # Perform matching
-m.match(method="min", nmatches=1, threshold=0.0001)
+m.match(method="min", nmatches=1, threshold=0.0001, replacement=False)
 ```
+此命令将使用最小差异策略执行匹配过程，确保1:1无放回匹配。阈值设置用于确定倾向得分需要多接近才能考虑为适当的匹配。
 
 **理解匹配参数**
 
@@ -286,11 +287,13 @@ m.match(method="min", nmatches=1, threshold=0.0001)
 
 ​	•	"min"：根据倾向得分差的最小值找到最接近的匹配。
 
-​	• "random"：在阈值内随机选择匹配。
+​	•   "random"：在阈值内随机选择匹配。
 
 ​	•	**nmatches**: 为测试组中的每个观察值找到的匹配数量。
 
 ​	•	**threshold**: 匹配对之间允许的倾向得分最大差值。
+
+​	•   **replacement**: 在匹配过程中是否允许有放回匹配。
 
 ## **处理多重匹配**
 
