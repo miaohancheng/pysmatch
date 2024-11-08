@@ -9,7 +9,9 @@
 
 `pysmatch` 是 [`pymatch`](https://github.com/benmiroglio/pymatch) 的改进和扩展版本，为 Python 提供了一个稳健的倾向得分匹配工具。该包修复了原项目中的已知错误，并引入了并行计算和模型选择等新功能，提升了性能和灵活性。
 
-[English Documentation](https://github.com/mhcone/pysmatch/blob/main/README.md)
+## 多语言文档
+
+[[English](https://github.com/mhcone/pysmatch/blob/main/README.md)|中文]
 
 ## 特性
 
