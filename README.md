@@ -10,7 +10,8 @@
 
 `pysmatch` is an improved and extended version of [`pymatch`](https://github.com/benmiroglio/pymatch), providing a robust tool for propensity score matching in Python. This package fixes known bugs from the original project and introduces new features such as parallel computing and model selection, enhancing performance and flexibility.
 
-[中文文档](https://github.com/mhcone/pysmatch/blob/main/README_CHINESE.md)
+## Multilingual Readme
+[English|[中文](https://github.com/mhcone/pysmatch/blob/main/README_CHINESE.md)]
 
 ## Features
 
