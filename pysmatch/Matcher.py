@@ -2,7 +2,7 @@ from __future__ import print_function
 import matplotlib.pyplot as plt
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler
-
+import logging
 from pysmatch import *
 import pysmatch.functions as uf
 from catboost import CatBoostClassifier
@@ -12,7 +12,9 @@ from sklearn.linear_model import LogisticRegression
 from imblearn.over_sampling import RandomOverSampler
 from sklearn.model_selection import train_test_split
 
-
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S')
 class Matcher:
     """
     Matcher Class -- Match data for an observational study.
@@ -73,9 +75,9 @@ class Matcher:
             self.minority, self.majority = 1, 0
         else:
             self.minority, self.majority = 0, 1
-        print('Formula:\n{} ~ {}'.format(yvar, '+'.join(self.xvars)))
-        print('n majority:', len(self.data[self.data[yvar] == self.majority]))
-        print('n minority:', len(self.data[self.data[yvar] == self.minority]))
+        logging.info(f'Formula:{yvar} ~ {"+".join(self.xvars)}')
+        logging.info(f'n majority:{len(self.data[self.data[yvar] == self.majority])}')
+        logging.info(f'n minority:{len(self.data[self.data[yvar] == self.minority])}')
     def preprocess_data(self, X, fit_scaler=False, index=None):
         X_encoded = pd.get_dummies(X)
 
@@ -128,14 +130,14 @@ class Matcher:
             accuracy = model.score(X_processed, y_resampled)
         else:
             raise ValueError("Invalid model_type. Choose from 'linear', 'tree', or 'knn'.")
-        print(f"Model {index + 1}/{self.nmodels} trained. Accuracy: {accuracy:.2%}")
+        logging.info(f"Model {index + 1}/{self.nmodels} trained. Accuracy: {accuracy:.2%}")
         return {'model': model, 'accuracy': accuracy}
 
     def fit_scores(self, balance=True, nmodels=None, n_jobs=1, model_type='linear'):
         self.models, self.model_accuracy = [], []
         self.model_type = model_type
         num_cores = mp.cpu_count()
-        print(f"This computer has: {num_cores} cores, The workers will be: {min(num_cores, n_jobs)}")
+        logging.info(f"This computer has: {num_cores} cores, The workers will be: {min(num_cores, n_jobs)}")
 
         if balance and nmodels is None:
             minor, major = [self.data[self.data[self.yvar] == i] for i in (self.minority, self.majority)]
@@ -150,12 +152,12 @@ class Matcher:
             for res in results:
                 self.models.append(res['model'])
                 self.model_accuracy.append(res['accuracy'])
-            print("\nAverage Accuracy:", "{:.2f}%".format(np.mean(self.model_accuracy) * 100))
+            logging.info(f"Average Accuracy:{round(np.mean((self.model_accuracy) * 100),2)}% ")
         else:
             result = self.fit_model(0, self.X, self.y, self.model_type, balance)
             self.models.append(result['model'])
             self.model_accuracy.append(result['accuracy'])
-            print("\nAccuracy:", "{:.2f}%".format(self.model_accuracy[0] * 100))
+            logging.info(f"Accuracy:{round(self.model_accuracy[0] * 100,2)}%")
 
     def predict_scores(self):
         """
@@ -221,7 +223,7 @@ class Matcher:
         None
         """
         if 'scores' not in self.data.columns:  # Check if the propensity scores are already calculated
-            print("Propensity Scores have not been calculated. Using defaults...")
+            logging.info("Propensity Scores have not been calculated. Using defaults...")
             self.fit_scores()  # Fit the propensity score models
             self.predict_scores()  # Predict propensity scores for the data
 
@@ -305,7 +307,7 @@ class Matcher:
                                                                           col))[1], 6)
             return {'var': col, 'before': pval_before, 'after': pval_after}
         else:
-            print("{} is a continuous variable".format(col))
+            logging.info(f"{col} is a continuous variable")
 
     def compare_continuous(self, save=False, return_table=False,plot_result = True):
         """
