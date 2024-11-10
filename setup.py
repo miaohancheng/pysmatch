@@ -27,7 +27,7 @@ setup(
     long_description_content_type='text/markdown',
     long_description=long_description,
     url='https://github.com/mhcone/pysmatch',
-    download_url='https://github.com/mhcone/pysmatch/archive/{}.tar.gz'.format(VERSION),
+    download_url=f'https://github.com/mhcone/pysmatch/archive/v{os.getenv("PACKAGE_VERSION", "0.1")}.tar.gz',
     keywords=['logistic', 'regression', 'matching', 'observational', 'machine learning', 'inference','pysmatch','Propensity Score Matching'],
     include_package_data=True,
     install_requires=dependencies
