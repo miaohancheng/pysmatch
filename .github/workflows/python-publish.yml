@@ -1,4 +1,4 @@
-name: Publish Python 🐍 distribution 📦 to PyPI
+name: Publish Python 🐍 distribution 📦 to PyPI and Create Release
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-and-publish:
-    name: Build and publish to PyPI
+    name: Build and publish to PyPI and create GitHub release
     runs-on: ubuntu-latest
 
     steps:
@@ -36,3 +36,14 @@ jobs:
         user: __token__
         password: ${{ secrets.PYPI_API_TOKEN }}
         repository_url: https://upload.pypi.org/legacy/
+
+    - name: Create GitHub Release
+      uses: actions/create-release@v1
+      with:
+        tag_name: ${{ github.ref_name }}
+        release_name: Release ${{ github.ref_name }}
+        body: "Release of version ${{ github.ref_name }} to PyPI."
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
