@@ -152,7 +152,7 @@ class Matcher:
             for res in results:
                 self.models.append(res['model'])
                 self.model_accuracy.append(res['accuracy'])
-            logging.info(f"Average Accuracy:{round(np.mean((self.model_accuracy) * 100),2)}% ")
+            logging.info(f"Average Accuracy:{np.mean(self.model_accuracy):.2%} ")
         else:
             result = self.fit_model(0, self.X, self.y, self.model_type, balance)
             self.models.append(result['model'])
