@@ -1,6 +1,6 @@
 # `pysmatch`
 
-[![PyPI version](https://badge.fury.io/py/pysmatch.svg)](https://badge.fury.io/py/pysmatch)
+[![PyPI version](https://badge.fury.io/py/pysmatch.svg?icon=si%3Apython&icon_color=%23ffffff)](https://badge.fury.io/py/pysmatch)
 [![Downloads](https://static.pepy.tech/badge/pysmatch)](https://pepy.tech/project/pysmatch)
 ![GitHub License](https://img.shields.io/github/license/miaohancheng/pysmatch)
 
