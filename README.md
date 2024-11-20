@@ -662,9 +662,10 @@ Using pysmatch, we successfully matched users who defaulted on loans with those 
 
 
 
-​	•	**Sekhon, J. S.** (2011). *Multivariate and propensity score matching software with automated balance optimization: The Matching package for R*. Journal of Statistical Software, 42(7), 1-52. [Link](http://sekhon.berkeley.edu/papers/MatchingJSS.pdf)
+​	•	**Sekhon, J. S.** (2011). *Multivariate and propensity score matching software with automated balance optimization: The Matching package for R*. Journal of Statistical Software, 42(7), 1-52. [Link](https://www.jstatsoft.org/article/view/v042i07)
 
-​	•	**Rosenbaum, P. R., & Rubin, D. B.** (1983). *The central role of the propensity score in observational studies for causal effects*. Biometrika, 70(1), 41-55.
+​	•	**Rosenbaum, P. R., & Rubin, D. B.** (1983). *The central role of the propensity score in observational studies for causal effects*. Biometrika, 70(1), 41-55.  [Link]([https://www.jstatsoft.org/article/view/v042i07](https://stat.cmu.edu/~ryantibs/journalclub/rosenbaum_1983.pdf))
+
 
 
 
