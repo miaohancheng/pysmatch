@@ -15,6 +15,8 @@ from sklearn.model_selection import train_test_split
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S')
+
+
 class Matcher:
     """
     Matcher Class -- Match data for an observational study.
@@ -78,6 +80,7 @@ class Matcher:
         logging.info(f'Formula:{yvar} ~ {"+".join(self.xvars)}')
         logging.info(f'n majority:{len(self.data[self.data[yvar] == self.majority])}')
         logging.info(f'n minority:{len(self.data[self.data[yvar] == self.minority])}')
+
     def preprocess_data(self, X, fit_scaler=False, index=None):
         X_encoded = pd.get_dummies(X)
 
@@ -97,7 +100,8 @@ class Matcher:
             X_scaled = scaler.transform(X_encoded)
 
         return X_scaled
-    def fit_model(self, index, X, y, model_type, balance):
+
+    def fit_model(self, index, X, y, model_type, balance, max_iter=100):
         X_train, _, y_train, _ = train_test_split(X, y, train_size=0.7, random_state=index)
 
         if balance:
@@ -112,12 +116,12 @@ class Matcher:
             X_processed = X_resampled
 
         if model_type == 'linear':
-            model = LogisticRegression(max_iter=100)
+            model = LogisticRegression(max_iter=max_iter)
             model.fit(X_processed, y_resampled.iloc[:, 0])
             accuracy = model.score(X_processed, y_resampled)
         elif model_type == 'tree':
             cat_features_indices = np.where(X_resampled.dtypes == 'object')[0]
-            model = CatBoostClassifier(iterations=100, depth=6,
+            model = CatBoostClassifier(iterations=max_iter, depth=6,
                                        eval_metric='AUC', l2_leaf_reg=3,
                                        cat_features=cat_features_indices,
                                        learning_rate=0.02, loss_function='Logloss',
@@ -133,7 +137,7 @@ class Matcher:
         logging.info(f"Model {index + 1}/{self.nmodels} trained. Accuracy: {accuracy:.2%}")
         return {'model': model, 'accuracy': accuracy}
 
-    def fit_scores(self, balance=True, nmodels=None, n_jobs=1, model_type='linear'):
+    def fit_scores(self, balance=True, nmodels=None, n_jobs=1, model_type='linear', max_iter=100):
         self.models, self.model_accuracy = [], []
         self.model_type = model_type
         num_cores = mp.cpu_count()
@@ -148,16 +152,17 @@ class Matcher:
         if balance:
             with Pool(min(num_cores, n_jobs)) as pool:
                 results = pool.starmap(self.fit_model,
-                                       [(i, self.X, self.y, self.model_type, balance) for i in range(nmodels)])
+                                       [(i, self.X, self.y, self.model_type, balance, max_iter) for i in
+                                        range(nmodels)])
             for res in results:
                 self.models.append(res['model'])
                 self.model_accuracy.append(res['accuracy'])
             logging.info(f"Average Accuracy:{np.mean(self.model_accuracy):.2%} ")
         else:
-            result = self.fit_model(0, self.X, self.y, self.model_type, balance)
+            result = self.fit_model(0, self.X, self.y, self.model_type, balance, max_iter)
             self.models.append(result['model'])
             self.model_accuracy.append(result['accuracy'])
-            logging.info(f"Accuracy:{round(self.model_accuracy[0] * 100,2)}%")
+            logging.info(f"Accuracy:{round(self.model_accuracy[0] * 100, 2)}%")
 
     def predict_scores(self):
         """
@@ -252,8 +257,10 @@ class Matcher:
             if len(matches) == 0:  # Check again if there are matches after filtering
                 continue
 
-            select = nmatches if method != 'random' else np.random.choice(range(1, max_rand + 1), 1)  # Select number of matches
-            chosen = np.random.choice(matches.index, min(select, nmatches), replace=False)  # Choose the indices for matching
+            select = nmatches if method != 'random' else np.random.choice(range(1, max_rand + 1),
+                                                                          1)  # Select number of matches
+            chosen = np.random.choice(matches.index, min(select, nmatches),
+                                      replace=False)  # Choose the indices for matching
 
             if not replacement:  # If no replacement, update the used indices
                 used_indices.update(chosen)
@@ -309,7 +316,7 @@ class Matcher:
         else:
             logging.info(f"{col} is a continuous variable")
 
-    def compare_continuous(self, save=False, return_table=False,plot_result = True):
+    def compare_continuous(self, save=False, return_table=False, plot_result=True):
         """
         Plots the ECDFs for continuous features before and
         after matching. Each chart title contains test results
@@ -415,7 +422,7 @@ class Matcher:
 
         return pd.DataFrame(test_results)[var_order] if return_table else None
 
-    def compare_categorical(self, return_table=False,plot_result=True):
+    def compare_categorical(self, return_table=False, plot_result=True):
         """
         Plots the proportional differences of each enumerated
         discete column for test and control.

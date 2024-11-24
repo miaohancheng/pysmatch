@@ -215,7 +215,9 @@ n minority: 1219
 np.random.seed(42)
 
 # Fit propensity score models
-m.fit_scores(balance=True, nmodels=100, n_jobs=5, model_type='linear') # model_type='knn',model_type='tree'
+m.fit_scores(balance=True, nmodels=10,n_jobs=3,model_type='knn')
+# m.fit_scores(balance=True, nmodels=10, n_jobs=3, model_type='tree', max_iter=100)
+# m.fit_scores(balance=True, nmodels=10,n_jobs=3,model_type='linear', max_iter=200)
 ```
 
 输出:

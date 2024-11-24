@@ -21,15 +21,15 @@ m = Matcher(test, control, yvar="loan_status", exclude=[])
 # for reproducibility
 np.random.seed(20240919)
 
-# m.fit_scores(balance=True, nmodels=10,n_jobs=3,model_type='knn')
-m.fit_scores(balance=True, nmodels=10, n_jobs=3, model_type='tree')
-# m.fit_scores(balance=True, nmodels=10,n_jobs=3,model_type='linear')
+m.fit_scores(balance=True, nmodels=10,n_jobs=3,model_type='knn')
+# m.fit_scores(balance=True, nmodels=10, n_jobs=3, model_type='tree', max_iter=100)
+# m.fit_scores(balance=True, nmodels=10,n_jobs=3,model_type='linear', max_iter=200)
 
 
 m.predict_scores()
 
 m.plot_scores()
-m.tune_threshold(method='min')
+m.tune_threshold(method='random')
 m.match(method="min", nmatches=1, threshold=0.0001, replacement=False)
 
 m.record_frequency()
