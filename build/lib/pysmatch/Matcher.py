@@ -4,7 +4,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler
 
 from pysmatch import *
-import pysmatch.functions as uf
+import pysmatch.utils as uf
 from catboost import CatBoostClassifier
 from multiprocessing.pool import ThreadPool as Pool
 import multiprocessing as mp

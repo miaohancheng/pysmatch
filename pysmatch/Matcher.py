@@ -1,16 +1,24 @@
 from __future__ import print_function
 import matplotlib.pyplot as plt
-from sklearn.neighbors import KNeighborsClassifier
+from sklearn.neighbors import KNeighborsClassifier, NearestNeighbors
 from sklearn.preprocessing import StandardScaler
 import logging
 from pysmatch import *
-import pysmatch.functions as uf
+import pysmatch.utils as uf
 from catboost import CatBoostClassifier
+from multiprocessing import Pool
 from multiprocessing.pool import ThreadPool as Pool
 import multiprocessing as mp
 from sklearn.linear_model import LogisticRegression
 from imblearn.over_sampling import RandomOverSampler
 from sklearn.model_selection import train_test_split
+import pandas as pd
+import numpy as np
+from typing import List, Optional
+import patsy
+import seaborn as sns
+from statsmodels.distributions.empirical_distribution import ECDF
+from scipy import stats
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -37,7 +45,8 @@ class Matcher:
         Useful for unique idenifiers
     """
 
-    def __init__(self, test, control, yvar, formula=None, exclude=None):
+    def __init__(self, test: pd.DataFrame, control: pd.DataFrame, yvar: str,
+                 formula: Optional[str] = None, exclude: Optional[List[str]] = None):
         if exclude is None:
             exclude = []
         plt.rcParams["figure.figsize"] = (10, 5)
@@ -81,7 +90,7 @@ class Matcher:
         logging.info(f'n majority:{len(self.data[self.data[yvar] == self.majority])}')
         logging.info(f'n minority:{len(self.data[self.data[yvar] == self.minority])}')
 
-    def preprocess_data(self, X, fit_scaler=False, index=None):
+    def preprocess_data(self, X: pd.DataFrame, fit_scaler: bool = False, index: Optional[int] = None) -> np.ndarray:
         X_encoded = pd.get_dummies(X)
 
         if not hasattr(self, 'X_columns'):
@@ -101,7 +110,7 @@ class Matcher:
 
         return X_scaled
 
-    def fit_model(self, index, X, y, model_type, balance, max_iter=100):
+    def fit_model(self, index: int, X: pd.DataFrame, y: pd.Series, model_type: str, balance: bool, max_iter: int = 100) -> dict:
         X_train, _, y_train, _ = train_test_split(X, y, train_size=0.7, random_state=index)
 
         if balance:
@@ -137,7 +146,8 @@ class Matcher:
         logging.info(f"Model {index + 1}/{self.nmodels} trained. Accuracy: {accuracy:.2%}")
         return {'model': model, 'accuracy': accuracy}
 
-    def fit_scores(self, balance=True, nmodels=None, n_jobs=1, model_type='linear', max_iter=100):
+    def fit_scores(self, balance: bool = True, nmodels: Optional[int] = None, n_jobs: int = 1,
+                   model_type: str = 'linear', max_iter: int = 100):
         self.models, self.model_accuracy = [], []
         self.model_type = model_type
         num_cores = mp.cpu_count()
@@ -196,7 +206,8 @@ class Matcher:
 
         self.data['scores'] = scores
 
-    def match(self, threshold=0.001, nmatches=1, method='min', max_rand=10, replacement=False):
+    def match(self, threshold: float = 0.001, nmatches: int = 1, method: str = 'min',
+              max_rand: int = 10, replacement: bool = False):
         """
         Finds suitable match(es) for each record in the minority
         dataset, if one exists. Records are excluded from the final
@@ -232,45 +243,86 @@ class Matcher:
             self.fit_scores()  # Fit the propensity score models
             self.predict_scores()  # Predict propensity scores for the data
 
-        test_scores = self.data[self.data[self.yvar] == True][['scores']]  # Get scores for the test group
-        ctrl_scores = self.data[self.data[self.yvar] == False][['scores']]  # Get scores for the control group
-        result, match_ids = [], []  # Initialize the result list and match ids
-        used_indices = set()  # Keep track of used indices if no replacement is allowed
+        test_scores = self.data[self.data[self.yvar] == True][['scores']].sort_values('scores').reset_index()
+        ctrl_scores = self.data[self.data[self.yvar] == False][['scores']].sort_values('scores').reset_index()
 
-        for i in range(len(test_scores)):  # Iterate through each test score
-            match_id = i
-            score = test_scores.iloc[i]
-            if method == 'random':  # If the method is random
-                bool_match = abs(ctrl_scores - score) <= threshold  # Find all control scores within the threshold
-                matches = ctrl_scores.loc[bool_match[bool_match.scores].index]
-            elif method == 'min':  # If the method is minimum difference
-                matches = abs(ctrl_scores - score).sort_values('scores').head(nmatches)  # Find the closest scores
+        test_indices = test_scores['index'].values
+        test_scores_values = test_scores['scores'].values.reshape(-1, 1)
+        ctrl_indices = ctrl_scores['index'].values
+        ctrl_scores_values = ctrl_scores['scores'].values.reshape(-1, 1)
+
+        # Initialize NearestNeighbors
+        nbrs = NearestNeighbors(n_neighbors=nmatches, radius=threshold, algorithm='ball_tree').fit(ctrl_scores_values)
+
+        # Find neighbors within the threshold
+        distances, indices = nbrs.radius_neighbors(test_scores_values)
+
+        matched_records = []
+        current_match_id = 0
+        used_ctrl_indices = set() if not replacement else None
+
+        for i, neighbors in enumerate(indices):
+            if len(neighbors) == 0:
+                continue  # No match found within threshold
+            if method == 'min':
+                # Sort neighbors by distance
+                sorted_neighbors = neighbors[np.argsort(distances[i])]
+                selected = []
+                for neighbor in sorted_neighbors:
+                    ctrl_idx = ctrl_indices[neighbor]
+                    if not replacement and ctrl_idx in used_ctrl_indices:
+                        continue
+                    selected.append(ctrl_idx)
+                    if not replacement:
+                        used_ctrl_indices.add(ctrl_idx)
+                    if len(selected) == nmatches:
+                        break
+                if selected:
+                    for ctrl_idx in selected:
+                        matched_records.append({
+                            'test_index': test_indices[i],
+                            'control_index': ctrl_idx,
+                            'match_id': current_match_id
+                        })
+                    current_match_id += 1
+            elif method == 'random':
+                # Randomly select up to nmatches from the neighbors
+                possible = list(neighbors)
+                if not replacement:
+                    possible = [n for n in possible if ctrl_indices[n] not in used_ctrl_indices]
+                if len(possible) == 0:
+                    continue
+                select = min(nmatches, len(possible))
+                selected = np.random.choice(possible, size=select, replace=False).tolist()
+                for neighbor in selected:
+                    ctrl_idx = ctrl_indices[neighbor]
+                    matched_records.append({
+                        'test_index': test_indices[i],
+                        'control_index': ctrl_idx,
+                        'match_id': current_match_id
+                    })
+                    if not replacement:
+                        used_ctrl_indices.add(ctrl_idx)
+                    current_match_id += 1
             else:
                 raise ValueError("Invalid method parameter, use ('random', 'min')")
 
-            if len(matches) == 0:  # If no matches are found, continue to the next
-                continue
+        # Convert matched_records to DataFrame
+        if matched_records:
+            matched_df = pd.DataFrame(matched_records)
+            matched_test = self.data.loc[matched_df['test_index']].copy()
+            matched_ctrl = self.data.loc[matched_df['control_index']].copy()
 
-            if not replacement:  # If replacement is not allowed
-                matches = matches[~matches.index.isin(used_indices)]  # Exclude already used indices
+            # Assign match_id and record_id
+            matched_test['match_id'] = matched_df['match_id'].values
+            matched_ctrl['match_id'] = matched_df['match_id'].values
+            matched_test['record_id'] = matched_test.index
+            matched_ctrl['record_id'] = matched_ctrl.index
 
-            if len(matches) == 0:  # Check again if there are matches after filtering
-                continue
-
-            select = nmatches if method != 'random' else np.random.choice(range(1, max_rand + 1),
-                                                                          1)  # Select number of matches
-            chosen = np.random.choice(matches.index, min(select, nmatches),
-                                      replace=False)  # Choose the indices for matching
-
-            if not replacement:  # If no replacement, update the used indices
-                used_indices.update(chosen)
-
-            result.extend([test_scores.index[i]] + list(chosen))  # Append the matched indices to the result
-            match_ids.extend([i] * (len(chosen) + 1))  # Append the match_id for each pair
-
-        self.matched_data = self.data.loc[result]  # Create the matched dataset
-        self.matched_data['match_id'] = match_ids  # Assign match_id to each row in the matched dataset
-        self.matched_data['record_id'] = self.matched_data.index  # Assign record_id to each row in the matched dataset
+            # Combine matched data
+            self.matched_data = pd.concat([matched_test, matched_ctrl], ignore_index=True)
+        else:
+            self.matched_data = pd.DataFrame(columns=self.data.columns.tolist() + ['match_id', 'record_id'])
 
     def plot_scores(self):
         """
@@ -279,16 +331,16 @@ class Matcher:
         """
         assert 'scores' in self.data.columns, \
             "Propensity scores haven't been calculated, use Matcher.predict_scores()"
-        sns.distplot(self.data[self.data[self.yvar] == 0].scores, label='Control')
-        sns.distplot(self.data[self.data[self.yvar] == 1].scores, label='Test')
+        sns.kdeplot(self.data[self.data[self.yvar] == 0].scores, label='Control', fill=True)
+        sns.kdeplot(self.data[self.data[self.yvar] == 1].scores, label='Test', fill=True)
         plt.legend(loc='upper right')
         plt.xlim((0, 1))
         plt.title("Propensity Scores Before Matching")
-        plt.ylabel("Percentage (%)")
+        plt.ylabel("Density")
         plt.xlabel("Scores")
         plt.show()
 
-    def prop_test(self, col):
+    def prop_test(self, col: str) -> Optional[dict]:
         """
         Performs a Chi-Square test of independence on <col>
         See stats.chi2_contingency()
@@ -304,8 +356,6 @@ class Matcher:
             {'var': <col>,
              'before': <pvalue before matching>,
              'after': <pvalue after matching>}
-
-
         """
         if not uf.is_continuous(col, self.X) and col not in self.exclude:
             pval_before = round(stats.chi2_contingency(self.prep_prop_test(self.data,
@@ -315,8 +365,9 @@ class Matcher:
             return {'var': col, 'before': pval_before, 'after': pval_after}
         else:
             logging.info(f"{col} is a continuous variable")
+            return None
 
-    def compare_continuous(self, save=False, return_table=False, plot_result=True):
+    def compare_continuous(self, save: bool = False, return_table: bool = False, plot_result: bool = True) -> Optional[pd.DataFrame]:
         """
         Plots the ECDFs for continuous features before and
         after matching. Each chart title contains test results
@@ -327,7 +378,7 @@ class Matcher:
         Kolmogorov-Smirnov Goodness of fit Test (KS-test)
             This test statistic is calculated on 1000
             permuted samples of the data, generating
-            an imperical p-value.  See pysmatch.functions.ks_boot()
+            an empirical p-value.  See pysmatch.functions.ks_boot()
             This is an adaptation of the ks.boot() method in
             the R "Matching" package
             https://www.rdocumentation.org/packages/Matching/versions/4.9-2/topics/ks.boot
@@ -337,7 +388,7 @@ class Matcher:
             See pysmatch.functions.grouped_permutation_test()
 
         Other included Stats:
-        Standarized mean and median differences
+        Standardized mean and median differences
         How many standard deviations away are the mean/median
         between our groups before and after matching
         i.e. abs(mean(control) - mean(test)) / std(control.union(test))
@@ -351,8 +402,6 @@ class Matcher:
         -------
         pd.DataFrame (optional)
             Table of before/after statistics if return_table == True
-
-
         """
         test_results = []
         for col in self.matched_data.columns:
@@ -376,22 +425,22 @@ class Matcher:
                     f, (ax1, ax2) = plt.subplots(1, 2, sharey=True, sharex=True, figsize=(12, 5))
                     ax1.plot(xcb.x, xcb.y, label='Control', color=self.control_color)
                     ax1.plot(xtb.x, xtb.y, label='Test', color=self.test_color)
-                    ax1.plot(xcb.x, xcb.y, label='Control', color=self.control_color)
-                    ax1.plot(xtb.x, xtb.y, label='Test', color=self.test_color)
-
-                    title_str = '''
-                    ECDF for {} {} Matching
-                    KS p-value: {}
-                    Grouped Perm p-value: {}
-                    Std. Median Difference: {}
-                    Std. Mean Difference: {}
-                    '''
-                    ax1.set_title(title_str.format(col, "before", ksb, pb,
-                                                   std_diff_med_before, std_diff_mean_before))
-                    ax2.plot(xca.x, xca.y, label='Control')
-                    ax2.plot(xta.x, xta.y, label='Test')
-                    ax2.set_title(title_str.format(col, "after", ksa, pa,
-                                                   std_diff_med_after, std_diff_mean_after))
+                    ax1.set_title(f'''
+                    ECDF for {col} before Matching
+                    KS p-value: {ksb}
+                    Grouped Perm p-value: {pb}
+                    Std. Median Difference: {std_diff_med_before}
+                    Std. Mean Difference: {std_diff_mean_before}
+                    ''')
+                    ax2.plot(xca.x, xca.y, label='Control', color=self.control_color)
+                    ax2.plot(xta.x, xta.y, label='Test', color=self.test_color)
+                    ax2.set_title(f'''
+                    ECDF for {col} after Matching
+                    KS p-value: {ksa}
+                    Grouped Perm p-value: {pa}
+                    Std. Median Difference: {std_diff_med_after}
+                    Std. Mean Difference: {std_diff_mean_after}
+                    ''')
                     ax2.legend(loc="lower right")
                     plt.xlim((0, np.percentile(xta.x, 99)))
                     plt.show()
@@ -422,10 +471,10 @@ class Matcher:
 
         return pd.DataFrame(test_results)[var_order] if return_table else None
 
-    def compare_categorical(self, return_table=False, plot_result=True):
+    def compare_categorical(self, return_table: bool = False, plot_result: bool = True) -> Optional[pd.DataFrame]:
         """
         Plots the proportional differences of each enumerated
-        discete column for test and control.
+        discrete column for test and control.
         i.e. <prop_test_that_have_x>  - <prop_control_that_have_x>
         Each chart title contains the results from a
         Chi-Square Test of Independence before and after
@@ -443,10 +492,9 @@ class Matcher:
         pd.DataFrame() (optional)
             Table with the p-values of the Chi-Square contingency test
             for each discrete column before and after matching
-
         """
 
-        def prep_plot(data, var, colname):
+        def prep_plot(data: pd.DataFrame, var: str, colname: str) -> pd.DataFrame:
             t, c = data[data[self.yvar] == 1], data[data[self.yvar] == 0]
             # dummy var for counting
             dummy = [i for i in t.columns if i not in \
@@ -469,17 +517,19 @@ class Matcher:
                 dafter = prep_plot(self.matched_data, col, colname="after")
                 df = dbefore.join(dafter)
                 test_results_i = self.prop_test(col)
-                test_results.append(test_results_i)
-                if plot_result:
+                if test_results_i is not None:
+                    test_results.append(test_results_i)
+                if plot_result and test_results_i is not None:
                     # plotting
                     df.plot.bar(alpha=.8)
                     plt.title(title_str.format(col, test_results_i["before"],
                                                test_results_i["after"]))
                     lim = max(.09, abs(df).max().max()) + .01
                     plt.ylim((-lim, lim))
+                    plt.show()
         return pd.DataFrame(test_results)[['var', 'before', 'after']] if return_table else None
 
-    def prep_prop_test(self, data, var):
+    def prep_prop_test(self, data: pd.DataFrame, var: str) -> List[List[int]]:
         """
         Helper method for running chi-square contingency tests
 
@@ -502,38 +552,31 @@ class Matcher:
             A table (list of lists) of counts for all enumerated field within <var>
             for test and control groups.
         """
-        counts = data.groupby([var, self.yvar]).count().reset_index()
-        table = []
-        for t in (0, 1):
-            os_counts = counts[counts[self.yvar] == t] \
-                .sort_values(var)
-            cdict = {}
-            for row in os_counts.iterrows():
-                row = row[1]
-                cdict[row[var]] = row[2]
-            table.append(cdict)
-        # fill empty keys as 0
-        all_keys = set(chain.from_iterable(table))
-        for d in table:
-            d.update((k, 0) for k in all_keys if k not in d)
-        ctable = [[i[k] for k in sorted(all_keys)] for i in table]
+        counts = data.groupby([var, self.yvar]).size().unstack(fill_value=0)
+        # Ensure both classes 0 and 1 are present
+        if 0 not in counts.columns:
+            counts[0] = 0
+        if 1 not in counts.columns:
+            counts[1] = 0
+        counts = counts[[0, 1]]
+        ctable = counts.values.tolist()
         return ctable
 
-    def prop_retained(self):
+    def prop_retained(self) -> float:
         """
         Returns the proportion of data retained after matching
         """
         return len(self.matched_data[self.matched_data[self.yvar] == self.minority]) * 1.0 / \
             len(self.data[self.data[self.yvar] == self.minority])
 
-    def tune_threshold(self, method, nmatches=1, rng=np.arange(0, .001, .0001)):
+    def tune_threshold(self, method: str, nmatches: int = 1, rng: np.ndarray = np.arange(0, .001, .0001)):
         """
         Matches data over a grid to optimize threshold value and plots results.
 
         Parameters
         ----------
         method : str
-            Method used for matching (use "random" for this method)
+            Method used for matching (use "random" or "min" for this method)
         nmatches : int
             Max number of matches per record. See pysmatch.match()
         rng: : list / np.array()
@@ -542,7 +585,6 @@ class Matcher:
         Returns
         -------
         None
-
         """
         results = []
         for i in rng:
@@ -552,12 +594,12 @@ class Matcher:
         plt.title("Proportion of Data retained for grid of threshold values")
         plt.ylabel("Proportion Retained")
         plt.xlabel("Threshold")
-        plt.xticks(rng)
+        plt.xticks(rng, rotation=90)
         plt.show()
 
-    def record_frequency(self):
+    def record_frequency(self) -> pd.DataFrame:
         """
-        Calculates the frequency of specifi records in
+        Calculates the frequency of specific records in
         the matched dataset
 
         Returns
@@ -566,10 +608,8 @@ class Matcher:
             Frequency table of the number records
             matched once, twice, ..., etc.
         """
-        freqs = self.matched_data.groupby("record_id") \
-            .count().groupby("match_id").count() \
-            [["scores"]].reset_index()
-        freqs.columns = ["freq", "n_records"]
+        freqs = self.matched_data['match_id'].value_counts().reset_index()
+        freqs.columns = ['freq', 'n_records']
         return freqs
 
     def assign_weight_vector(self):

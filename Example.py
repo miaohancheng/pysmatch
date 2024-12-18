@@ -21,9 +21,9 @@ m = Matcher(test, control, yvar="loan_status", exclude=[])
 # for reproducibility
 np.random.seed(20240919)
 
-m.fit_scores(balance=True, nmodels=10,n_jobs=3,model_type='knn')
+# m.fit_scores(balance=True, nmodels=10,n_jobs=3,model_type='knn')
 # m.fit_scores(balance=True, nmodels=10, n_jobs=3, model_type='tree', max_iter=100)
-# m.fit_scores(balance=True, nmodels=10,n_jobs=3,model_type='linear', max_iter=200)
+m.fit_scores(balance=True, nmodels=10,n_jobs=3,model_type='linear', max_iter=200)
 
 
 m.predict_scores()
