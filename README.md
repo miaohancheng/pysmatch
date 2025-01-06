@@ -13,11 +13,18 @@
 ## Multilingual Readme
 [English|[中文](https://github.com/mhcone/pysmatch/blob/main/README_CHINESE.md)]
 
-## Features
+### **What’s New & Key Features**
 
-- **Bug Fixes**: Addresses known issues from the original `pymatch` project.
-- **Parallel Computing**: Speeds up computation by utilizing multiple CPU cores.
-- **Model Selection**: Supports linear models (logistic regression), tree-based models (e.g., CatBoost), and K-Nearest Neighbors (KNN) for propensity score estimation.
+We’ve **refactored** the entire codebase into distinct modules (e.g., `modeling.py`, `matching.py`) for better organization and **lazy-loaded** all major dependencies, including `catboost`, `optuna`, and `imblearn`. This redesign significantly cuts down on import overhead and memory usage when you’re not using certain features—boosting both **performance** and **flexibility**.
+
+Additionally, we’ve introduced an **optional Optuna integration** for hyperparameter tuning. If you want automatic hyperparameter searches, simply set `use_optuna=True` with `n_trials=<int>` in `fit_scores`, and an **Optuna study** will find your model’s best parameters. Otherwise, you can stick to the **original multi-model approach** by keeping `use_optuna=False` (the default).
+
+Beyond that, `pysmatch` offers:
+- **Bug Fixes** for known issues from the original `pymatch` project.
+- **Parallel Computing** to leverage multiple CPU cores and speed up model fitting.
+- **Flexible Model Selection** with logistic regression, CatBoost, and KNN for propensity score estimation.
+
+Overall, these enhancements provide a **cleaner, faster, and more robust** matching pipeline for your observational studies.
 
 ## Installation
 
@@ -188,20 +195,35 @@ Our data exhibits significant class imbalance, with the majority group (fully pa
 We also specify nmodels=100 to train 100 models on different random samples of the data, ensuring that a broader portion of the majority class is used in model training.
 
 
+### **Model Selection & Parallel Computing**
 
-## **Model Selection and Parallel Computing**
+With **pysmatch**, you can estimate propensity scores using:
+- **Linear models** (Logistic Regression)
+- **Tree-based models** (e.g., CatBoost)
+- **K-Nearest Neighbors (KNN)**
 
+Parallel computing is also supported: specifying `n_jobs` lets you use multiple CPU cores to train models faster. Below is an example demonstrating both the **traditional multi-model approach** and the **Optuna-based hyperparameter tuning**:
 
-
-With pysmatch, you can choose between linear models (logistic regression), tree-based models (e.g., CatBoost), and K-Nearest Neighbors (KNN) for propensity score estimation. You can also leverage parallel computing to speed up model fitting by specifying the number of jobs (n_jobs).
 ```python
+import numpy as np
+
 # Set random seed for reproducibility
 np.random.seed(42)
 
-# Fit propensity score models
-m.fit_scores(balance=True, nmodels=10,n_jobs=3,model_type='knn')
+# ===== (1) Standard Approach (Train multiple models without Optuna) =====
+# m.fit_scores(balance=True, nmodels=10, n_jobs=3, model_type='knn')
 # m.fit_scores(balance=True, nmodels=10, n_jobs=3, model_type='tree', max_iter=100)
-# m.fit_scores(balance=True, nmodels=10,n_jobs=3,model_type='linear', max_iter=200)
+m.fit_scores(balance=True, nmodels=10, n_jobs=3, model_type='linear', max_iter=200)
+
+# ===== (2) Optuna Tuning (Only train one "best" model) =====
+# m.fit_scores(
+#     balance=True,
+#     model_type='tree',
+#     max_iter=200,
+#     use_optuna=True,
+#     n_trials=15
+# )
+
 ```
 
 Output:
@@ -330,124 +352,14 @@ m.assign_weight_vector()
 # View a sample of the matched data
 m.matched_data.sort_values("match_id").head(6)
 ```
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>record_id</th>
-      <th>weight</th>
-      <th>loan_amnt</th>
-      <th>funded_amnt</th>
-      <th>funded_amnt_inv</th>
-      <th>term</th>
-      <th>int_rate</th>
-      <th>installment</th>
-      <th>grade</th>
-      <th>sub_grade</th>
-      <th>loan_status</th>
-      <th>scores</th>
-      <th>match_id</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>0</td>
-      <td>1.0</td>
-      <td>18000.0</td>
-      <td>18000.0</td>
-      <td>17975.000000</td>
-      <td>60 months</td>
-      <td>17.27</td>
-      <td>449.97</td>
-      <td>D</td>
-      <td>D3</td>
-      <td>1</td>
-      <td>0.644783</td>
-      <td>0</td>
-    </tr>
-    <tr>
-      <th>2192</th>
-      <td>191970</td>
-      <td>1.0</td>
-      <td>2275.0</td>
-      <td>2275.0</td>
-      <td>2275.000000</td>
-      <td>36 months</td>
-      <td>16.55</td>
-      <td>80.61</td>
-      <td>D</td>
-      <td>D2</td>
-      <td>0</td>
-      <td>0.644784</td>
-      <td>0</td>
-    </tr>
-    <tr>
-      <th>1488</th>
-      <td>80665</td>
-      <td>1.0</td>
-      <td>18400.0</td>
-      <td>18400.0</td>
-      <td>18250.000000</td>
-      <td>36 months</td>
-      <td>16.29</td>
-      <td>649.53</td>
-      <td>C</td>
-      <td>C4</td>
-      <td>0</td>
-      <td>0.173057</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>1</td>
-      <td>1.0</td>
-      <td>21250.0</td>
-      <td>21250.0</td>
-      <td>21003.604048</td>
-      <td>60 months</td>
-      <td>14.27</td>
-      <td>497.43</td>
-      <td>C</td>
-      <td>C2</td>
-      <td>1</td>
-      <td>0.173054</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>2</td>
-      <td>1.0</td>
-      <td>5600.0</td>
-      <td>5600.0</td>
-      <td>5600.000000</td>
-      <td>60 months</td>
-      <td>15.99</td>
-      <td>136.16</td>
-      <td>D</td>
-      <td>D2</td>
-      <td>1</td>
-      <td>0.777273</td>
-      <td>2</td>
-    </tr>
-    <tr>
-      <th>1828</th>
-      <td>153742</td>
-      <td>1.0</td>
-      <td>12000.0</td>
-      <td>12000.0</td>
-      <td>12000.000000</td>
-      <td>60 months</td>
-      <td>18.24</td>
-      <td>306.30</td>
-      <td>D</td>
-      <td>D5</td>
-      <td>0</td>
-      <td>0.777270</td>
-      <td>2</td>
-    </tr>
-  </tbody>
-</table>
+|   index | record_id | weight | loan_amnt | funded_amnt | funded_amnt_inv | term       | int_rate | installment | grade | sub_grade | loan_status | scores    | match_id |
+|--------:|----------:|-------:|----------:|------------:|----------------:|:-----------|---------:|-----------:|:-----:|:--------:|-----------:|----------:|---------:|
+|       0 |         0 |    1.0 |   18000.0 |     18000.0 |      17975.0000 | 60 months  |    17.27 |     449.97 |   D   |    D3    |          1 |  0.644783 |        0 |
+|    2192 |    191970 |    1.0 |    2275.0 |      2275.0 |       2275.0000 | 36 months  |    16.55 |      80.61 |   D   |    D2    |          0 |  0.644784 |        0 |
+|    1488 |     80665 |    1.0 |   18400.0 |     18400.0 |      18250.0000 | 36 months  |    16.29 |     649.53 |   C   |    C4    |          0 |  0.173057 |        1 |
+|       1 |         1 |    1.0 |   21250.0 |     21250.0 |      21003.6040 | 60 months  |    14.27 |     497.43 |   C   |    C2    |          1 |  0.173054 |        1 |
+|       2 |         2 |    1.0 |    5600.0 |      5600.0 |       5600.0000 | 60 months  |    15.99 |     136.16 |   D   |    D2    |          1 |  0.777273 |        2 |
+|    1828 |    153742 |    1.0 |   12000.0 |     12000.0 |      12000.0000 | 60 months  |    18.24 |     306.30 |   D   |    D5    |          0 |  0.777270 |        2 |
 
 	•	record_id: Unique identifier for each observation.
 	•	weight: Inverse of the frequency of the control observation in the matched dataset.
@@ -530,123 +442,24 @@ continuous_results = m.compare_continuous(return_table=True)
 # Display categorical results
 print(categorical_results)
 ```
-
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>var</th>
-      <th>before</th>
-      <th>after</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>term</td>
-      <td>0.0</td>
-      <td>0.433155</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>grade</td>
-      <td>0.0</td>
-      <td>0.532530</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>sub_grade</td>
-      <td>0.0</td>
-      <td>0.986986</td>
-    </tr>
-  </tbody>
-</table>
-
+| index | var       | before | after    |
+|------:|:---------:|-------:|---------:|
+|     0 | term      |    0.0 | 0.433155 |
+|     1 | grade     |    0.0 | 0.532530 |
+|     2 | sub_grade |    0.0 | 0.986986 |
 
 ```python
 # Display continuous results
 print(continuous_results)
 ```
 
-
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>var</th>
-      <th>ks_before</th>
-      <th>ks_after</th>
-      <th>grouped_chisqr_before</th>
-      <th>grouped_chisqr_after</th>
-      <th>std_median_diff_before</th>
-      <th>std_median_diff_after</th>
-      <th>std_mean_diff_before</th>
-      <th>std_mean_diff_after</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>loan_amnt</td>
-      <td>0.0</td>
-      <td>0.530</td>
-      <td>0.000</td>
-      <td>1.000</td>
-      <td>0.207814</td>
-      <td>0.067942</td>
-      <td>0.229215</td>
-      <td>0.013929</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>funded_amnt</td>
-      <td>0.0</td>
-      <td>0.541</td>
-      <td>0.000</td>
-      <td>1.000</td>
-      <td>0.208364</td>
-      <td>0.067942</td>
-      <td>0.234735</td>
-      <td>0.013929</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>funded_amnt_inv</td>
-      <td>0.0</td>
-      <td>0.573</td>
-      <td>0.933</td>
-      <td>1.000</td>
-      <td>0.242035</td>
-      <td>0.067961</td>
-      <td>0.244418</td>
-      <td>0.013981</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>int_rate</td>
-      <td>0.0</td>
-      <td>0.109</td>
-      <td>0.000</td>
-      <td>0.349</td>
-      <td>0.673904</td>
-      <td>0.091925</td>
-      <td>0.670445</td>
-      <td>0.079891</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>installment</td>
-      <td>0.0</td>
-      <td>0.428</td>
-      <td>0.004</td>
-      <td>1.000</td>
-      <td>0.169177</td>
-      <td>0.042140</td>
-      <td>0.157699</td>
-      <td>0.014590</td>
-    </tr>
-  </tbody>
-</table>
+| index | var             | ks_before | ks_after | grouped_chisqr_before | grouped_chisqr_after | std_median_diff_before | std_median_diff_after | std_mean_diff_before | std_mean_diff_after |
+|------:|:---------------:|----------:|---------:|----------------------:|----------------------:|------------------------:|-----------------------:|----------------------:|---------------------:|
+|     0 | loan_amnt       |       0.0 |    0.530 |                 0.000 |                 1.000 |                 0.207814 |               0.067942 |               0.229215 |             0.013929 |
+|     1 | funded_amnt     |       0.0 |    0.541 |                 0.000 |                 1.000 |                 0.208364 |               0.067942 |               0.234735 |             0.013929 |
+|     2 | funded_amnt_inv |       0.0 |    0.573 |                 0.933 |                 1.000 |                 0.242035 |               0.067961 |               0.244418 |             0.013981 |
+|     3 | int_rate        |       0.0 |    0.109 |                 0.000 |                 0.349 |                 0.673904 |               0.091925 |               0.670445 |             0.079891 |
+|     4 | installment     |       0.0 |    0.428 |                 0.004 |                 1.000 |                 0.169177 |               0.042140 |               0.157699 |             0.014590 |
 
 ## **Conclusion**
 

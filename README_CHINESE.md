@@ -13,12 +13,18 @@
 
 [[English](https://github.com/mhcone/pysmatch/blob/main/README.md)|中文]
 
-## 特性
+### **此版本更新与主要特性**
 
-- **错误修复**：解决了原 `pymatch` 项目中的已知问题。
-- **并行计算**：利用多核 CPU 加速计算过程。
-- **模型选择**：支持线性模型（逻辑回归）、树模型（如 CatBoost），以及 K 近邻（KNN）模型进行倾向评分估计。
+我们对代码结构进行了**模块化重构**（如将功能拆分到 `modeling.py`、`matching.py` 等文件），并对包括 `catboost`、`optuna`、`imblearn` 在内的主要依赖库采用**懒加载**策略。这种设计能有效减少在未使用某些功能时的导入开销和内存占用，大幅提升项目的**性能**与**灵活性**。
 
+此外，我们还新增了与 **Optuna** 的**可选集成**来进行超参数调优：如果希望自动搜索超参，只需在调用 `fit_scores` 时设置 `use_optuna=True` 并指定 `n_trials=<int>`，系统就会运行 **Optuna study** 来寻找最佳模型参数；若仍想保持**原多模型训练方式**，则将 `use_optuna` 保持默认的 `False` 即可。
+
+除此之外，`pysmatch` 还提供：
+- **错误修复**：解决了 `pymatch` 原项目中的已知问题。
+- **并行计算**：可利用多核 CPU 加速模型训练。
+- **灵活的模型选择**：可使用逻辑回归、CatBoost 或 KNN 进行倾向得分估计。
+
+整体而言，这些增强让匹配流程**更整洁、更高效，也更健壮**，能更好地服务于您的观察性研究场景。
 ## 安装
 
 `pysmatch` 已发布到 PyPI，可以通过 pip 进行安装：
@@ -207,17 +213,31 @@ n minority: 1219
 我们还指定 nmodels=100 来在不同的随机样本上训练 100 个模型，确保多数类的更多部分参与模型训练。
 
 
-## **模型选择和并行计算**
+## **模型选择与并行计算**
 
-使用 pysmatch，您可以在倾向评分估计中选择线性模型（逻辑回归）、树模型（例如 CatBoost）和 K 近邻（KNN）模型。您还可以通过指定作业数量（n_jobs）利用并行计算来加速模型拟合。
+在 pysmatch 中，您可以使用以下多种模型来估计倾向得分：
+•	**线性模型**（逻辑回归）
+•	**树模型**（如 CatBoost）
+•	**K 近邻** (KNN)
+
+此外，还支持并行计算：通过指定 n_jobs 参数，可以利用多核 CPU 来加速模型训练。下面的示例演示了传统的多模型训练方式以及基于 Optuna 的超参数调优：
 ```python
 # Set random seed for reproducibility
 np.random.seed(42)
 
-# Fit propensity score models
-m.fit_scores(balance=True, nmodels=10,n_jobs=3,model_type='knn')
+# ============ (1) Noraml train (Without optuna) =============
+# m.fit_scores(balance=True, nmodels=10, n_jobs=3, model_type='knn')
 # m.fit_scores(balance=True, nmodels=10, n_jobs=3, model_type='tree', max_iter=100)
-# m.fit_scores(balance=True, nmodels=10,n_jobs=3,model_type='linear', max_iter=200)
+m.fit_scores(balance=True, nmodels=10, n_jobs=3, model_type='linear', max_iter=200)
+
+# ============ (2) Utilize optuna (Only train one best model) =============
+# m.fit_scores(
+#     balance=True,
+#     model_type='tree',
+#     max_iter=200,
+#     use_optuna=True,
+#     n_trials=15
+# )
 ```
 
 输出:
@@ -333,124 +353,14 @@ m.assign_weight_vector()
 # View a sample of the matched data
 m.matched_data.sort_values("match_id").head(6)
 ```
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>record_id</th>
-      <th>weight</th>
-      <th>loan_amnt</th>
-      <th>funded_amnt</th>
-      <th>funded_amnt_inv</th>
-      <th>term</th>
-      <th>int_rate</th>
-      <th>installment</th>
-      <th>grade</th>
-      <th>sub_grade</th>
-      <th>loan_status</th>
-      <th>scores</th>
-      <th>match_id</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>0</td>
-      <td>1.0</td>
-      <td>18000.0</td>
-      <td>18000.0</td>
-      <td>17975.000000</td>
-      <td>60 months</td>
-      <td>17.27</td>
-      <td>449.97</td>
-      <td>D</td>
-      <td>D3</td>
-      <td>1</td>
-      <td>0.644783</td>
-      <td>0</td>
-    </tr>
-    <tr>
-      <th>2192</th>
-      <td>191970</td>
-      <td>1.0</td>
-      <td>2275.0</td>
-      <td>2275.0</td>
-      <td>2275.000000</td>
-      <td>36 months</td>
-      <td>16.55</td>
-      <td>80.61</td>
-      <td>D</td>
-      <td>D2</td>
-      <td>0</td>
-      <td>0.644784</td>
-      <td>0</td>
-    </tr>
-    <tr>
-      <th>1488</th>
-      <td>80665</td>
-      <td>1.0</td>
-      <td>18400.0</td>
-      <td>18400.0</td>
-      <td>18250.000000</td>
-      <td>36 months</td>
-      <td>16.29</td>
-      <td>649.53</td>
-      <td>C</td>
-      <td>C4</td>
-      <td>0</td>
-      <td>0.173057</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>1</td>
-      <td>1.0</td>
-      <td>21250.0</td>
-      <td>21250.0</td>
-      <td>21003.604048</td>
-      <td>60 months</td>
-      <td>14.27</td>
-      <td>497.43</td>
-      <td>C</td>
-      <td>C2</td>
-      <td>1</td>
-      <td>0.173054</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>2</td>
-      <td>1.0</td>
-      <td>5600.0</td>
-      <td>5600.0</td>
-      <td>5600.000000</td>
-      <td>60 months</td>
-      <td>15.99</td>
-      <td>136.16</td>
-      <td>D</td>
-      <td>D2</td>
-      <td>1</td>
-      <td>0.777273</td>
-      <td>2</td>
-    </tr>
-    <tr>
-      <th>1828</th>
-      <td>153742</td>
-      <td>1.0</td>
-      <td>12000.0</td>
-      <td>12000.0</td>
-      <td>12000.000000</td>
-      <td>60 months</td>
-      <td>18.24</td>
-      <td>306.30</td>
-      <td>D</td>
-      <td>D5</td>
-      <td>0</td>
-      <td>0.777270</td>
-      <td>2</td>
-    </tr>
-  </tbody>
-</table>
+|   index | record_id | weight | loan_amnt | funded_amnt | funded_amnt_inv | term       | int_rate | installment | grade | sub_grade | loan_status | scores    | match_id |
+|--------:|----------:|-------:|----------:|------------:|----------------:|:-----------|---------:|-----------:|:-----:|:--------:|-----------:|----------:|---------:|
+|       0 |         0 |    1.0 |   18000.0 |     18000.0 |      17975.0000 | 60 months  |    17.27 |     449.97 |   D   |    D3    |          1 |  0.644783 |        0 |
+|    2192 |    191970 |    1.0 |    2275.0 |      2275.0 |       2275.0000 | 36 months  |    16.55 |      80.61 |   D   |    D2    |          0 |  0.644784 |        0 |
+|    1488 |     80665 |    1.0 |   18400.0 |     18400.0 |      18250.0000 | 36 months  |    16.29 |     649.53 |   C   |    C4    |          0 |  0.173057 |        1 |
+|       1 |         1 |    1.0 |   21250.0 |     21250.0 |      21003.6040 | 60 months  |    14.27 |     497.43 |   C   |    C2    |          1 |  0.173054 |        1 |
+|       2 |         2 |    1.0 |    5600.0 |      5600.0 |       5600.0000 | 60 months  |    15.99 |     136.16 |   D   |    D2    |          1 |  0.777273 |        2 |
+|    1828 |    153742 |    1.0 |   12000.0 |     12000.0 |      12000.0000 | 60 months  |    18.24 |     306.30 |   D   |    D5    |          0 |  0.777270 |        2 |
 
 	•	record_id：每个观察值的唯一标识符。
 	•	weight：匹配数据集中对照组观察值频率的倒数。
@@ -532,122 +442,24 @@ continuous_results = m.compare_continuous(return_table=True)
 print(categorical_results)
 ```
 
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>var</th>
-      <th>before</th>
-      <th>after</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>term</td>
-      <td>0.0</td>
-      <td>0.433155</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>grade</td>
-      <td>0.0</td>
-      <td>0.532530</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>sub_grade</td>
-      <td>0.0</td>
-      <td>0.986986</td>
-    </tr>
-  </tbody>
-</table>
-
+| index | var       | before | after    |
+|------:|:---------:|-------:|---------:|
+|     0 | term      |    0.0 | 0.433155 |
+|     1 | grade     |    0.0 | 0.532530 |
+|     2 | sub_grade |    0.0 | 0.986986 |
 
 ```python
 # Display continuous results
 print(continuous_results)
 ```
 
-
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>var</th>
-      <th>ks_before</th>
-      <th>ks_after</th>
-      <th>grouped_chisqr_before</th>
-      <th>grouped_chisqr_after</th>
-      <th>std_median_diff_before</th>
-      <th>std_median_diff_after</th>
-      <th>std_mean_diff_before</th>
-      <th>std_mean_diff_after</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>loan_amnt</td>
-      <td>0.0</td>
-      <td>0.530</td>
-      <td>0.000</td>
-      <td>1.000</td>
-      <td>0.207814</td>
-      <td>0.067942</td>
-      <td>0.229215</td>
-      <td>0.013929</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>funded_amnt</td>
-      <td>0.0</td>
-      <td>0.541</td>
-      <td>0.000</td>
-      <td>1.000</td>
-      <td>0.208364</td>
-      <td>0.067942</td>
-      <td>0.234735</td>
-      <td>0.013929</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>funded_amnt_inv</td>
-      <td>0.0</td>
-      <td>0.573</td>
-      <td>0.933</td>
-      <td>1.000</td>
-      <td>0.242035</td>
-      <td>0.067961</td>
-      <td>0.244418</td>
-      <td>0.013981</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>int_rate</td>
-      <td>0.0</td>
-      <td>0.109</td>
-      <td>0.000</td>
-      <td>0.349</td>
-      <td>0.673904</td>
-      <td>0.091925</td>
-      <td>0.670445</td>
-      <td>0.079891</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>installment</td>
-      <td>0.0</td>
-      <td>0.428</td>
-      <td>0.004</td>
-      <td>1.000</td>
-      <td>0.169177</td>
-      <td>0.042140</td>
-      <td>0.157699</td>
-      <td>0.014590</td>
-    </tr>
-  </tbody>
-</table>
+| index | var             | ks_before | ks_after | grouped_chisqr_before | grouped_chisqr_after | std_median_diff_before | std_median_diff_after | std_mean_diff_before | std_mean_diff_after |
+|------:|:---------------:|----------:|---------:|----------------------:|----------------------:|------------------------:|-----------------------:|----------------------:|---------------------:|
+|     0 | loan_amnt       |       0.0 |    0.530 |                 0.000 |                 1.000 |                 0.207814 |               0.067942 |               0.229215 |             0.013929 |
+|     1 | funded_amnt     |       0.0 |    0.541 |                 0.000 |                 1.000 |                 0.208364 |               0.067942 |               0.234735 |             0.013929 |
+|     2 | funded_amnt_inv |       0.0 |    0.573 |                 0.933 |                 1.000 |                 0.242035 |               0.067961 |               0.244418 |             0.013981 |
+|     3 | int_rate        |       0.0 |    0.109 |                 0.000 |                 0.349 |                 0.673904 |               0.091925 |               0.670445 |             0.079891 |
+|     4 | installment     |       0.0 |    0.428 |                 0.004 |                 1.000 |                 0.169177 |               0.042140 |               0.157699 |             0.014590 |
 
 ## **结论**
 
