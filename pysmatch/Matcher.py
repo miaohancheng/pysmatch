@@ -1,16 +1,14 @@
 from __future__ import print_function
 import matplotlib.pyplot as plt
-from sklearn.neighbors import KNeighborsClassifier, NearestNeighbors
-from sklearn.preprocessing import StandardScaler
 import logging
+
+from sklearn.neighbors import NearestNeighbors
+
 from pysmatch import *
 import pysmatch.utils as uf
-from catboost import CatBoostClassifier
 from multiprocessing import Pool
 from multiprocessing.pool import ThreadPool as Pool
 import multiprocessing as mp
-from sklearn.linear_model import LogisticRegression
-from imblearn.over_sampling import RandomOverSampler
 from sklearn.model_selection import train_test_split
 import pandas as pd
 import numpy as np
@@ -90,61 +88,55 @@ class Matcher:
         logging.info(f'n majority:{len(self.data[self.data[yvar] == self.majority])}')
         logging.info(f'n minority:{len(self.data[self.data[yvar] == self.minority])}')
 
-    def preprocess_data(self, X: pd.DataFrame, fit_scaler: bool = False, index: Optional[int] = None) -> np.ndarray:
-        X_encoded = pd.get_dummies(X)
-
-        if not hasattr(self, 'X_columns'):
-            self.X_columns = X_encoded.columns
-        else:
-            X_encoded = X_encoded.reindex(columns=self.X_columns, fill_value=0)
-
-        if fit_scaler:
-            scaler = StandardScaler()
-            X_scaled = scaler.fit_transform(X_encoded)
-            if not hasattr(self, 'scalers'):
-                self.scalers = {}
-            self.scalers[index] = scaler
-        else:
-            scaler = self.scalers[index]
-            X_scaled = scaler.transform(X_encoded)
-
-        return X_scaled
 
     def fit_model(self, index: int, X: pd.DataFrame, y: pd.Series, model_type: str, balance: bool, max_iter: int = 100) -> dict:
+        # 动态引入与模型类型相关的库
+        if model_type == 'tree':
+            from catboost import CatBoostClassifier
+        elif model_type == 'knn':
+            from sklearn.neighbors import KNeighborsClassifier
+        elif model_type == 'linear':
+            from sklearn.linear_model import LogisticRegression
+
         X_train, _, y_train, _ = train_test_split(X, y, train_size=0.7, random_state=index)
 
         if balance:
+            from imblearn.over_sampling import RandomOverSampler
             ros = RandomOverSampler(random_state=index)
             X_resampled, y_resampled = ros.fit_resample(X_train, y_train)
         else:
             X_resampled, y_resampled = X_train, y_train
 
-        if model_type in ['linear', 'knn']:
-            X_processed = self.preprocess_data(X_resampled, fit_scaler=True, index=index)
-        else:
-            X_processed = X_resampled
+        numerical_features = X_resampled.select_dtypes(include=np.number).columns
+        categorical_features = X_resampled.select_dtypes(exclude=np.number).columns
 
+        from sklearn.compose import ColumnTransformer
+        from sklearn.preprocessing import StandardScaler, OneHotEncoder
+        from sklearn.pipeline import Pipeline
+
+        preprocessor = ColumnTransformer(
+            transformers=[
+                ('num', StandardScaler(), numerical_features),
+                ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_features)])
+
+        # 根据模型类型初始化模型
         if model_type == 'linear':
             model = LogisticRegression(max_iter=max_iter)
-            model.fit(X_processed, y_resampled.iloc[:, 0])
-            accuracy = model.score(X_processed, y_resampled)
         elif model_type == 'tree':
-            cat_features_indices = np.where(X_resampled.dtypes == 'object')[0]
-            model = CatBoostClassifier(iterations=max_iter, depth=6,
-                                       eval_metric='AUC', l2_leaf_reg=3,
-                                       cat_features=cat_features_indices,
-                                       learning_rate=0.02, loss_function='Logloss',
-                                       logging_level='Silent')
-            model.fit(X_resampled, y_resampled.iloc[:, 0], plot=False)
-            accuracy = model.score(X_resampled, y_resampled)
+            model = CatBoostClassifier(iterations=max_iter, depth=6, eval_metric='AUC', l2_leaf_reg=3,
+                                       learning_rate=0.02, loss_function='Logloss', logging_level='Silent')
         elif model_type == 'knn':
             model = KNeighborsClassifier(n_neighbors=5)
-            model.fit(X_processed, y_resampled.iloc[:, 0])
-            accuracy = model.score(X_processed, y_resampled)
         else:
-            raise ValueError("Invalid model_type. Choose from 'linear', 'tree', or 'knn'.")
+            raise ValueError("Invalid model_type...")
+
+        pipeline = Pipeline(steps=[('preprocessor', preprocessor), ('classifier', model)])
+
+        pipeline.fit(X_resampled, y_resampled.iloc[:, 0])
+        accuracy = pipeline.score(X_resampled, y_resampled)
+
         logging.info(f"Model {index + 1}/{self.nmodels} trained. Accuracy: {accuracy:.2%}")
-        return {'model': model, 'accuracy': accuracy}
+        return {'model': pipeline, 'accuracy': accuracy}
 
     def fit_scores(self, balance: bool = True, nmodels: Optional[int] = None, n_jobs: int = 1,
                    model_type: str = 'linear', max_iter: int = 100):
@@ -175,35 +167,13 @@ class Matcher:
             logging.info(f"Accuracy:{round(self.model_accuracy[0] * 100, 2)}%")
 
     def predict_scores(self):
-        """
-        Predict propensity scores for each observation.
-        Adds a "scores" column to self.data
-
-        Returns
-        -------
-        None
-        """
         model_preds = []
-
-        for idx, m in enumerate(self.models):
-            if self.model_type in ['linear', 'knn']:
-                X_processed = self.preprocess_data(self.X, fit_scaler=False, index=idx)
-            else:
-                X_processed = self.X
-
-            if self.model_type == 'linear':
-                preds = m.predict_proba(X_processed)[:, 1]
-            elif self.model_type == 'tree':
-                preds = m.predict(self.X, prediction_type='Probability')[:, 1]
-            elif self.model_type == 'knn':
-                preds = m.predict_proba(X_processed)[:, 1]
-            else:
-                raise ValueError("Invalid model_type. Choose from 'linear', 'tree', or 'knn'.")
+        for m in self.models:
+            preds = m.predict_proba(self.X)[:, 1]
             model_preds.append(preds)
 
         model_preds = np.array(model_preds)
         scores = np.mean(model_preds, axis=0)
-
         self.data['scores'] = scores
 
     def match(self, threshold: float = 0.001, nmatches: int = 1, method: str = 'min',
