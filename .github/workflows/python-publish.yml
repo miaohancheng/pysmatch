@@ -1,49 +1,95 @@
-name: Publish Python 🐍 distribution 📦 to PyPI and Create Release
+name: Python Publish
 
 on:
   push:
+    branches: [ "main" ]
     tags:
       - 'v*'
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
+  # ----------------------------
+  # (A) Build & Test & Coverage
+  # ----------------------------
+  build-and-test:
+    name: Build and test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          # 安装 pytest-cov 以生成覆盖率报告
+          pip install pytest-cov codecov
+
+      - name: Run tests with coverage
+        run: |
+          # 生成 coverage.xml 和终端报告
+          pytest --cov=pysmatch --cov-report xml --cov-report term
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.xml
+          flags: unittests
+          name: codecov-coverage
+
+  # -------------------------------------------
+  # (B) 如果是 tag push，发布到 PyPI + 创建 Release
+  # -------------------------------------------
   build-and-publish:
     name: Build and publish to PyPI and create GitHub release
     runs-on: ubuntu-latest
 
+    # 只有当ref是 v* tag 时执行
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [ build-and-test ]
+
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.x'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
 
-    - name: Extract tag name and strip 'v' prefix
-      run: echo "PACKAGE_VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+      - name: Extract tag name and strip 'v' prefix
+        run: echo "PACKAGE_VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install setuptools wheel twine
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install setuptools wheel twine
 
-    - name: Build package
-      run: |
-        python setup.py sdist bdist_wheel
+      - name: Build package
+        run: |
+          python setup.py sdist bdist_wheel
 
-    - name: Publish package
-      uses: pypa/gh-action-pypi-publish@v1.4.2
-      with:
-        user: __token__
-        password: ${{ secrets.PYPI_API_TOKEN }}
-        repository_url: https://upload.pypi.org/legacy/
+      - name: Publish package to PyPI
+        uses: pypa/gh-action-pypi-publish@v1.4.2
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          repository_url: https://upload.pypi.org/legacy/
 
-    - name: Create GitHub Release
-      uses: actions/create-release@v1
-      with:
-        tag_name: ${{ github.ref_name }}
-        release_name: Release ${{ github.ref_name }}
-        body: "Release of version ${{ github.ref_name }} to PyPI."
-        draft: false
-        prerelease: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: "Release ${{ github.ref_name }}"
+          body: "Release of version ${{ github.ref_name }} to PyPI."
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
