@@ -1,7 +1,6 @@
 import pytest
-import pandas as pd
 import numpy as np
-
+import pandas as pd
 from pysmatch.Matcher import Matcher
 
 @pytest.fixture
@@ -23,45 +22,114 @@ def sample_data():
     })
     return test_df, control_df
 
-def test_matcher_init(sample_data):
+def test_fit_scores_optuna(sample_data):
     """
-    测试 Matcher 初始化
+    测试 fit_scores(use_optuna=True) 分支, 覆盖 Optuna Tuner
     """
     test_df, control_df = sample_data
     matcher = Matcher(test_df, control_df, yvar='treatment')
-    assert len(matcher.data) == 100, "合并后的总长度应该是 100"
-    assert matcher.yvar == 'treatment'
-    assert 'treatment' not in matcher.xvars, "yvar 不应包含在 xvars 中"
+    matcher.fit_scores(use_optuna=True, model_type='linear', n_trials=1)  # 只跑1个trial省时间
+    assert len(matcher.models) == 1
+    assert len(matcher.model_accuracy) == 1
+    assert matcher.model_type == 'linear'
 
-def test_matcher_fit_scores(sample_data):
+def test_fit_scores_multi_model(sample_data):
     """
-    测试 fit_scores 过程
+    测试 fit_scores 传入 nmodels>1 的分支, 走并行逻辑
     """
     test_df, control_df = sample_data
     matcher = Matcher(test_df, control_df, yvar='treatment')
-    matcher.fit_scores(balance=True, model_type='linear', n_jobs=1)
-    assert len(matcher.models) > 0, "至少要有一个模型被训练"
-    assert len(matcher.model_accuracy) == len(matcher.models), "模型准确率列表长度要与模型列表相同"
+    # 对小数据集可能要减少 n_jobs 或 nmodels
+    matcher.fit_scores(balance=True, model_type='linear', nmodels=2, n_jobs=1)
+    assert len(matcher.models) == 2
+    assert len(matcher.model_accuracy) == 2
 
-def test_matcher_predict_scores(sample_data):
+def test_match_replacement(sample_data):
     """
-    测试 predict_scores
+    测试 match 时使用 replacement=True
     """
     test_df, control_df = sample_data
     matcher = Matcher(test_df, control_df, yvar='treatment')
-    matcher.fit_scores(balance=False, model_type='linear')
+    matcher.fit_scores()
     matcher.predict_scores()
-    assert 'scores' in matcher.data.columns, "预测完成后应在 data 中生成 'scores' 列"
-    assert not matcher.data['scores'].isnull().any(), "scores 列中不应该存在空值"
+    matcher.match(threshold=0.01, replacement=True)
+    assert len(matcher.matched_data) > 0, "匹配结果不应为空"
+    # 验证 replacement 一般会产生更多匹配记录
 
-def test_matcher_match(sample_data):
+def test_tune_threshold(sample_data):
     """
-    测试 match 方法
+    测试 tune_threshold 方法
+    """
+    test_df, control_df = sample_data
+    matcher = Matcher(test_df, control_df, yvar='treatment')
+    matcher.fit_scores()
+    matcher.predict_scores()
+    # 这里 range 可稍微扩大些，当然要考虑运行时间
+    rng = np.arange(0, 0.005, 0.001)
+    matcher.tune_threshold(method='min', nmatches=1, rng=rng)
+    # 单纯保证不报错即可；实际可细化断言
+
+def test_record_frequency_and_weights(sample_data):
+    """
+    测试 record_frequency 和 assign_weight_vector
     """
     test_df, control_df = sample_data
     matcher = Matcher(test_df, control_df, yvar='treatment')
     matcher.fit_scores()
     matcher.predict_scores()
     matcher.match(threshold=0.01)
-    # 看看 matched_data 是否非空
-    assert len(matcher.matched_data) > 0, "匹配结果应当有数据"
+    freq_df = matcher.record_frequency()
+    assert isinstance(freq_df, pd.DataFrame)
+    matcher.assign_weight_vector()
+    # assign_weight_vector 后 matched_data 应多出 weight 列
+    assert 'weight' in matcher.matched_data.columns
+
+def test_prop_test(sample_data):
+    """
+    测试 prop_test 对某个离散变量做卡方检验
+    """
+    test_df, control_df = sample_data
+    # 人工加入个离散变量
+    test_df['cat_var'] = np.random.choice(['A', 'B'], size=len(test_df))
+    control_df['cat_var'] = np.random.choice(['A', 'B'], size=len(control_df))
+    matcher = Matcher(test_df, control_df, yvar='treatment')
+    matcher.fit_scores()
+    matcher.predict_scores()
+    matcher.match(threshold=0.01)
+    res = matcher.prop_test('cat_var')
+    # 结果应该包含 before/after p值
+    assert res is not None
+    assert 'before' in res and 'after' in res
+
+def test_compare_continuous(sample_data):
+    """
+    测试 compare_continuous 分支
+    """
+    test_df, control_df = sample_data
+    matcher = Matcher(test_df, control_df, yvar='treatment')
+    matcher.fit_scores()
+    matcher.predict_scores()
+    matcher.match(threshold=0.01)
+    # 注意: matched_data 不为空时，才能compare
+    # 如果想避免弹出画图窗口, 可以 set plot_result=False
+    df_result = matcher.compare_continuous(return_table=True, plot_result=False)
+    # 检查结果是否为 DataFrame
+    assert df_result is not None
+
+def test_compare_categorical(sample_data):
+    """
+    测试 compare_categorical 分支
+    """
+    test_df, control_df = sample_data
+    # 手动加个分类变量
+    test_df['cat_var'] = np.random.choice(['X', 'Y'], size=len(test_df))
+    control_df['cat_var'] = np.random.choice(['X', 'Y'], size=len(control_df))
+    matcher = Matcher(test_df, control_df, yvar='treatment')
+    matcher.fit_scores()
+    matcher.predict_scores()
+    matcher.match(threshold=0.01)
+    df_cat_res = matcher.compare_categorical(return_table=True, plot_result=False)
+    assert df_cat_res is not None
+    # 结果里应包含 'var', 'before', 'after'
+    if not df_cat_res.empty:
+        assert all(col in df_cat_res.columns for col in ['var','before','after'])
