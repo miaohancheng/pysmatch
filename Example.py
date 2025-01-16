@@ -29,7 +29,7 @@ np.random.seed(20240919)
 # ============ (2) Utilize optuna (Only train one best model) =============
 m.fit_scores(
     balance=True,
-    model_type='knn',
+    model_type='linear',
     max_iter=200,
     use_optuna=True,
     n_trials=15

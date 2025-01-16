@@ -6,7 +6,6 @@ dependencies = [
     'matplotlib>=3.7.1',
     'numpy>=1.26.4,<2.0.0',
     'pandas>=2.1.4',
-    'patsy>=0.5.6',
     'scipy>=1.13.1',
     'seaborn>=0.12.2',
     'statsmodels>=0.14.3',

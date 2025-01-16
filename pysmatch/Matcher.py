@@ -3,7 +3,6 @@ from __future__ import print_function
 import logging
 import numpy as np
 import pandas as pd
-import patsy
 import matplotlib.pyplot as plt
 
 from typing import List, Optional
@@ -54,23 +53,16 @@ class Matcher:
         self.matched_data = []
         self.xvars_escaped = [f"Q('{x}')" for x in self.xvars]
         self.yvar_escaped = f"Q('{self.yvar}')"
-
-        # design matrices
-        self.y, self.X = patsy.dmatrices(
-            f'{self.yvar_escaped} ~ {" + ".join(self.xvars_escaped)}',
-            data=self.data, return_type='dataframe'
-        )
-        self.design_info = self.X.design_info
+        self.X = self.data[self.xvars]
+        self.y = self.data[self.yvar]
         self.test = self.data[self.data[yvar] == 1]
         self.control = self.data[self.data[yvar] == 0]
         self.testn = len(self.test)
         self.controln = len(self.control)
-
         if self.testn <= self.controln:
             self.minority, self.majority = 1, 0
         else:
             self.minority, self.majority = 0, 1
-
         logging.info(f'Formula: {yvar} ~ {"+".join(self.xvars)}')
         logging.info(f'n majority: {len(self.data[self.data[yvar] == self.majority])}')
         logging.info(f'n minority: {len(self.data[self.data[yvar] == self.minority])}')

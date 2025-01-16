@@ -103,9 +103,11 @@ def progress(i: int, n: int, prestr: str = '') -> None:
     sys.stdout.flush()
 
 
-def is_continuous(colname: str, dmatrix: pd.DataFrame) -> bool:
+def is_continuous(colname: str, df: pd.DataFrame) -> bool:
     """
-    Checks if a column is treated as continuous in the design matrix.
-    中文注释: 判断某列在设计矩阵中是否被视为连续变量
+    Checks if 'colname' is numeric in 'df'.
+    中文注释: 判断是否连续性变量
     """
-    return (colname in dmatrix.columns) or (f"Q('{colname}')" in dmatrix.columns)
+    if colname not in df.columns:
+        return False
+    return pd.api.types.is_numeric_dtype(df[colname])
