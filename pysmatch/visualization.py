@@ -1,24 +1,24 @@
+# visualization.py
 # -*- coding: utf-8 -*-
 import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from statsmodels.distributions.empirical_distribution import ECDF
+from typing import Optional
+from pysmatch import utils as uf
 
-import pysmatch.utils as uf
-
-
-def plot_scores(data, yvar, control_color="#1F77B4", test_color="#FF7F0E"):
+def plot_scores(data: pd.DataFrame, yvar: str, control_color: str = "#1F77B4", test_color: str = "#FF7F0E") -> None:
     """
     Plots the distribution of propensity scores before matching between test and control.
     中文注释: 绘制匹配前测试组与对照组的分数分布
     """
-    assert 'scores' in data.columns, \
-        "Propensity scores haven't been calculated, please run predict_scores()"
-    sns.kdeplot(data[data[yvar] == 0].scores, label='Control', fill=True, color=control_color)
-    sns.kdeplot(data[data[yvar] == 1].scores, label='Test', fill=True, color=test_color)
+    if 'scores' not in data.columns:
+        raise ValueError("Propensity scores haven't been calculated. Please run predict_scores() first.")
+    sns.kdeplot(data[data[yvar] == 0]['scores'], label='Control', fill=True, color=control_color)
+    sns.kdeplot(data[data[yvar] == 1]['scores'], label='Test', fill=True, color=test_color)
     plt.legend(loc='upper right')
-    plt.xlim((0, 1))
+    plt.xlim(0, 1)
     plt.title("Propensity Scores Before Matching")
     plt.ylabel("Density")
     plt.xlabel("Scores")
@@ -41,38 +41,36 @@ def compare_continuous(matcher, return_table: bool = False, plot_result: bool = 
             cob = matcher.control[col]
             tra = matched_data[matched_data[yvar] == 1][col]
             coa = matched_data[matched_data[yvar] == 0][col]
-            xtb, xcb = ECDF(trb), ECDF(cob)
-            xta, xca = ECDF(tra), ECDF(coa)
+            ecdf_trb = ECDF(trb)
+            ecdf_cob = ECDF(cob)
+            ecdf_tra = ECDF(tra)
+            ecdf_coa = ECDF(coa)
 
-            std_diff_med_before, std_diff_mean_before = uf.std_diff(trb, cob)
-            std_diff_med_after, std_diff_mean_after = uf.std_diff(tra, coa)
-            pb, truthb = uf.grouped_permutation_test(uf.chi2_distance, trb, cob)
-            pa, trutha = uf.grouped_permutation_test(uf.chi2_distance, tra, coa)
-            ksb = round(uf.ks_boot(trb, cob, nboots=1000), 6)
-            ksa = round(uf.ks_boot(tra, coa, nboots=1000), 6)
+            std_diff_med_before, std_diff_mean_before = uf.std_diff(trb.values, cob.values)
+            std_diff_med_after, std_diff_mean_after = uf.std_diff(tra.values, coa.values)
+            pb, _ = uf.grouped_permutation_test(uf.chi2_distance, trb.values, cob.values)
+            pa, _ = uf.grouped_permutation_test(uf.chi2_distance, tra.values, coa.values)
+            ksb = round(uf.ks_boot(trb.values, cob.values, nboots=1000), 6)
+            ksa = round(uf.ks_boot(tra.values, coa.values, nboots=1000), 6)
 
             if plot_result:
-                f, (ax1, ax2) = plt.subplots(1, 2, sharey=True, sharex=True, figsize=(12, 5))
-                ax1.plot(xcb.x, xcb.y, label='Control', color=matcher.control_color)
-                ax1.plot(xtb.x, xtb.y, label='Test', color=matcher.test_color)
-                ax1.set_title(f'''
-                    ECDF for {col} before Matching
-                    KS p-value: {ksb}
-                    Grouped Perm p-value: {pb}
-                    Std. Median Difference: {std_diff_med_before}
-                    Std. Mean Difference: {std_diff_mean_before}
-                ''')
-                ax2.plot(xca.x, xca.y, label='Control', color=matcher.control_color)
-                ax2.plot(xta.x, xta.y, label='Test', color=matcher.test_color)
-                ax2.set_title(f'''
-                    ECDF for {col} after Matching
-                    KS p-value: {ksa}
-                    Grouped Perm p-value: {pa}
-                    Std. Median Difference: {std_diff_med_after}
-                    Std. Mean Difference: {std_diff_mean_after}
-                ''')
+                fig, (ax1, ax2) = plt.subplots(1, 2, sharey=True, sharex=True, figsize=(12, 5))
+                ax1.plot(ecdf_cob.x, ecdf_cob.y, label='Control', color=matcher.control_color)
+                ax1.plot(ecdf_trb.x, ecdf_trb.y, label='Test', color=matcher.test_color)
+                ax1.set_title(f"ECDF for {col} before Matching\n"
+                              f"KS p-value: {ksb}\n"
+                              f"Grouped Perm p-value: {pb}\n"
+                              f"Std. Median Diff: {std_diff_med_before}\n"
+                              f"Std. Mean Diff: {std_diff_mean_before}")
+                ax2.plot(ecdf_coa.x, ecdf_coa.y, label='Control', color=matcher.control_color)
+                ax2.plot(ecdf_tra.x, ecdf_tra.y, label='Test', color=matcher.test_color)
+                ax2.set_title(f"ECDF for {col} after Matching\n"
+                              f"KS p-value: {ksa}\n"
+                              f"Grouped Perm p-value: {pa}\n"
+                              f"Std. Median Diff: {std_diff_med_after}\n"
+                              f"Std. Mean Diff: {std_diff_mean_after}")
                 ax2.legend(loc="lower right")
-                plt.xlim((0, np.percentile(xta.x, 99)))
+                plt.xlim((0, np.percentile(ecdf_tra.x, 99)))
                 plt.show()
 
             test_results.append({
@@ -87,18 +85,14 @@ def compare_continuous(matcher, return_table: bool = False, plot_result: bool = 
                 "std_mean_diff_after": std_diff_mean_after
             })
 
-    var_order = [
-        "var",
-        "ks_before",
-        "ks_after",
-        "grouped_chisqr_before",
-        "grouped_chisqr_after",
-        "std_median_diff_before",
-        "std_median_diff_after",
-        "std_mean_diff_before",
-        "std_mean_diff_after"
-    ]
-    df_result = pd.DataFrame(test_results)[var_order] if test_results else pd.DataFrame()
+    if test_results:
+        df_result = pd.DataFrame(test_results)[["var", "ks_before", "ks_after",
+                                                "grouped_chisqr_before", "grouped_chisqr_after",
+                                                "std_median_diff_before", "std_median_diff_after",
+                                                "std_mean_diff_before", "std_mean_diff_after"]]
+    else:
+        df_result = pd.DataFrame()
+
     return df_result if return_table else None
 
 
@@ -115,32 +109,28 @@ def compare_categorical(matcher, return_table: bool = False, plot_result: bool =
     def prep_plot(df: pd.DataFrame, var: str, colname: str) -> pd.DataFrame:
         t = df[df[yvar] == 1]
         c = df[df[yvar] == 0]
-        dummy = [i for i in t.columns if i not in (var, "match_id", "record_id", "weight")][0]
-        countt = t[[var, dummy]].groupby(var).count() / len(t)
-        countc = c[[var, dummy]].groupby(var).count() / len(c)
-        ret = (countt - countc).dropna()
+        dummy = [col for col in t.columns if col not in {var, "match_id", "record_id", "weight"}][0]
+        count_t = t[[var, dummy]].groupby(var).count() / len(t)
+        count_c = c[[var, dummy]].groupby(var).count() / len(c)
+        ret = (count_t - count_c).dropna()
         ret.columns = [colname]
         return ret
 
-    title_str = '''
-        Proportional Difference (test-control) for {} Before and After Matching
-        Chi-Square Test for Independence p-value before | after:
-        {} | {}
-    '''
     test_results = []
     for col in matched_data.columns:
         if (not uf.is_continuous(col, matcher.X)) and (col not in matcher.exclude):
-            dbefore = prep_plot(data, col, colname="before")
-            dafter = prep_plot(matched_data, col, colname="after")
-            df = dbefore.join(dafter, how="outer").fillna(0)
-            test_results_i = matcher.prop_test(col)
-            if test_results_i is not None:
-                test_results.append(test_results_i)
+            dbefore = prep_plot(data, col, "before")
+            dafter = prep_plot(matched_data, col, "after")
+            df_plot = dbefore.join(dafter, how="outer").fillna(0)
+            test_res = matcher.prop_test(col)
+            if test_res is not None:
+                test_results.append(test_res)
                 if plot_result:
-                    df.plot.bar(alpha=.8)
-                    plt.title(title_str.format(col, test_results_i["before"], test_results_i["after"]))
-                    lim = max(.09, abs(df).max().max()) + .01
-                    plt.ylim((-lim, lim))
+                    df_plot.plot.bar(alpha=0.8)
+                    plt.title(f"Proportional Difference (test-control) for {col}\n"
+                              f"Chi-Square p-value before: {test_res['before']} | after: {test_res['after']}")
+                    ylim = max(0.09, abs(df_plot.values).max()) + 0.01
+                    plt.ylim(-ylim, ylim)
                     plt.show()
 
     df_test_results = pd.DataFrame(test_results)[['var', 'before', 'after']] if test_results else pd.DataFrame()

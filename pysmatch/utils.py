@@ -1,12 +1,12 @@
+# utils.py
 # -*- coding: utf-8 -*-
-from __future__ import division
 import sys
 import numpy as np
-from scipy import stats
 import pandas as pd
+from scipy import stats
+from typing import Optional, List, Union
 
-
-def drop_static_cols(df: pd.DataFrame, yvar: str, cols: list = None) -> pd.DataFrame:
+def drop_static_cols(df: pd.DataFrame, yvar: str, cols: Optional[List[str]] = None) -> pd.DataFrame:
     """
     Drops static columns (columns with only one unique value) from a DataFrame.
     中文注释: 删除只有单一取值的列
@@ -18,10 +18,9 @@ def drop_static_cols(df: pd.DataFrame, yvar: str, cols: list = None) -> pd.DataF
     static_cols = nunique[nunique == 1].index.tolist()
     if static_cols:
         df.drop(columns=static_cols, inplace=True)
-        sys.stdout.write('\rStatic columns dropped: {}'.format(', '.join(static_cols)))
+        sys.stdout.write(f'\rStatic columns dropped: {", ".join(static_cols)}')
         sys.stdout.flush()
     return df
-
 
 def ks_boot(tr: np.ndarray, co: np.ndarray, nboots: int = 1000) -> float:
     """
@@ -29,24 +28,21 @@ def ks_boot(tr: np.ndarray, co: np.ndarray, nboots: int = 1000) -> float:
     中文注释: 通过自举法来计算 KS 检验的 p-value
     """
     nx = len(tr)
-    w = np.concatenate((tr, co))
-    obs = len(w)
-    cutp = nx
+    combined = np.concatenate((tr, co))
+    obs = len(combined)
     fs_ks, _ = stats.ks_2samp(tr, co)
 
     bbcount = 0
     for _ in range(nboots):
-        sw = np.random.choice(w, obs, replace=True)
-        x1tmp = sw[:cutp]
-        x2tmp = sw[cutp:]
-        s_ks, _ = stats.ks_2samp(x1tmp, x2tmp)
+        sample = np.random.choice(combined, obs, replace=True)
+        x1 = sample[:nx]
+        x2 = sample[nx:]
+        s_ks, _ = stats.ks_2samp(x1, x2)
         if s_ks >= fs_ks:
             bbcount += 1
-    ks_boot_pval = bbcount / nboots
-    return ks_boot_pval
+    return bbcount / nboots
 
-
-def chi2_distance(t: np.ndarray, c: np.ndarray, bins: int = 'auto') -> float:
+def chi2_distance(t: np.ndarray, c: np.ndarray, bins: Union[int, str] = 'auto') -> float:
     """
     Computes the Chi-square distance between two distributions.
     中文注释: 计算卡方距离
@@ -54,9 +50,7 @@ def chi2_distance(t: np.ndarray, c: np.ndarray, bins: int = 'auto') -> float:
     t_hist, bin_edges = np.histogram(t, bins=bins)
     c_hist, _ = np.histogram(c, bins=bin_edges)
     epsilon = 1e-10
-    chi2_dist = 0.5 * np.sum(((t_hist - c_hist) ** 2) / (t_hist + c_hist + epsilon))
-    return chi2_dist
-
+    return 0.5 * np.sum(((t_hist - c_hist) ** 2) / (t_hist + c_hist + epsilon))
 
 def grouped_permutation_test(f, t: np.ndarray, c: np.ndarray, n_samples: int = 1000) -> tuple:
     """
@@ -64,21 +58,18 @@ def grouped_permutation_test(f, t: np.ndarray, c: np.ndarray, n_samples: int = 1
     中文注释: 分组置换检验
     """
     truth = f(t, c)
-    comb = np.concatenate((t, c))
+    combined = np.concatenate((t, c))
     tn = len(t)
-
-    times_geq = 0
+    count = 0
     for _ in range(n_samples):
-        np.random.shuffle(comb)
-        tt = comb[:tn]
-        cc = comb[tn:]
+        np.random.shuffle(combined)
+        tt = combined[:tn]
+        cc = combined[tn:]
         sample_truth = f(tt, cc)
         if sample_truth >= truth:
-            times_geq += 1
-
-    p_value = times_geq / n_samples
+            count += 1
+    p_value = count / n_samples
     return p_value, truth
-
 
 def std_diff(a: np.ndarray, b: np.ndarray) -> tuple:
     """
@@ -93,15 +84,13 @@ def std_diff(a: np.ndarray, b: np.ndarray) -> tuple:
     mean_diff = (np.mean(a) - np.mean(b)) / sd
     return med_diff, mean_diff
 
-
 def progress(i: int, n: int, prestr: str = '') -> None:
     """
     Displays the current progress of a process in the console.
     中文注释: 打印进度条
     """
-    sys.stdout.write('\r{}: {}/{}'.format(prestr, i, n))
+    sys.stdout.write(f'\r{prestr}: {i}/{n}')
     sys.stdout.flush()
-
 
 def is_continuous(colname: str, df: pd.DataFrame) -> bool:
     """

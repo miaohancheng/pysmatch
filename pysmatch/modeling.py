@@ -1,10 +1,12 @@
+# modeling.py
 # -*- coding: utf-8 -*-
 import logging
 import numpy as np
+import pandas as pd
+from typing import Dict, Any
 
-
-def fit_model(index: int, X, y, model_type: str, balance: bool,
-              max_iter: int = 100, random_state: int = 42):
+def fit_model(index: int, X: pd.DataFrame, y: pd.Series, model_type: str,
+              balance: bool, max_iter: int = 100, random_state: int = 42) -> Dict[str, Any]:
     """
     Trains a model (logistic regression / tree / knn) for a given index.
     中文注释: 训练指定类型的模型
@@ -23,8 +25,8 @@ def fit_model(index: int, X, y, model_type: str, balance: bool,
     else:
         X_resampled, y_resampled = X_train, y_train
 
-    numerical_features = X_resampled.select_dtypes(include=np.number).columns
-    categorical_features = X_resampled.select_dtypes(exclude=np.number).columns
+    numerical_features = X_resampled.select_dtypes(include=np.number).columns.tolist()
+    categorical_features = X_resampled.select_dtypes(exclude=np.number).columns.tolist()
 
     preprocessor = ColumnTransformer(
         transformers=[
@@ -52,17 +54,19 @@ def fit_model(index: int, X, y, model_type: str, balance: bool,
         from sklearn.linear_model import LogisticRegression
         model = LogisticRegression(max_iter=max_iter, random_state=random_state)
     else:
-        raise ValueError("Invalid model_type...")
+        raise ValueError("Invalid model_type provided.")
 
     pipeline = Pipeline(steps=[('preprocessor', preprocessor), ('classifier', model)])
-    pipeline.fit(X_resampled, y_resampled.iloc[:, 0] if y_resampled.ndim == 2 else y_resampled)
-    accuracy = pipeline.score(X_resampled, y_resampled)
+    y_resampled_series = y_resampled.iloc[:, 0] if isinstance(y_resampled, pd.DataFrame) else y_resampled
+    pipeline.fit(X_resampled, y_resampled_series)
+    accuracy = pipeline.score(X_resampled, y_resampled_series)
 
     logging.info(f"Model {index + 1} trained. Accuracy: {accuracy:.2%}")
     return {'model': pipeline, 'accuracy': accuracy}
 
 
-def optuna_tuner(X, y, model_type: str, n_trials: int = 10, balance: bool = True, random_state: int = 42):
+def optuna_tuner(X: pd.DataFrame, y: pd.Series, model_type: str, n_trials: int = 10,
+                 balance: bool = True, random_state: int = 42) -> Dict[str, Any]:
     """
     Use optuna to search for best hyperparams for a given model_type.
     中文注释: 使用 optuna 对指定模型类型进行超参数搜索
@@ -82,23 +86,21 @@ def optuna_tuner(X, y, model_type: str, n_trials: int = 10, balance: bool = True
     else:
         X_resampled, y_resampled = X_train, y_train
 
-    numerical_features = X_resampled.select_dtypes(include=np.number).columns
-    categorical_features = X_resampled.select_dtypes(exclude=np.number).columns
+    numerical_features = X_resampled.select_dtypes(include=np.number).columns.tolist()
+    categorical_features = X_resampled.select_dtypes(exclude=np.number).columns.tolist()
 
-    def objective(trial: optuna.trial.Trial):
-        # Build pipeline each trial
+    def objective(trial: optuna.trial.Trial) -> float:
         preprocessor = ColumnTransformer(
             transformers=[
                 ('num', StandardScaler(), numerical_features),
                 ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_features)
             ]
         )
-
         if model_type == 'linear':
             from sklearn.linear_model import LogisticRegression
             c_val = trial.suggest_float("C", 1e-3, 1e3, log=True)
-            model = LogisticRegression(C=c_val, max_iter=trial.suggest_int("max_iter", 100, 500, step=50),
-                                       random_state=random_state)
+            max_iter_trial = trial.suggest_int("max_iter", 100, 500, step=50)
+            model = LogisticRegression(C=c_val, max_iter=max_iter_trial, random_state=random_state)
         elif model_type == 'tree':
             from catboost import CatBoostClassifier
             depth = trial.suggest_int("depth", 4, 10)
@@ -117,7 +119,7 @@ def optuna_tuner(X, y, model_type: str, n_trials: int = 10, balance: bool = True
             n_neighbors = trial.suggest_int("n_neighbors", 1, 20)
             model = KNeighborsClassifier(n_neighbors=n_neighbors)
         else:
-            raise ValueError("Invalid model_type for optuna...")
+            raise ValueError("Invalid model_type for optuna tuning.")
 
         pipeline = Pipeline(steps=[('preprocessor', preprocessor), ('classifier', model)])
         pipeline.fit(X_resampled, y_resampled)
@@ -129,9 +131,6 @@ def optuna_tuner(X, y, model_type: str, n_trials: int = 10, balance: bool = True
     best_params = study.best_params
     best_score = study.best_value
 
-    # Retrain final pipeline on entire (resampled) training set
-    # (You might also choose to retrain on X_train+X_val, etc.)
-    # For demonstration, we just do it again with best_params:
     preprocessor = ColumnTransformer(
         transformers=[
             ('num', StandardScaler(), numerical_features),
@@ -161,11 +160,10 @@ def optuna_tuner(X, y, model_type: str, n_trials: int = 10, balance: bool = True
             n_neighbors=best_params.get("n_neighbors", 5)
         )
     else:
-        raise ValueError("Invalid model_type for final pipeline...")
+        raise ValueError("Invalid model_type for final pipeline.")
 
     final_pipeline = Pipeline(steps=[('preprocessor', preprocessor), ('classifier', final_model)])
     final_pipeline.fit(X_resampled, y_resampled)
     logging.info(f"[Optuna] Best params: {best_params}, best score: {best_score:.2%}")
 
-    # Return final pipeline + best_score
     return {'model': final_pipeline, 'accuracy': best_score, 'best_params': best_params}
