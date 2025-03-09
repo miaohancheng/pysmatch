@@ -8,6 +8,27 @@ from statsmodels.distributions.empirical_distribution import ECDF
 from typing import Optional
 from pysmatch import utils as uf
 
+
+
+def plot_matched_scores(data: pd.DataFrame, yvar: str, control_color: str = "#1F77B4", test_color: str = "#FF7F0E") -> None:
+    """
+    Plots the distribution of propensity scores after matching.
+    中文注释: 绘制匹配后测试组与对照组的分数分布
+    """
+    if data.empty:
+        raise ValueError("No matched data found. Please run match() first.")
+    if 'scores' not in data.columns:
+        raise ValueError("No 'scores' column found in the matched dataset. Make sure scores are predicted.")
+
+    sns.kdeplot(data[data[yvar] == 0]['scores'], label='Control (matched)', fill=True, color=control_color)
+    sns.kdeplot(data[data[yvar] == 1]['scores'], label='Test (matched)', fill=True, color=test_color)
+    plt.legend(loc='upper right')
+    plt.xlim(0, 1)
+    plt.title("Propensity Scores After Matching")
+    plt.ylabel("Density")
+    plt.xlabel("Scores")
+    plt.show()
+
 def plot_scores(data: pd.DataFrame, yvar: str, control_color: str = "#1F77B4", test_color: str = "#FF7F0E") -> None:
     """
     Plots the distribution of propensity scores before matching between test and control.

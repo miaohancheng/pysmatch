@@ -319,6 +319,15 @@ m.match(method="min", nmatches=1, threshold=0.0001, replacement=False)
 
 ​	•   **replacement**: 在匹配过程中是否允许有放回匹配。
 
+
+## **绘制匹配后倾向得分分布**
+```python
+# 绘制匹配后测试组与对照组的分数分布
+m.plot_matched_scores()
+```
+![png](Example_files/Example_36_0.png)
+
+
 ## **处理多重匹配**
 
 

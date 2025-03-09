@@ -39,8 +39,8 @@ m.predict_scores()
 m.plot_scores()
 
 m.tune_threshold(method='random')
-m.match(method="min", nmatches=1, threshold=0.0001, replacement=False)
-
+m.match(method="min", nmatches=1, threshold=1, replacement=False)
+m.plot_matched_scores()
 freq_df = m.record_frequency()
 m.assign_weight_vector()
 print("top 6 matched data")

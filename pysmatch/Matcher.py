@@ -236,3 +236,15 @@ class Matcher:
         Wrapper to call visualization.compare_categorical
         """
         return visualization.compare_categorical(self, return_table=return_table, plot_result=plot_result)
+
+    def plot_matched_scores(self) -> None:
+        """
+        Plots the distribution of propensity scores after matching.
+        中文注释: 绘制匹配后倾向分数分布
+        """
+        visualization.plot_matched_scores(
+            self.matched_data,
+            self.yvar,
+            control_color=self.control_color,
+            test_color=self.test_color
+        )

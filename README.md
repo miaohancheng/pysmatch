@@ -312,6 +312,15 @@ This command will execute the matching process using the minimum difference stra
 
 ​	•   **replacement**: Whether to allow replacement in the matching process.
 
+
+## **Plotting Propensity Scores After Matching**
+```python
+# Plot propensity score distributions after matching
+m.plot_matched_scores()
+```
+![png](Example_files/Example_36_0.png)
+
+
 ## **Handling Multiple Matches**
 
 
