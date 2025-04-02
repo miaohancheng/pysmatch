@@ -1,18 +1,26 @@
-*.DS_STORE
-*.pyc
-.ipynb_checkpoints/
-.idea*
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
 
-loan_full.csv
-/catboost_info/
-pysmatch.egg-info/dependency_links.txt
-pysmatch.egg-info/PKG-INFO
-pysmatch.egg-info/requires.txt
-pysmatch.egg-info/SOURCES.txt
-pysmatch.egg-info/top_level.txt
-build/lib/pysmatch/__init__.py
-build/lib/pysmatch/functions.py
-build/lib/pysmatch/Matcher.py
-build/lib/pysmatch/__init__.py
-build/lib/pysmatch/functions.py
-build/lib/pysmatch/Matcher.py
+# Test & Coverage
+.coverage
+coverage.xml
+.cache/
+.pytest_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Environments
+.env
+.venv

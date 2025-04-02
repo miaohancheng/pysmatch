@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # 🚨 为 setuptools_scm 获取完整 tag 历史
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -26,14 +28,11 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          # 安装 pytest-cov & codecov
           pip install pytest-cov codecov
-          # ★ 安装本地包
-          pip install -e .
+          pip install -e .  # 安装本地包（此时版本号来自 tag）
 
       - name: Run tests with coverage
         run: |
-          # 生成 coverage.xml 和终端报告
           pytest --cov=pysmatch --cov-report xml --cov-report term
 
       - name: Upload coverage to Codecov
@@ -51,26 +50,28 @@ jobs:
     needs: [ build-and-test ]
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # 🚨 否则 setuptools_scm 无法识别版本
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
-      - name: Extract tag name and strip 'v' prefix
-        run: echo "PACKAGE_VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
-
       - name: Install build dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install setuptools wheel twine
-          # 同样，这里如果需要本地包依赖也可以再加上:
-          # pip install -e .
+          pip install setuptools wheel build twine setuptools-scm
 
-      - name: Build package
+      - name: Build package using PEP 517
         run: |
-          python setup.py sdist bdist_wheel
+          python -m build
+
+      - name: Check package metadata
+        run: |
+          twine check dist/*
 
       - name: Publish package to PyPI
         uses: pypa/gh-action-pypi-publish@v1.4.2
@@ -80,12 +81,10 @@ jobs:
           repository_url: https://upload.pypi.org/legacy/
 
       - name: Create GitHub Release
-        uses: actions/create-release@v1
+        uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
           release_name: "Release ${{ github.ref_name }}"
-          body: "Release of version ${{ github.ref_name }} to PyPI."
-          draft: false
-          prerelease: false
+          body: "🎉 发布版本 ${{ github.ref_name }} 到 PyPI"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -6,10 +6,9 @@ from pysmatch.Matcher import Matcher
 import pandas as pd
 import numpy as np
 
-print('get data')
 path = "misc/loan.csv"
 data = pd.read_csv(path)
-print('get data')
+
 
 test = data[data.loan_status == "Default"]
 control = data[data.loan_status == "Fully Paid"]
