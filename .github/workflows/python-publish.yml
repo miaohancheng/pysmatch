@@ -4,7 +4,7 @@ on:
   push:
     branches: [ "main" ]
     tags:
-      - 'v*'
+      - 'v*'  # eg: v0.1.0, v1.2.3
   pull_request:
     branches: [ "main" ]
 
@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # 确保能拿到 tags
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -26,14 +28,11 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          # 安装 pytest-cov & codecov
           pip install pytest-cov codecov
-          # ★ 安装本地包
           pip install -e .
 
       - name: Run tests with coverage
         run: |
-          # 生成 coverage.xml 和终端报告
           pytest --cov=pysmatch --cov-report xml --cov-report term
 
       - name: Upload coverage to Codecov
@@ -45,34 +44,36 @@ jobs:
           name: codecov-coverage
 
   build-and-publish:
-    name: Build and publish to PyPI and create GitHub release
+    name: Build and publish to PyPI and GitHub Release
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     needs: [ build-and-test ]
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
-      - name: Extract tag name and strip 'v' prefix
+      - name: Extract version from tag
         run: echo "PACKAGE_VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
 
       - name: Install build dependencies
         run: |
           python -m pip install --upgrade pip
           pip install setuptools wheel twine
-          # 同样，这里如果需要本地包依赖也可以再加上:
-          # pip install -e .
 
-      - name: Build package
+      - name: Build the package with injected version
         run: |
-          python setup.py sdist bdist_wheel
+          echo "Version from tag: $PACKAGE_VERSION"
+          PACKAGE_VERSION=$PACKAGE_VERSION python setup.py sdist bdist_wheel
 
-      - name: Publish package to PyPI
+      - name: Upload to PyPI
         uses: pypa/gh-action-pypi-publish@v1.4.2
         with:
           user: __token__
@@ -80,12 +81,10 @@ jobs:
           repository_url: https://upload.pypi.org/legacy/
 
       - name: Create GitHub Release
-        uses: actions/create-release@v1
+        uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
-          release_name: "Release ${{ github.ref_name }}"
-          body: "Release of version ${{ github.ref_name }} to PyPI."
-          draft: false
-          prerelease: false
+          name: "Release ${{ github.ref_name }}"
+          body: "Published version ${{ github.ref_name }} to PyPI."
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
