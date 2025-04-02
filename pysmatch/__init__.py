@@ -6,3 +6,4 @@ from . import utils
 from . import modeling
 from . import matching
 from . import visualization
+__version__ = "1.5.0"

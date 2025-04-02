@@ -7,7 +7,7 @@ setup(
     name="pysmatch",
     use_scm_version=True,
     setup_requires=["setuptools_scm"],
-    packages=["pysmatch"],
+    packages=find_packages(),
     description="Propensity Score Matching (PSM) on Python",
     long_description=long_description,
     long_description_content_type="text/markdown",
