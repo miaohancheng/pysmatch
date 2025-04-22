@@ -1,15 +1,15 @@
 =================
-pysmatch 文档中心
+index
 =================
 
-**pysmatch**: 一个用于倾向性得分匹配 (Propensity Score Matching) 的 Python 库。
+**pysmatch**: It is a Python package providing a robust tool for propensity score matching in Python. This package fixes known bugs from the original project and introduces new features such as parallel computing and model selection, enhancing performance and flexibility.
 
 .. container:: button-container
 
    .. button-link:: https://github.com/miaohancheng/pysmatch/
       :class: btn btn-primary btn-lg
 
-      访问 GitHub 仓库
+      Goto GitHub Repository
 
 .. grid:: 1 2 2 2
    :gutter: 2
@@ -29,7 +29,7 @@ pysmatch 文档中心
    :caption: 目录 (Contents):
    :hidden:
 
-   index  # <--- 添加首页链接到侧边栏
+   index
    installation
    usage
    example_notebook
