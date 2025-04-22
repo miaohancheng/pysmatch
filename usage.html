@@ -94,25 +94,59 @@
 <p>Provide examples and guides on how to use the core functionalities of pysmatch.</p>
 <section id="basic-example">
 <h2>Basic Example<a class="headerlink" href="#basic-example" title="Link to this heading"></a></h2>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">pysmatch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Matcher</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s1">&#39;ignore&#39;</span><span class="p">)</span>
 
-<span class="c1"># Load your data</span>
-<span class="c1"># data = pd.read_csv(...)</span>
-<span class="c1"># treated_col = &#39;treatment_variable_name&#39;</span>
-<span class="c1"># outcome_col = &#39;outcome_variable_name&#39;</span>
-<span class="c1"># covariates = [&#39;cov1&#39;, &#39;cov2&#39;, ...]</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pysmatch.Matcher</span><span class="w"> </span><span class="kn">import</span> <span class="n">Matcher</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
-<span class="c1"># Assuming &#39;data&#39;, &#39;treated_col&#39;, &#39;outcome_col&#39;, &#39;covariates&#39; are defined</span>
-<span class="c1"># m = Matcher(data, treated_col, outcome_col, covariates)</span>
-<span class="c1"># m.fit_scores(balance=True, n_folds=5) # Example</span>
-<span class="c1"># m.match(method=&quot;nearest&quot;, n_matches=1, caliper=0.1)</span>
-<span class="c1"># m.predict_scores() # Or fit_scores if not done</span>
-<span class="c1"># results = m.compare_continuous(method=&quot;ttest&quot;)</span>
-<span class="c1"># print(results)</span>
+<span class="n">path</span> <span class="o">=</span> <span class="s2">&quot;misc/loan.csv&quot;</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+
+<span class="n">test</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">loan_status</span> <span class="o">==</span> <span class="s2">&quot;Default&quot;</span><span class="p">]</span>
+<span class="n">control</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">loan_status</span> <span class="o">==</span> <span class="s2">&quot;Fully Paid&quot;</span><span class="p">]</span>
+
+<span class="n">test</span><span class="p">[</span><span class="s1">&#39;loan_status&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">control</span><span class="p">[</span><span class="s1">&#39;loan_status&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+<span class="n">m</span> <span class="o">=</span> <span class="n">Matcher</span><span class="p">(</span><span class="n">test</span><span class="p">,</span> <span class="n">control</span><span class="p">,</span> <span class="n">yvar</span><span class="o">=</span><span class="s2">&quot;loan_status&quot;</span><span class="p">,</span> <span class="n">exclude</span><span class="o">=</span><span class="p">[])</span>
+
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">20240919</span><span class="p">)</span>
+
+<span class="c1"># ============ (1) Noraml train (Without optuna) =============</span>
+<span class="c1"># m.fit_scores(balance=True, nmodels=10, n_jobs=3, model_type=&#39;knn&#39;)</span>
+<span class="c1"># m.fit_scores(balance=True, nmodels=10, n_jobs=3, model_type=&#39;tree&#39;, max_iter=100)</span>
+<span class="n">m</span><span class="o">.</span><span class="n">fit_scores</span><span class="p">(</span><span class="n">balance</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nmodels</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">n_jobs</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">model_type</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
+
+<span class="c1"># ============ (2) Utilize optuna (Only train one best model) =============</span>
+<span class="c1"># m.fit_scores(</span>
+<span class="c1">#     balance=True,</span>
+<span class="c1">#     model_type=&#39;tree&#39;,</span>
+<span class="c1">#     max_iter=200,</span>
+<span class="c1">#     use_optuna=True,</span>
+<span class="c1">#     n_trials=15</span>
+<span class="c1"># )</span>
+
+<span class="n">m</span><span class="o">.</span><span class="n">predict_scores</span><span class="p">()</span>
+<span class="n">m</span><span class="o">.</span><span class="n">plot_scores</span><span class="p">()</span>
+
+<span class="n">m</span><span class="o">.</span><span class="n">tune_threshold</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">&#39;random&#39;</span><span class="p">)</span>
+<span class="n">m</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s2">&quot;min&quot;</span><span class="p">,</span> <span class="n">nmatches</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">replacement</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">m</span><span class="o">.</span><span class="n">plot_matched_scores</span><span class="p">()</span>
+<span class="n">freq_df</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">record_frequency</span><span class="p">()</span>
+<span class="n">m</span><span class="o">.</span><span class="n">assign_weight_vector</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;top 6 matched data&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">&quot;match_id&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">6</span><span class="p">))</span>
+
+<span class="n">categorical_results</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">compare_categorical</span><span class="p">(</span><span class="n">return_table</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">plot_result</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">categorical_results</span><span class="p">)</span>
+
+<span class="n">cc</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">compare_continuous</span><span class="p">(</span><span class="n">return_table</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">plot_result</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">cc</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Refer to the <span class="xref std std-doc">example_notebook</span> for a complete walkthrough.</p>
 </section>
 </section>
 

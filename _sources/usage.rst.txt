@@ -10,22 +10,56 @@ Basic Example
 
 .. code-block:: python
 
-   import pandas as pd
-   from pysmatch import Matcher
+    import warnings
+    warnings.filterwarnings('ignore')
 
-   # Load your data
-   # data = pd.read_csv(...)
-   # treated_col = 'treatment_variable_name'
-   # outcome_col = 'outcome_variable_name'
-   # covariates = ['cov1', 'cov2', ...]
+    from pysmatch.Matcher import Matcher
+    import pandas as pd
+    import numpy as np
 
-   # Assuming 'data', 'treated_col', 'outcome_col', 'covariates' are defined
-   # m = Matcher(data, treated_col, outcome_col, covariates)
-   # m.fit_scores(balance=True, n_folds=5) # Example
-   # m.match(method="nearest", n_matches=1, caliper=0.1)
-   # m.predict_scores() # Or fit_scores if not done
-   # results = m.compare_continuous(method="ttest")
-   # print(results)
+    path = "misc/loan.csv"
+    data = pd.read_csv(path)
 
 
-Refer to the :doc:`example_notebook` for a complete walkthrough.
+    test = data[data.loan_status == "Default"]
+    control = data[data.loan_status == "Fully Paid"]
+
+    test['loan_status'] = 1
+    control['loan_status'] = 0
+
+    m = Matcher(test, control, yvar="loan_status", exclude=[])
+
+    np.random.seed(20240919)
+
+    # ============ (1) Noraml train (Without optuna) =============
+    # m.fit_scores(balance=True, nmodels=10, n_jobs=3, model_type='knn')
+    # m.fit_scores(balance=True, nmodels=10, n_jobs=3, model_type='tree', max_iter=100)
+    m.fit_scores(balance=True, nmodels=10, n_jobs=3, model_type='linear', max_iter=200)
+
+    # ============ (2) Utilize optuna (Only train one best model) =============
+    # m.fit_scores(
+    #     balance=True,
+    #     model_type='tree',
+    #     max_iter=200,
+    #     use_optuna=True,
+    #     n_trials=15
+    # )
+
+    m.predict_scores()
+    m.plot_scores()
+
+    m.tune_threshold(method='random')
+    m.match(method="min", nmatches=1, threshold=1, replacement=False)
+    m.plot_matched_scores()
+    freq_df = m.record_frequency()
+    m.assign_weight_vector()
+    print("top 6 matched data")
+    print(m.matched_data.sort_values("match_id").head(6))
+
+    categorical_results = m.compare_categorical(return_table=True, plot_result=True)
+    print(categorical_results)
+
+    cc = m.compare_continuous(return_table=True, plot_result=True)
+    print(cc)
+
+

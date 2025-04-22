@@ -6,8 +6,7 @@ Changelog
 Version History
 ---------------
 
-**vX.Y.Z** (Release Date)
+**v1.6** (2025-04-03)
 
-* Feature: ...
-* Fix: ...
-* Docs: ...
+* Feature: Fix bugs
+

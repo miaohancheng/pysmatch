@@ -13,7 +13,7 @@ Or install from source:
 
 .. code-block:: bash
 
-   git clone https://github.com/your-username/pysmatch.git
+   git clone https://github.com/miaohancheng/pysmatch.git
    cd pysmatch
    pip install .
 
