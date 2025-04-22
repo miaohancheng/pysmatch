@@ -17,12 +17,12 @@ index
    .. grid-item-card:: English README
       :link: https://github.com/miaohancheng/pysmatch/blob/main/README.md
 
-      在 GitHub 上查看项目描述和使用说明 (View on GitHub).
+      View project description and usage instructions on GitHub.
 
    .. grid-item-card:: 中文 README (Chinese README)
       :link: https://github.com/miaohancheng/pysmatch/blob/main/README_CHINESE.md
 
-      在 GitHub 上查看项目的中文描述和使用说明 (View on GitHub).
+      在 GitHub 上查看项目的中文描述和使用说明.
 
 .. toctree::
    :maxdepth: 2
