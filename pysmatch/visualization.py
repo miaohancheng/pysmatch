@@ -13,6 +13,26 @@ from pysmatch import utils as uf
 def plot_matched_scores(data: pd.DataFrame, yvar: str, control_color: str = "#1F77B4", test_color: str = "#FF7F0E") -> None:
     """
     Plots the distribution of propensity scores after matching.
+
+    Generates Kernel Density Estimate (KDE) plots to visualize the overlap
+    of propensity scores between the test and control groups present in the
+    *matched* dataset.
+
+    Args:
+        data (pd.DataFrame): The matched DataFrame, must contain the `yvar`
+                             column and a 'scores' column.
+        yvar (str): The name of the binary column indicating group membership (0 or 1).
+        control_color (str, optional): Hex color code for the control group plot.
+                                       Defaults to "#1F77B4".
+        test_color (str, optional): Hex color code for the test group plot.
+                                    Defaults to "#FF7F0E".
+
+    Returns:
+        None: Displays the matplotlib plot.
+
+    Raises:
+        ValueError: If the input `data` is empty or lacks the 'scores' column.
+
     中文注释: 绘制匹配后测试组与对照组的分数分布
     """
     if data.empty:
@@ -31,7 +51,27 @@ def plot_matched_scores(data: pd.DataFrame, yvar: str, control_color: str = "#1F
 
 def plot_scores(data: pd.DataFrame, yvar: str, control_color: str = "#1F77B4", test_color: str = "#FF7F0E") -> None:
     """
-    Plots the distribution of propensity scores before matching between test and control.
+    Plots the distribution of propensity scores before matching.
+
+    Generates Kernel Density Estimate (KDE) plots to visualize the overlap
+    of propensity scores between the test and control groups in the *original*
+    (unmatched) dataset.
+
+    Args:
+        data (pd.DataFrame): The original DataFrame containing scores, must include
+                             the `yvar` column and a 'scores' column.
+        yvar (str): The name of the binary column indicating group membership (0 or 1).
+        control_color (str, optional): Hex color code for the control group plot.
+                                       Defaults to "#1F77B4".
+        test_color (str, optional): Hex color code for the test group plot.
+                                    Defaults to "#FF7F0E".
+
+    Returns:
+        None: Displays the matplotlib plot.
+
+    Raises:
+        ValueError: If the 'scores' column is not found in the input `data`.
+
     中文注释: 绘制匹配前测试组与对照组的分数分布
     """
     if 'scores' not in data.columns:
@@ -48,7 +88,35 @@ def plot_scores(data: pd.DataFrame, yvar: str, control_color: str = "#1F77B4", t
 
 def compare_continuous(matcher, return_table: bool = False, plot_result: bool = True):
     """
-    Plots the ECDFs for continuous features before and after matching.
+    Compares continuous variables between groups before and after matching.
+
+    For each continuous covariate identified in the `matcher` object:
+    1. Calculates standardized median and mean differences before and after matching.
+    2. Performs permutation tests based on Chi-square distance before and after matching.
+    3. Performs bootstrap Kolmogorov-Smirnov (KS) tests before and after matching.
+    4. If `plot_result` is True, generates side-by-side Empirical Cumulative
+       Distribution Function (ECDF) plots comparing the distributions before and
+       after matching, annotated with the calculated statistics (KS p-value,
+       permutation p-value, standardized differences).
+    5. Collects these statistics into a DataFrame.
+
+    Args:
+        matcher (Matcher): An instance of the `pysmatch.Matcher` class, which must
+                           contain the original data (`matcher.data`), matched data
+                           (`matcher.matched_data`), target variable name (`matcher.yvar`),
+                           covariate list (`matcher.xvars`), and excluded columns list
+                           (`matcher.exclude`).
+        return_table (bool, optional): If True, returns the calculated statistics as a
+                                       pandas DataFrame. Defaults to False.
+        plot_result (bool, optional): If True, displays the ECDF comparison plots for
+                                      each continuous variable. Defaults to True.
+
+    Returns:
+        Optional[pd.DataFrame]: If `return_table` is True, returns a DataFrame summarizing
+                                the balance statistics for each continuous covariate.
+                                Otherwise, returns None. Returns an empty DataFrame or None
+                                if no continuous variables are found or if an error occurs.
+
     中文注释: 对连续变量在匹配前后做分布对比
     """
     test_results = []
@@ -119,8 +187,33 @@ def compare_continuous(matcher, return_table: bool = False, plot_result: bool = 
 
 def compare_categorical(matcher, return_table: bool = False, plot_result: bool = True):
     """
-    Plots the proportional differences of each enumerated discrete column for test and control,
-    and performs a Chi-Square Test of Independence before and after matching.
+    Compares categorical variables between groups before and after matching.
+
+    For each categorical covariate identified in the `matcher` object:
+    1. Calculates the proportional difference (test % - control %) for each category
+       level before and after matching.
+    2. Performs Chi-Square tests of independence between the variable and the group
+       indicator (`yvar`) before and after matching (using `matcher.prop_test`).
+    3. If `plot_result` is True, generates bar plots showing the proportional
+       differences for each category before and after matching, annotated with the
+       Chi-Square p-values.
+    4. Collects the Chi-Square test results into a DataFrame.
+
+    Args:
+        matcher (Matcher): An instance of the `pysmatch.Matcher` class, containing
+                           original data, matched data, `yvar`, `xvars`, `exclude`.
+        return_table (bool, optional): If True, returns the Chi-Square test results
+                                       (variable name, p-value before, p-value after)
+                                       as a pandas DataFrame. Defaults to False.
+        plot_result (bool, optional): If True, displays the bar plots comparing
+                                      proportional differences. Defaults to True.
+
+    Returns:
+        Optional[pd.DataFrame]: If `return_table` is True, returns a DataFrame summarizing
+                                the Chi-Square test results for each categorical covariate.
+                                Otherwise, returns None. Returns an empty DataFrame or None
+                                if no categorical variables are found or if an error occurs.
+
     中文注释: 对分类变量在匹配前后做卡方检验并绘制比例差异图
     """
     data = matcher.data

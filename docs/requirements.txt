@@ -1,0 +1,17 @@
+# docs/requirements.txt
+sphinx
+sphinx-rtd-theme
+myst-parser
+nbsphinx
+ipykernel
+catboost
+matplotlib
+numpy
+pandas
+scipy
+seaborn
+statsmodels
+scikit-learn
+imbalanced-learn
+optuna
+sphinx-design

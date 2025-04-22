@@ -8,8 +8,49 @@ from typing import Dict, Any
 def fit_model(index: int, X: pd.DataFrame, y: pd.Series, model_type: str,
               balance: bool, max_iter: int = 100, random_state: int = 42) -> Dict[str, Any]:
     """
-    Trains a model (logistic regression / tree / knn) for a given index.
-    中文注释: 训练指定类型的模型
+    Fits a single propensity score model with preprocessing.
+
+    This function trains a specified classification model (Logistic Regression,
+    CatBoost, or KNN) to predict the binary target variable `y` based on covariates `X`.
+    It includes steps for:
+    1. Splitting data into training and a (currently unused) test set.
+    2. Optionally balancing the training data using RandomOverSampler.
+    3. Preprocessing features using StandardScaler for numerical and OneHotEncoder
+       for categorical variables via a ColumnTransformer.
+    4. Training the specified model within a scikit-learn Pipeline that combines
+       preprocessing and classification.
+    5. Calculating the accuracy of the fitted model on the (potentially resampled)
+       training data.
+
+    Args:
+        index (int): An identifier for this model instance (e.g., used for setting
+                     random states in cross-validation or ensembles).
+        X (pd.DataFrame): DataFrame containing the covariate features.
+        y (pd.Series): Series containing the binary target variable (0 or 1).
+        model_type (str): The type of classifier to use. Options: 'linear'
+                          (Logistic Regression), 'tree' (CatBoostClassifier),
+                          'knn' (KNeighborsClassifier).
+        balance (bool): If True, applies RandomOverSampler to the training data
+                        to balance the classes before fitting the model.
+        max_iter (int, optional): Maximum number of iterations for solvers in
+                                  iterative models (like Logistic Regression).
+                                  Defaults to 100.
+        random_state (Optional[int], optional): Seed for reproducibility in data splitting,
+                                     resampling (if `balance=True`), and model initialization
+                                     (where applicable, like LogisticRegression, CatBoost).
+                                     Defaults to None. If None, randomness is not fixed.
+                                     *Note: Uses `index` for train_test_split and sampler seed.*
+
+
+    Returns:
+        Dict[str, Any]: A dictionary containing:
+            - 'model': The fitted scikit-learn Pipeline object (preprocessor + classifier).
+            - 'accuracy': The accuracy score of the fitted model on the (potentially
+                          resampled) training data.
+
+    Raises:
+        ValueError: If an invalid `model_type` is provided (not 'linear', 'tree', or 'knn').
+        ImportError: If required libraries (sklearn, imblearn, catboost) are not installed.
     """
     from sklearn.model_selection import train_test_split
     from sklearn.compose import ColumnTransformer
@@ -68,8 +109,53 @@ def fit_model(index: int, X: pd.DataFrame, y: pd.Series, model_type: str,
 def optuna_tuner(X: pd.DataFrame, y: pd.Series, model_type: str, n_trials: int = 10,
                  balance: bool = True, random_state: int = 42) -> Dict[str, Any]:
     """
-    Use optuna to search for best hyperparams for a given model_type.
-    中文注释: 使用 optuna 对指定模型类型进行超参数搜索
+    Performs hyperparameter optimization using Optuna for a specified model type.
+
+    This function uses Optuna to search for the best hyperparameters for a given
+    `model_type` ('linear', 'tree', 'knn'). It involves:
+    1. Splitting data into training and validation sets.
+    2. Optionally balancing the training set using RandomOverSampler.
+    3. Defining an Optuna `objective` function that:
+        - Takes an Optuna `trial` object.
+        - Defines hyperparameter search spaces using `trial.suggest_*`.
+        - Creates a preprocessing pipeline (StandardScaler + OneHotEncoder).
+        - Initializes the specified model with suggested hyperparameters.
+        - Combines preprocessing and model into a scikit-learn Pipeline.
+        - Fits the pipeline on the (potentially resampled) training data.
+        - Evaluates the pipeline on the validation set and returns the accuracy score.
+    4. Running the Optuna study for `n_trials` to maximize the objective (accuracy).
+    5. Retrieving the best hyperparameters found by the study.
+    6. Training a final pipeline on the (potentially resampled) training data using the
+       best hyperparameters found.
+    7. Returning the final fitted pipeline, its validation accuracy during the study,
+       and the best parameters.
+
+    Args:
+        X (pd.DataFrame): DataFrame containing the covariate features.
+        y (pd.Series): Series containing the binary target variable (0 or 1).
+        model_type (str): The type of classifier to tune. Options: 'linear'
+                          (Logistic Regression), 'tree' (CatBoostClassifier),
+                          'knn' (KNeighborsClassifier).
+        n_trials (int, optional): The number of optimization trials Optuna should run.
+                                  Defaults to 10.
+        balance (bool, optional): If True, applies RandomOverSampler to the training
+                                  data within each Optuna trial before fitting the model.
+                                  Defaults to True.
+        random_state (int, optional): Seed for reproducibility in data splitting,
+                                      resampling, and model initialization (where applicable).
+                                      Defaults to 42.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing:
+            - 'model': The final scikit-learn Pipeline object fitted with the best
+                       hyperparameters found by Optuna on the training data.
+            - 'accuracy': The best accuracy score achieved on the validation set during
+                          the Optuna study.
+            - 'best_params': A dictionary containing the best hyperparameters found.
+
+    Raises:
+        ValueError: If an invalid `model_type` is provided for tuning.
+        ImportError: If required libraries (optuna, sklearn, imblearn, catboost) are not installed.
     """
     import optuna
     from sklearn.model_selection import train_test_split
