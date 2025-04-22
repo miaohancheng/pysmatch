@@ -1,0 +1,258 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pysmatch.matching &mdash; pysmatch 1.6 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=9d552775"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="pysmatch.visualization" href="visualization.html" />
+    <link rel="prev" title="pysmatch.modeling" href="modeling.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            pysmatch
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">目录 (Contents):</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">Usage Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Changelog</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">核心功能 (Core Features):</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="matcher.html">pysmatch.Matcher</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modeling.html">pysmatch.modeling</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">pysmatch.matching</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#pysmatch.matching.perform_match"><code class="docutils literal notranslate"><span class="pre">perform_match()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pysmatch.matching.prop_retained"><code class="docutils literal notranslate"><span class="pre">prop_retained()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pysmatch.matching.tune_threshold"><code class="docutils literal notranslate"><span class="pre">tune_threshold()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="visualization.html">pysmatch.visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utils.html">pysmatch.utils</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">pysmatch</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
+      <li class="breadcrumb-item active">pysmatch.matching</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/matching.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-pysmatch.matching">
+<span id="pysmatch-matching"></span><span id="api-matching"></span><h1>pysmatch.matching<a class="headerlink" href="#module-pysmatch.matching" title="Link to this heading"></a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="pysmatch.matching.perform_match">
+<span class="sig-prename descclassname"><span class="pre">pysmatch.matching.</span></span><span class="sig-name descname"><span class="pre">perform_match</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yvar</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nmatches</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'min'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">replacement</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="reference internal" href="../_modules/pysmatch/matching.html#perform_match"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.matching.perform_match" title="Link to this definition"></a></dt>
+<dd><p>Performs nearest neighbor matching based on propensity scores within a radius.</p>
+<p>Finds suitable match(es) from the control group for each record in the test
+(treatment) group based on propensity scores (‘scores’ column). It uses
+<cite>sklearn.neighbors.NearestNeighbors</cite> with <cite>radius=threshold</cite> to find potential
+neighbors and then applies selection logic based on the <cite>method</cite> parameter
+(‘min’ or ‘random’) to choose up to <cite>nmatches</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>pd.DataFrame</em>) – DataFrame containing both test and control groups,
+must include the <cite>yvar</cite> column and a ‘scores’ column
+with propensity scores.</p></li>
+<li><p><strong>yvar</strong> (<em>str</em>) – The name of the binary column indicating group membership (0 or 1).</p></li>
+<li><p><strong>threshold</strong> (<em>float</em><em>, </em><em>optional</em>) – The radius within which to search for neighbors
+based on propensity score difference. Defaults to 0.001.</p></li>
+<li><p><strong>nmatches</strong> (<em>int</em><em>, </em><em>optional</em>) – The maximum number of control matches to find for
+each test unit within the specified radius/threshold.
+Defaults to 1.</p></li>
+<li><p><strong>method</strong> (<em>str</em><em>, </em><em>optional</em>) – <p>The method for selecting matches among neighbors found
+within the radius. Options:
+‘min’: Selects the <cite>nmatches</cite> neighbors with the smallest</p>
+<blockquote>
+<div><p>score difference.</p>
+</div></blockquote>
+<dl class="simple">
+<dt>’random’: Selects <cite>nmatches</cite> neighbors randomly from those</dt><dd><p>within the radius.</p>
+</dd>
+</dl>
+<p>Defaults to ‘min’.</p>
+</p></li>
+<li><p><strong>replacement</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether control units can be matched multiple times
+(used more than once as a match). Defaults to False.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A DataFrame containing the matched test and control units.</dt><dd><p>Includes original columns plus ‘match_id’ (linking matched pairs/groups)
+and ‘record_id’ (preserving the original index of the unit). Returns
+an empty DataFrame if no matches are found.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pd.DataFrame</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>ValueError</strong> – If the ‘scores’ column is not found in the input <cite>data</cite>.</p></li>
+<li><p><strong>ValueError</strong> – If an invalid <cite>method</cite> parameter is provided (not ‘min’ or ‘random’).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pysmatch.matching.prop_retained">
+<span class="sig-prename descclassname"><span class="pre">pysmatch.matching.</span></span><span class="sig-name descname"><span class="pre">prop_retained</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">original_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">matched_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yvar</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="../_modules/pysmatch/matching.html#prop_retained"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.matching.prop_retained" title="Link to this definition"></a></dt>
+<dd><p>Calculates the proportion of the minority group retained after matching.</p>
+<p>Compares the number of unique minority group members in the matched dataset
+to the number in the original dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>original_data</strong> (<em>pd.DataFrame</em>) – The dataset before matching.</p></li>
+<li><p><strong>matched_data</strong> (<em>pd.DataFrame</em>) – The dataset after matching. Should contain ‘record_id’
+or rely on index if ‘record_id’ is missing.</p></li>
+<li><p><strong>yvar</strong> (<em>str</em>) – The name of the binary treatment/control indicator column.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>The proportion (0.0 to 1.0) of the original minority group present</dt><dd><p>in the matched dataset. Returns 0.0 if the original minority group
+was empty.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pysmatch.matching.tune_threshold">
+<span class="sig-prename descclassname"><span class="pre">pysmatch.matching.</span></span><span class="sig-name descname"><span class="pre">tune_threshold</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yvar</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'min'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nmatches</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span></span></span><a class="reference internal" href="../_modules/pysmatch/matching.html#tune_threshold"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.matching.tune_threshold" title="Link to this definition"></a></dt>
+<dd><p>Evaluates matching retention across a range of threshold values.</p>
+<p>Performs matching using <cite>perform_match</cite> for each threshold in the specified
+range (<cite>rng</cite>) and calculates the proportion of the original minority group
+that is retained in the matched dataset. Useful for choosing a threshold.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>pd.DataFrame</em>) – The input DataFrame containing scores and <cite>yvar</cite>.</p></li>
+<li><p><strong>yvar</strong> (<em>str</em>) – The name of the binary treatment/control indicator column.</p></li>
+<li><p><strong>method</strong> (<em>str</em><em>, </em><em>optional</em>) – The matching method (‘min’ or ‘random’) to use for
+each evaluation. Defaults to ‘min’.</p></li>
+<li><p><strong>nmatches</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of matches to seek for each test unit.
+Defaults to 1.</p></li>
+<li><p><strong>rng</strong> (<em>Optional</em><em>[</em><em>np.ndarray</em><em>]</em><em>, </em><em>optional</em>) – A NumPy array of threshold values to test.
+If None, defaults to <cite>np.arange(0, 0.001, 0.0001)</cite>.
+Defaults to None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A tuple containing:</dt><dd><ul class="simple">
+<li><p>thresholds (np.ndarray): The array of threshold values tested.</p></li>
+<li><dl class="simple">
+<dt>retained (list): A list of proportions (float) of the minority group</dt><dd><p>retained for each corresponding threshold.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[np.ndarray, list]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="modeling.html" class="btn btn-neutral float-left" title="pysmatch.modeling" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="visualization.html" class="btn btn-neutral float-right" title="pysmatch.visualization" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Miao Hancheng.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

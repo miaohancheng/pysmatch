@@ -1,0 +1,379 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pysmatch.visualization &mdash; pysmatch 1.6 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=9d552775"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            pysmatch
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">目录 (Contents):</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Usage Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Changelog</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">核心功能 (Core Features):</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api/matcher.html">pysmatch.Matcher</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/modeling.html">pysmatch.modeling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/matching.html">pysmatch.matching</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/visualization.html">pysmatch.visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/utils.html">pysmatch.utils</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">pysmatch</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">pysmatch.visualization</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for pysmatch.visualization</h1><div class="highlight"><pre>
+<span></span><span class="c1"># visualization.py</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">seaborn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sns</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">statsmodels.distributions.empirical_distribution</span><span class="w"> </span><span class="kn">import</span> <span class="n">ECDF</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pysmatch</span><span class="w"> </span><span class="kn">import</span> <span class="n">utils</span> <span class="k">as</span> <span class="n">uf</span>
+
+
+
+<div class="viewcode-block" id="plot_matched_scores">
+<a class="viewcode-back" href="../../api/visualization.html#pysmatch.visualization.plot_matched_scores">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">plot_matched_scores</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">yvar</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">control_color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#1F77B4&quot;</span><span class="p">,</span> <span class="n">test_color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#FF7F0E&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Plots the distribution of propensity scores after matching.</span>
+
+<span class="sd">    Generates Kernel Density Estimate (KDE) plots to visualize the overlap</span>
+<span class="sd">    of propensity scores between the test and control groups present in the</span>
+<span class="sd">    *matched* dataset.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data (pd.DataFrame): The matched DataFrame, must contain the `yvar`</span>
+<span class="sd">                             column and a &#39;scores&#39; column.</span>
+<span class="sd">        yvar (str): The name of the binary column indicating group membership (0 or 1).</span>
+<span class="sd">        control_color (str, optional): Hex color code for the control group plot.</span>
+<span class="sd">                                       Defaults to &quot;#1F77B4&quot;.</span>
+<span class="sd">        test_color (str, optional): Hex color code for the test group plot.</span>
+<span class="sd">                                    Defaults to &quot;#FF7F0E&quot;.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        None: Displays the matplotlib plot.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If the input `data` is empty or lacks the &#39;scores&#39; column.</span>
+
+<span class="sd">    中文注释: 绘制匹配后测试组与对照组的分数分布</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No matched data found. Please run match() first.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s1">&#39;scores&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No &#39;scores&#39; column found in the matched dataset. Make sure scores are predicted.&quot;</span><span class="p">)</span>
+
+    <span class="n">sns</span><span class="o">.</span><span class="n">kdeplot</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">yvar</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">][</span><span class="s1">&#39;scores&#39;</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Control (matched)&#39;</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">control_color</span><span class="p">)</span>
+    <span class="n">sns</span><span class="o">.</span><span class="n">kdeplot</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">yvar</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">][</span><span class="s1">&#39;scores&#39;</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Test (matched)&#39;</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">test_color</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper right&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Propensity Scores After Matching&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Density&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Scores&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="plot_scores">
+<a class="viewcode-back" href="../../api/visualization.html#pysmatch.visualization.plot_scores">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">plot_scores</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">yvar</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">control_color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#1F77B4&quot;</span><span class="p">,</span> <span class="n">test_color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#FF7F0E&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Plots the distribution of propensity scores before matching.</span>
+
+<span class="sd">    Generates Kernel Density Estimate (KDE) plots to visualize the overlap</span>
+<span class="sd">    of propensity scores between the test and control groups in the *original*</span>
+<span class="sd">    (unmatched) dataset.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data (pd.DataFrame): The original DataFrame containing scores, must include</span>
+<span class="sd">                             the `yvar` column and a &#39;scores&#39; column.</span>
+<span class="sd">        yvar (str): The name of the binary column indicating group membership (0 or 1).</span>
+<span class="sd">        control_color (str, optional): Hex color code for the control group plot.</span>
+<span class="sd">                                       Defaults to &quot;#1F77B4&quot;.</span>
+<span class="sd">        test_color (str, optional): Hex color code for the test group plot.</span>
+<span class="sd">                                    Defaults to &quot;#FF7F0E&quot;.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        None: Displays the matplotlib plot.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If the &#39;scores&#39; column is not found in the input `data`.</span>
+
+<span class="sd">    中文注释: 绘制匹配前测试组与对照组的分数分布</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="s1">&#39;scores&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Propensity scores haven&#39;t been calculated. Please run predict_scores() first.&quot;</span><span class="p">)</span>
+    <span class="n">sns</span><span class="o">.</span><span class="n">kdeplot</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">yvar</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">][</span><span class="s1">&#39;scores&#39;</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Control&#39;</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">control_color</span><span class="p">)</span>
+    <span class="n">sns</span><span class="o">.</span><span class="n">kdeplot</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">yvar</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">][</span><span class="s1">&#39;scores&#39;</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Test&#39;</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">test_color</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper right&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Propensity Scores Before Matching&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Density&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Scores&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="compare_continuous">
+<a class="viewcode-back" href="../../api/visualization.html#pysmatch.visualization.compare_continuous">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">compare_continuous</span><span class="p">(</span><span class="n">matcher</span><span class="p">,</span> <span class="n">return_table</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">plot_result</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compares continuous variables between groups before and after matching.</span>
+
+<span class="sd">    For each continuous covariate identified in the `matcher` object:</span>
+<span class="sd">    1. Calculates standardized median and mean differences before and after matching.</span>
+<span class="sd">    2. Performs permutation tests based on Chi-square distance before and after matching.</span>
+<span class="sd">    3. Performs bootstrap Kolmogorov-Smirnov (KS) tests before and after matching.</span>
+<span class="sd">    4. If `plot_result` is True, generates side-by-side Empirical Cumulative</span>
+<span class="sd">       Distribution Function (ECDF) plots comparing the distributions before and</span>
+<span class="sd">       after matching, annotated with the calculated statistics (KS p-value,</span>
+<span class="sd">       permutation p-value, standardized differences).</span>
+<span class="sd">    5. Collects these statistics into a DataFrame.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        matcher (Matcher): An instance of the `pysmatch.Matcher` class, which must</span>
+<span class="sd">                           contain the original data (`matcher.data`), matched data</span>
+<span class="sd">                           (`matcher.matched_data`), target variable name (`matcher.yvar`),</span>
+<span class="sd">                           covariate list (`matcher.xvars`), and excluded columns list</span>
+<span class="sd">                           (`matcher.exclude`).</span>
+<span class="sd">        return_table (bool, optional): If True, returns the calculated statistics as a</span>
+<span class="sd">                                       pandas DataFrame. Defaults to False.</span>
+<span class="sd">        plot_result (bool, optional): If True, displays the ECDF comparison plots for</span>
+<span class="sd">                                      each continuous variable. Defaults to True.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Optional[pd.DataFrame]: If `return_table` is True, returns a DataFrame summarizing</span>
+<span class="sd">                                the balance statistics for each continuous covariate.</span>
+<span class="sd">                                Otherwise, returns None. Returns an empty DataFrame or None</span>
+<span class="sd">                                if no continuous variables are found or if an error occurs.</span>
+
+<span class="sd">    中文注释: 对连续变量在匹配前后做分布对比</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">test_results</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">matcher</span><span class="o">.</span><span class="n">data</span>
+    <span class="n">matched_data</span> <span class="o">=</span> <span class="n">matcher</span><span class="o">.</span><span class="n">matched_data</span>
+    <span class="n">yvar</span> <span class="o">=</span> <span class="n">matcher</span><span class="o">.</span><span class="n">yvar</span>
+
+    <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">matched_data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">uf</span><span class="o">.</span><span class="n">is_continuous</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">matcher</span><span class="o">.</span><span class="n">X</span><span class="p">)</span> <span class="ow">and</span> <span class="n">col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">matcher</span><span class="o">.</span><span class="n">exclude</span><span class="p">:</span>
+            <span class="n">trb</span> <span class="o">=</span> <span class="n">matcher</span><span class="o">.</span><span class="n">test</span><span class="p">[</span><span class="n">col</span><span class="p">]</span>
+            <span class="n">cob</span> <span class="o">=</span> <span class="n">matcher</span><span class="o">.</span><span class="n">control</span><span class="p">[</span><span class="n">col</span><span class="p">]</span>
+            <span class="n">tra</span> <span class="o">=</span> <span class="n">matched_data</span><span class="p">[</span><span class="n">matched_data</span><span class="p">[</span><span class="n">yvar</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">][</span><span class="n">col</span><span class="p">]</span>
+            <span class="n">coa</span> <span class="o">=</span> <span class="n">matched_data</span><span class="p">[</span><span class="n">matched_data</span><span class="p">[</span><span class="n">yvar</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">][</span><span class="n">col</span><span class="p">]</span>
+            <span class="n">ecdf_trb</span> <span class="o">=</span> <span class="n">ECDF</span><span class="p">(</span><span class="n">trb</span><span class="p">)</span>
+            <span class="n">ecdf_cob</span> <span class="o">=</span> <span class="n">ECDF</span><span class="p">(</span><span class="n">cob</span><span class="p">)</span>
+            <span class="n">ecdf_tra</span> <span class="o">=</span> <span class="n">ECDF</span><span class="p">(</span><span class="n">tra</span><span class="p">)</span>
+            <span class="n">ecdf_coa</span> <span class="o">=</span> <span class="n">ECDF</span><span class="p">(</span><span class="n">coa</span><span class="p">)</span>
+
+            <span class="n">std_diff_med_before</span><span class="p">,</span> <span class="n">std_diff_mean_before</span> <span class="o">=</span> <span class="n">uf</span><span class="o">.</span><span class="n">std_diff</span><span class="p">(</span><span class="n">trb</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">cob</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+            <span class="n">std_diff_med_after</span><span class="p">,</span> <span class="n">std_diff_mean_after</span> <span class="o">=</span> <span class="n">uf</span><span class="o">.</span><span class="n">std_diff</span><span class="p">(</span><span class="n">tra</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">coa</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+            <span class="n">pb</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">uf</span><span class="o">.</span><span class="n">grouped_permutation_test</span><span class="p">(</span><span class="n">uf</span><span class="o">.</span><span class="n">chi2_distance</span><span class="p">,</span> <span class="n">trb</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">cob</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+            <span class="n">pa</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">uf</span><span class="o">.</span><span class="n">grouped_permutation_test</span><span class="p">(</span><span class="n">uf</span><span class="o">.</span><span class="n">chi2_distance</span><span class="p">,</span> <span class="n">tra</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">coa</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+            <span class="n">ksb</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">uf</span><span class="o">.</span><span class="n">ks_boot</span><span class="p">(</span><span class="n">trb</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">cob</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">nboots</span><span class="o">=</span><span class="mi">1000</span><span class="p">),</span> <span class="mi">6</span><span class="p">)</span>
+            <span class="n">ksa</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">uf</span><span class="o">.</span><span class="n">ks_boot</span><span class="p">(</span><span class="n">tra</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">coa</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">nboots</span><span class="o">=</span><span class="mi">1000</span><span class="p">),</span> <span class="mi">6</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">plot_result</span><span class="p">:</span>
+                <span class="n">fig</span><span class="p">,</span> <span class="p">(</span><span class="n">ax1</span><span class="p">,</span> <span class="n">ax2</span><span class="p">)</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">sharey</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">sharex</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+                <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ecdf_cob</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">ecdf_cob</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Control&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">matcher</span><span class="o">.</span><span class="n">control_color</span><span class="p">)</span>
+                <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ecdf_trb</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">ecdf_trb</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Test&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">matcher</span><span class="o">.</span><span class="n">test_color</span><span class="p">)</span>
+                <span class="n">ax1</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ECDF for </span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2"> before Matching</span><span class="se">\n</span><span class="s2">&quot;</span>
+                              <span class="sa">f</span><span class="s2">&quot;KS p-value: </span><span class="si">{</span><span class="n">ksb</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                              <span class="sa">f</span><span class="s2">&quot;Grouped Perm p-value: </span><span class="si">{</span><span class="n">pb</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                              <span class="sa">f</span><span class="s2">&quot;Std. Median Diff: </span><span class="si">{</span><span class="n">std_diff_med_before</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                              <span class="sa">f</span><span class="s2">&quot;Std. Mean Diff: </span><span class="si">{</span><span class="n">std_diff_mean_before</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ecdf_coa</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">ecdf_coa</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Control&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">matcher</span><span class="o">.</span><span class="n">control_color</span><span class="p">)</span>
+                <span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ecdf_tra</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">ecdf_tra</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Test&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">matcher</span><span class="o">.</span><span class="n">test_color</span><span class="p">)</span>
+                <span class="n">ax2</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ECDF for </span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2"> after Matching</span><span class="se">\n</span><span class="s2">&quot;</span>
+                              <span class="sa">f</span><span class="s2">&quot;KS p-value: </span><span class="si">{</span><span class="n">ksa</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                              <span class="sa">f</span><span class="s2">&quot;Grouped Perm p-value: </span><span class="si">{</span><span class="n">pa</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                              <span class="sa">f</span><span class="s2">&quot;Std. Median Diff: </span><span class="si">{</span><span class="n">std_diff_med_after</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                              <span class="sa">f</span><span class="s2">&quot;Std. Mean Diff: </span><span class="si">{</span><span class="n">std_diff_mean_after</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">ax2</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s2">&quot;lower right&quot;</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">ecdf_tra</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="mi">99</span><span class="p">)))</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+            <span class="n">test_results</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                <span class="s2">&quot;var&quot;</span><span class="p">:</span> <span class="n">col</span><span class="p">,</span>
+                <span class="s2">&quot;ks_before&quot;</span><span class="p">:</span> <span class="n">ksb</span><span class="p">,</span>
+                <span class="s2">&quot;ks_after&quot;</span><span class="p">:</span> <span class="n">ksa</span><span class="p">,</span>
+                <span class="s2">&quot;grouped_chisqr_before&quot;</span><span class="p">:</span> <span class="n">pb</span><span class="p">,</span>
+                <span class="s2">&quot;grouped_chisqr_after&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="p">,</span>
+                <span class="s2">&quot;std_median_diff_before&quot;</span><span class="p">:</span> <span class="n">std_diff_med_before</span><span class="p">,</span>
+                <span class="s2">&quot;std_median_diff_after&quot;</span><span class="p">:</span> <span class="n">std_diff_med_after</span><span class="p">,</span>
+                <span class="s2">&quot;std_mean_diff_before&quot;</span><span class="p">:</span> <span class="n">std_diff_mean_before</span><span class="p">,</span>
+                <span class="s2">&quot;std_mean_diff_after&quot;</span><span class="p">:</span> <span class="n">std_diff_mean_after</span>
+            <span class="p">})</span>
+
+    <span class="k">if</span> <span class="n">test_results</span><span class="p">:</span>
+        <span class="n">df_result</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">test_results</span><span class="p">)[[</span><span class="s2">&quot;var&quot;</span><span class="p">,</span> <span class="s2">&quot;ks_before&quot;</span><span class="p">,</span> <span class="s2">&quot;ks_after&quot;</span><span class="p">,</span>
+                                                <span class="s2">&quot;grouped_chisqr_before&quot;</span><span class="p">,</span> <span class="s2">&quot;grouped_chisqr_after&quot;</span><span class="p">,</span>
+                                                <span class="s2">&quot;std_median_diff_before&quot;</span><span class="p">,</span> <span class="s2">&quot;std_median_diff_after&quot;</span><span class="p">,</span>
+                                                <span class="s2">&quot;std_mean_diff_before&quot;</span><span class="p">,</span> <span class="s2">&quot;std_mean_diff_after&quot;</span><span class="p">]]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">df_result</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">df_result</span> <span class="k">if</span> <span class="n">return_table</span> <span class="k">else</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="compare_categorical">
+<a class="viewcode-back" href="../../api/visualization.html#pysmatch.visualization.compare_categorical">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">compare_categorical</span><span class="p">(</span><span class="n">matcher</span><span class="p">,</span> <span class="n">return_table</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">plot_result</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compares categorical variables between groups before and after matching.</span>
+
+<span class="sd">    For each categorical covariate identified in the `matcher` object:</span>
+<span class="sd">    1. Calculates the proportional difference (test % - control %) for each category</span>
+<span class="sd">       level before and after matching.</span>
+<span class="sd">    2. Performs Chi-Square tests of independence between the variable and the group</span>
+<span class="sd">       indicator (`yvar`) before and after matching (using `matcher.prop_test`).</span>
+<span class="sd">    3. If `plot_result` is True, generates bar plots showing the proportional</span>
+<span class="sd">       differences for each category before and after matching, annotated with the</span>
+<span class="sd">       Chi-Square p-values.</span>
+<span class="sd">    4. Collects the Chi-Square test results into a DataFrame.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        matcher (Matcher): An instance of the `pysmatch.Matcher` class, containing</span>
+<span class="sd">                           original data, matched data, `yvar`, `xvars`, `exclude`.</span>
+<span class="sd">        return_table (bool, optional): If True, returns the Chi-Square test results</span>
+<span class="sd">                                       (variable name, p-value before, p-value after)</span>
+<span class="sd">                                       as a pandas DataFrame. Defaults to False.</span>
+<span class="sd">        plot_result (bool, optional): If True, displays the bar plots comparing</span>
+<span class="sd">                                      proportional differences. Defaults to True.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Optional[pd.DataFrame]: If `return_table` is True, returns a DataFrame summarizing</span>
+<span class="sd">                                the Chi-Square test results for each categorical covariate.</span>
+<span class="sd">                                Otherwise, returns None. Returns an empty DataFrame or None</span>
+<span class="sd">                                if no categorical variables are found or if an error occurs.</span>
+
+<span class="sd">    中文注释: 对分类变量在匹配前后做卡方检验并绘制比例差异图</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">matcher</span><span class="o">.</span><span class="n">data</span>
+    <span class="n">matched_data</span> <span class="o">=</span> <span class="n">matcher</span><span class="o">.</span><span class="n">matched_data</span>
+    <span class="n">yvar</span> <span class="o">=</span> <span class="n">matcher</span><span class="o">.</span><span class="n">yvar</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">prep_plot</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">var</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">colname</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="n">yvar</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="n">yvar</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="n">dummy</span> <span class="o">=</span> <span class="p">[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">t</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="n">var</span><span class="p">,</span> <span class="s2">&quot;match_id&quot;</span><span class="p">,</span> <span class="s2">&quot;record_id&quot;</span><span class="p">,</span> <span class="s2">&quot;weight&quot;</span><span class="p">}][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">count_t</span> <span class="o">=</span> <span class="n">t</span><span class="p">[[</span><span class="n">var</span><span class="p">,</span> <span class="n">dummy</span><span class="p">]]</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">var</span><span class="p">)</span><span class="o">.</span><span class="n">count</span><span class="p">()</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+        <span class="n">count_c</span> <span class="o">=</span> <span class="n">c</span><span class="p">[[</span><span class="n">var</span><span class="p">,</span> <span class="n">dummy</span><span class="p">]]</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">var</span><span class="p">)</span><span class="o">.</span><span class="n">count</span><span class="p">()</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="p">(</span><span class="n">count_t</span> <span class="o">-</span> <span class="n">count_c</span><span class="p">)</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="n">colname</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">ret</span>
+
+    <span class="n">test_results</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">matched_data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">uf</span><span class="o">.</span><span class="n">is_continuous</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">matcher</span><span class="o">.</span><span class="n">X</span><span class="p">))</span> <span class="ow">and</span> <span class="p">(</span><span class="n">col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">matcher</span><span class="o">.</span><span class="n">exclude</span><span class="p">):</span>
+            <span class="n">dbefore</span> <span class="o">=</span> <span class="n">prep_plot</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">col</span><span class="p">,</span> <span class="s2">&quot;before&quot;</span><span class="p">)</span>
+            <span class="n">dafter</span> <span class="o">=</span> <span class="n">prep_plot</span><span class="p">(</span><span class="n">matched_data</span><span class="p">,</span> <span class="n">col</span><span class="p">,</span> <span class="s2">&quot;after&quot;</span><span class="p">)</span>
+            <span class="n">df_plot</span> <span class="o">=</span> <span class="n">dbefore</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dafter</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;outer&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">test_res</span> <span class="o">=</span> <span class="n">matcher</span><span class="o">.</span><span class="n">prop_test</span><span class="p">(</span><span class="n">col</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">test_res</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">test_results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">test_res</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">plot_result</span><span class="p">:</span>
+                    <span class="n">df_plot</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">bar</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Proportional Difference (test-control) for </span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                              <span class="sa">f</span><span class="s2">&quot;Chi-Square p-value before: </span><span class="si">{</span><span class="n">test_res</span><span class="p">[</span><span class="s1">&#39;before&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> | after: </span><span class="si">{</span><span class="n">test_res</span><span class="p">[</span><span class="s1">&#39;after&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="n">ylim</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.09</span><span class="p">,</span> <span class="nb">abs</span><span class="p">(</span><span class="n">df_plot</span><span class="o">.</span><span class="n">values</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">())</span> <span class="o">+</span> <span class="mf">0.01</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="o">-</span><span class="n">ylim</span><span class="p">,</span> <span class="n">ylim</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+    <span class="n">df_test_results</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">test_results</span><span class="p">)[[</span><span class="s1">&#39;var&#39;</span><span class="p">,</span> <span class="s1">&#39;before&#39;</span><span class="p">,</span> <span class="s1">&#39;after&#39;</span><span class="p">]]</span> <span class="k">if</span> <span class="n">test_results</span> <span class="k">else</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">df_test_results</span> <span class="k">if</span> <span class="n">return_table</span> <span class="k">else</span> <span class="kc">None</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Miao Hancheng.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

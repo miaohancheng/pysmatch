@@ -1,0 +1,273 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pysmatch.modeling &mdash; pysmatch 1.6 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=9d552775"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="pysmatch.matching" href="matching.html" />
+    <link rel="prev" title="pysmatch.Matcher" href="matcher.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            pysmatch
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">目录 (Contents):</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">Usage Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Changelog</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">核心功能 (Core Features):</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="matcher.html">pysmatch.Matcher</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">pysmatch.modeling</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#pysmatch.modeling.fit_model"><code class="docutils literal notranslate"><span class="pre">fit_model()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pysmatch.modeling.optuna_tuner"><code class="docutils literal notranslate"><span class="pre">optuna_tuner()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="matching.html">pysmatch.matching</a></li>
+<li class="toctree-l1"><a class="reference internal" href="visualization.html">pysmatch.visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utils.html">pysmatch.utils</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">pysmatch</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
+      <li class="breadcrumb-item active">pysmatch.modeling</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/modeling.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-pysmatch.modeling">
+<span id="pysmatch-modeling"></span><span id="api-modeling"></span><h1>pysmatch.modeling<a class="headerlink" href="#module-pysmatch.modeling" title="Link to this heading"></a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="pysmatch.modeling.fit_model">
+<span class="sig-prename descclassname"><span class="pre">pysmatch.modeling.</span></span><span class="sig-name descname"><span class="pre">fit_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Series</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">balance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_iter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">42</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/pysmatch/modeling.html#fit_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.modeling.fit_model" title="Link to this definition"></a></dt>
+<dd><p>Fits a single propensity score model with preprocessing.</p>
+<p>This function trains a specified classification model (Logistic Regression,
+CatBoost, or KNN) to predict the binary target variable <cite>y</cite> based on covariates <cite>X</cite>.
+It includes steps for:
+1. Splitting data into training and a (currently unused) test set.
+2. Optionally balancing the training data using RandomOverSampler.
+3. Preprocessing features using StandardScaler for numerical and OneHotEncoder</p>
+<blockquote>
+<div><p>for categorical variables via a ColumnTransformer.</p>
+</div></blockquote>
+<ol class="arabic simple" start="4">
+<li><p>Training the specified model within a scikit-learn Pipeline that combines
+preprocessing and classification.</p></li>
+<li><p>Calculating the accuracy of the fitted model on the (potentially resampled)
+training data.</p></li>
+</ol>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>index</strong> (<em>int</em>) – An identifier for this model instance (e.g., used for setting
+random states in cross-validation or ensembles).</p></li>
+<li><p><strong>X</strong> (<em>pd.DataFrame</em>) – DataFrame containing the covariate features.</p></li>
+<li><p><strong>y</strong> (<em>pd.Series</em>) – Series containing the binary target variable (0 or 1).</p></li>
+<li><p><strong>model_type</strong> (<em>str</em>) – The type of classifier to use. Options: ‘linear’
+(Logistic Regression), ‘tree’ (CatBoostClassifier),
+‘knn’ (KNeighborsClassifier).</p></li>
+<li><p><strong>balance</strong> (<em>bool</em>) – If True, applies RandomOverSampler to the training data
+to balance the classes before fitting the model.</p></li>
+<li><p><strong>max_iter</strong> (<em>int</em><em>, </em><em>optional</em>) – Maximum number of iterations for solvers in
+iterative models (like Logistic Regression).
+Defaults to 100.</p></li>
+<li><p><strong>random_state</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em><em>, </em><em>optional</em>) – Seed for reproducibility in data splitting,
+resampling (if <cite>balance=True</cite>), and model initialization
+(where applicable, like LogisticRegression, CatBoost).
+Defaults to None. If None, randomness is not fixed.
+<em>Note: Uses `index` for train_test_split and sampler seed.</em></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A dictionary containing:</dt><dd><ul class="simple">
+<li><p>’model’: The fitted scikit-learn Pipeline object (preprocessor + classifier).</p></li>
+<li><dl class="simple">
+<dt>’accuracy’: The accuracy score of the fitted model on the (potentially</dt><dd><p>resampled) training data.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict[str, Any]</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>ValueError</strong> – If an invalid <cite>model_type</cite> is provided (not ‘linear’, ‘tree’, or ‘knn’).</p></li>
+<li><p><strong>ImportError</strong> – If required libraries (sklearn, imblearn, catboost) are not installed.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pysmatch.modeling.optuna_tuner">
+<span class="sig-prename descclassname"><span class="pre">pysmatch.modeling.</span></span><span class="sig-name descname"><span class="pre">optuna_tuner</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Series</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_trials</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">balance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">42</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/pysmatch/modeling.html#optuna_tuner"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.modeling.optuna_tuner" title="Link to this definition"></a></dt>
+<dd><p>Performs hyperparameter optimization using Optuna for a specified model type.</p>
+<p>This function uses Optuna to search for the best hyperparameters for a given
+<cite>model_type</cite> (‘linear’, ‘tree’, ‘knn’). It involves:
+1. Splitting data into training and validation sets.
+2. Optionally balancing the training set using RandomOverSampler.
+3. Defining an Optuna <cite>objective</cite> function that:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Takes an Optuna <cite>trial</cite> object.</p></li>
+<li><p>Defines hyperparameter search spaces using <cite>trial.suggest_*</cite>.</p></li>
+<li><p>Creates a preprocessing pipeline (StandardScaler + OneHotEncoder).</p></li>
+<li><p>Initializes the specified model with suggested hyperparameters.</p></li>
+<li><p>Combines preprocessing and model into a scikit-learn Pipeline.</p></li>
+<li><p>Fits the pipeline on the (potentially resampled) training data.</p></li>
+<li><p>Evaluates the pipeline on the validation set and returns the accuracy score.</p></li>
+</ul>
+</div></blockquote>
+<ol class="arabic simple" start="4">
+<li><p>Running the Optuna study for <cite>n_trials</cite> to maximize the objective (accuracy).</p></li>
+<li><p>Retrieving the best hyperparameters found by the study.</p></li>
+<li><p>Training a final pipeline on the (potentially resampled) training data using the
+best hyperparameters found.</p></li>
+<li><p>Returning the final fitted pipeline, its validation accuracy during the study,
+and the best parameters.</p></li>
+</ol>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X</strong> (<em>pd.DataFrame</em>) – DataFrame containing the covariate features.</p></li>
+<li><p><strong>y</strong> (<em>pd.Series</em>) – Series containing the binary target variable (0 or 1).</p></li>
+<li><p><strong>model_type</strong> (<em>str</em>) – The type of classifier to tune. Options: ‘linear’
+(Logistic Regression), ‘tree’ (CatBoostClassifier),
+‘knn’ (KNeighborsClassifier).</p></li>
+<li><p><strong>n_trials</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of optimization trials Optuna should run.
+Defaults to 10.</p></li>
+<li><p><strong>balance</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, applies RandomOverSampler to the training
+data within each Optuna trial before fitting the model.
+Defaults to True.</p></li>
+<li><p><strong>random_state</strong> (<em>int</em><em>, </em><em>optional</em>) – Seed for reproducibility in data splitting,
+resampling, and model initialization (where applicable).
+Defaults to 42.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A dictionary containing:</dt><dd><ul class="simple">
+<li><dl class="simple">
+<dt>’model’: The final scikit-learn Pipeline object fitted with the best</dt><dd><p>hyperparameters found by Optuna on the training data.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>’accuracy’: The best accuracy score achieved on the validation set during</dt><dd><p>the Optuna study.</p>
+</dd>
+</dl>
+</li>
+<li><p>’best_params’: A dictionary containing the best hyperparameters found.</p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict[str, Any]</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>ValueError</strong> – If an invalid <cite>model_type</cite> is provided for tuning.</p></li>
+<li><p><strong>ImportError</strong> – If required libraries (optuna, sklearn, imblearn, catboost) are not installed.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="matcher.html" class="btn btn-neutral float-left" title="pysmatch.Matcher" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="matching.html" class="btn btn-neutral float-right" title="pysmatch.matching" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Miao Hancheng.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

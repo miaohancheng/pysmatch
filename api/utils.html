@@ -1,0 +1,357 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pysmatch.utils &mdash; pysmatch 1.6 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=9d552775"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Contributing" href="../contributing.html" />
+    <link rel="prev" title="pysmatch.visualization" href="visualization.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            pysmatch
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">目录 (Contents):</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">Usage Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Changelog</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">核心功能 (Core Features):</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="matcher.html">pysmatch.Matcher</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modeling.html">pysmatch.modeling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="matching.html">pysmatch.matching</a></li>
+<li class="toctree-l1"><a class="reference internal" href="visualization.html">pysmatch.visualization</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">pysmatch.utils</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#pysmatch.utils.chi2_distance"><code class="docutils literal notranslate"><span class="pre">chi2_distance()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pysmatch.utils.drop_static_cols"><code class="docutils literal notranslate"><span class="pre">drop_static_cols()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pysmatch.utils.grouped_permutation_test"><code class="docutils literal notranslate"><span class="pre">grouped_permutation_test()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pysmatch.utils.is_continuous"><code class="docutils literal notranslate"><span class="pre">is_continuous()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pysmatch.utils.ks_boot"><code class="docutils literal notranslate"><span class="pre">ks_boot()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pysmatch.utils.progress"><code class="docutils literal notranslate"><span class="pre">progress()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pysmatch.utils.std_diff"><code class="docutils literal notranslate"><span class="pre">std_diff()</span></code></a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">pysmatch</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
+      <li class="breadcrumb-item active">pysmatch.utils</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/utils.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-pysmatch.utils">
+<span id="pysmatch-utils"></span><span id="api-utils"></span><h1>pysmatch.utils<a class="headerlink" href="#module-pysmatch.utils" title="Link to this heading"></a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="pysmatch.utils.chi2_distance">
+<span class="sig-prename descclassname"><span class="pre">pysmatch.utils.</span></span><span class="sig-name descname"><span class="pre">chi2_distance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bins</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'auto'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="../_modules/pysmatch/utils.html#chi2_distance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.utils.chi2_distance" title="Link to this definition"></a></dt>
+<dd><p>Computes the Chi-square distance between the distributions of two samples.</p>
+<p>This function calculates a measure of distance between the histograms of two
+samples (<cite>t</cite> and <cite>c</cite>). It first creates histograms with common bins, then
+computes the Chi-square statistic based on the frequencies in each bin.
+A small epsilon is added to the denominator to avoid division by zero.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>t</strong> (<em>np.ndarray</em>) – Array containing data for the first sample.</p></li>
+<li><p><strong>c</strong> (<em>np.ndarray</em>) – Array containing data for the second sample.</p></li>
+<li><p><strong>bins</strong> (<em>Union</em><em>[</em><em>int</em><em>, </em><em>str</em><em>]</em><em>, </em><em>optional</em>) – The number of bins or the binning strategy
+to use for <cite>np.histogram</cite>. Defaults to ‘auto’.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>The calculated Chi-square distance. Returns 0.0 if inputs are empty</dt><dd><p>or identical after binning.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pysmatch.utils.drop_static_cols">
+<span class="sig-prename descclassname"><span class="pre">pysmatch.utils.</span></span><span class="sig-name descname"><span class="pre">drop_static_cols</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yvar</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="reference internal" href="../_modules/pysmatch/utils.html#drop_static_cols"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.utils.drop_static_cols" title="Link to this definition"></a></dt>
+<dd><p>Drops columns from a DataFrame that contain only a single unique value (static columns).</p>
+<p>It identifies columns with only one unique value among the specified <cite>cols</cite> (excluding <cite>yvar</cite>)
+and removes them in place from the DataFrame. Prints the names of dropped columns.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<em>pd.DataFrame</em>) – The input DataFrame to modify.</p></li>
+<li><p><strong>yvar</strong> (<em>str</em>) – The name of the target variable column, which should not be dropped even if static.</p></li>
+<li><p><strong>cols</strong> (<em>Optional</em><em>[</em><em>List</em><em>[</em><em>str</em><em>]</em><em>]</em><em>, </em><em>optional</em>) – A list of column names to check for static values.
+If None, checks all columns in the DataFrame
+(excluding <cite>yvar</cite>). Defaults to None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>The input DataFrame <cite>df</cite> modified in place (static columns removed).</dt><dd><p>It returns the same DataFrame object that was passed in.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pysmatch.utils.grouped_permutation_test">
+<span class="sig-prename descclassname"><span class="pre">pysmatch.utils.</span></span><span class="sig-name descname"><span class="pre">grouped_permutation_test</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1000</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span></span></span><a class="reference internal" href="../_modules/pysmatch/utils.html#grouped_permutation_test"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.utils.grouped_permutation_test" title="Link to this definition"></a></dt>
+<dd><p>Performs a permutation test for a given statistic function <cite>f</cite>.</p>
+<p>Evaluates the significance of an observed test statistic calculated by function <cite>f</cite>
+applied to samples <cite>t</cite> and <cite>c</cite>. It does this by:
+1. Calculating the observed statistic <cite>truth = f(t, c)</cite>.
+2. Repeatedly (<cite>n_samples</cite> times):</p>
+<blockquote>
+<div><ol class="loweralpha simple">
+<li><p>Combining <cite>t</cite> and <cite>c</cite>.</p></li>
+<li><p>Shuffling the combined data.</p></li>
+<li><p>Splitting the shuffled data back into two samples of the original sizes.</p></li>
+<li><p>Calculating the statistic <cite>f</cite> on the permuted samples.</p></li>
+<li><p>Counting how often the permuted statistic is greater than or equal to <cite>truth</cite>.</p></li>
+</ol>
+</div></blockquote>
+<ol class="arabic simple" start="3">
+<li><p>Calculating the p-value as the proportion of permuted statistics that met the condition in 2e.</p></li>
+</ol>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>f</strong> (<em>Callable</em><em>[</em><em>[</em><em>np.ndarray</em><em>, </em><em>np.ndarray</em><em>]</em><em>, </em><em>float</em><em>]</em>) – A function that takes two numpy arrays
+(representing two groups) and returns a
+single float value (the test statistic).</p></li>
+<li><p><strong>t</strong> (<em>np.ndarray</em>) – Array containing data for the first group.</p></li>
+<li><p><strong>c</strong> (<em>np.ndarray</em>) – Array containing data for the second group.</p></li>
+<li><p><strong>n_samples</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of permutation iterations to perform.
+Defaults to 1000.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A tuple containing:</dt><dd><ul class="simple">
+<li><p>p_value (float): The estimated p-value from the permutation test.</p></li>
+<li><dl class="simple">
+<dt>truth (float): The observed test statistic calculated on the original samples.</dt><dd><p>Returns (1.0, np.nan) or similar if inputs are invalid.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pysmatch.utils.is_continuous">
+<span class="sig-prename descclassname"><span class="pre">pysmatch.utils.</span></span><span class="sig-name descname"><span class="pre">is_continuous</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">colname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="../_modules/pysmatch/utils.html#is_continuous"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.utils.is_continuous" title="Link to this definition"></a></dt>
+<dd><p>Checks if a specified column in a DataFrame has a numeric data type.</p>
+<p>Uses <cite>pandas.api.types.is_numeric_dtype</cite> to determine if the column
+contains numerical data (integers or floats).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>colname</strong> (<em>str</em>) – The name of the column to check.</p></li>
+<li><p><strong>df</strong> (<em>pd.DataFrame</em>) – The DataFrame containing the column.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>True if the column exists in the DataFrame and its dtype is numeric,</dt><dd><p>False otherwise (column doesn’t exist or dtype is non-numeric).</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pysmatch.utils.ks_boot">
+<span class="sig-prename descclassname"><span class="pre">pysmatch.utils.</span></span><span class="sig-name descname"><span class="pre">ks_boot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">co</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nboots</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1000</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="../_modules/pysmatch/utils.html#ks_boot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.utils.ks_boot" title="Link to this definition"></a></dt>
+<dd><p>Performs a bootstrap Kolmogorov-Smirnov (KS) test to estimate the p-value.</p>
+<p>This function estimates the p-value for the two-sample KS test by comparing the
+observed KS statistic between the two input samples (<cite>tr</cite> and <cite>co</cite>) against a
+distribution of KS statistics obtained from bootstrap samples drawn under the null
+hypothesis (that both samples come from the same distribution).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tr</strong> (<em>np.ndarray</em>) – Array containing data for the first sample (e.g., treatment group).</p></li>
+<li><p><strong>co</strong> (<em>np.ndarray</em>) – Array containing data for the second sample (e.g., control group).</p></li>
+<li><p><strong>nboots</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of bootstrap iterations to perform.
+Defaults to 1000.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>The estimated p-value, calculated as the proportion of bootstrap KS statistics</dt><dd><p>that are greater than or equal to the observed KS statistic.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pysmatch.utils.progress">
+<span class="sig-prename descclassname"><span class="pre">pysmatch.utils.</span></span><span class="sig-name descname"><span class="pre">progress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">i</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prestr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/pysmatch/utils.html#progress"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.utils.progress" title="Link to this definition"></a></dt>
+<dd><blockquote>
+<div><p>Displays a simple progress indicator in the console.</p>
+<p>Prints a progress string like “[prefix]: i/n” to standard output, overwriting
+the previous line using the carriage return character `</p>
+</div></blockquote>
+<p><a href="#id1"><span class="problematic" id="id2">`</span></a>.</p>
+<blockquote>
+<div><dl>
+<dt>Args:</dt><dd><p>i (int): The current step or item number (should be 1-based or adjusted).
+n (int): The total number of steps or items.
+prestr (str, optional): A prefix string to display before the progress count</p>
+<blockquote>
+<div><p>(e.g., “Processing file”). Defaults to ‘’.</p>
+</div></blockquote>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pysmatch.utils.std_diff">
+<span class="sig-prename descclassname"><span class="pre">pysmatch.utils.</span></span><span class="sig-name descname"><span class="pre">std_diff</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span></span></span><a class="reference internal" href="../_modules/pysmatch/utils.html#std_diff"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.utils.std_diff" title="Link to this definition"></a></dt>
+<dd><p>Calculates standardized differences (median and mean) between two arrays.</p>
+<p>Computes the difference in medians and means between arrays <cite>a</cite> and <cite>b</cite>,
+standardized by the pooled standard deviation of the combined data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>a</strong> (<em>np.ndarray</em>) – Array containing data for the first group.</p></li>
+<li><p><strong>b</strong> (<em>np.ndarray</em>) – Array containing data for the second group.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A tuple containing:</dt><dd><ul class="simple">
+<li><p>med_diff (float): The standardized median difference <cite>(median(a) - median(b)) / std(combined)</cite>.</p></li>
+<li><dl class="simple">
+<dt>mean_diff (float): The standardized mean difference <cite>(mean(a) - mean(b)) / std(combined)</cite>.</dt><dd><p>Returns (0.0, 0.0) if the combined standard deviation is zero or
+if inputs are empty.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[float, float]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="visualization.html" class="btn btn-neutral float-left" title="pysmatch.visualization" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../contributing.html" class="btn btn-neutral float-right" title="Contributing" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Miao Hancheng.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

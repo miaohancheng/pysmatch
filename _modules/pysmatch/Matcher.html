@@ -1,0 +1,606 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pysmatch.Matcher &mdash; pysmatch 1.6 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=9d552775"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            pysmatch
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">目录 (Contents):</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Usage Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Changelog</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">核心功能 (Core Features):</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api/matcher.html">pysmatch.Matcher</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/modeling.html">pysmatch.modeling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/matching.html">pysmatch.matching</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/visualization.html">pysmatch.visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/utils.html">pysmatch.utils</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">pysmatch</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">pysmatch.Matcher</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for pysmatch.Matcher</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Matcher.py</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">pysmatch</span><span class="w"> </span><span class="kn">import</span> <span class="n">utils</span> <span class="k">as</span> <span class="n">uf</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pysmatch</span><span class="w"> </span><span class="kn">import</span> <span class="n">modeling</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pysmatch</span><span class="w"> </span><span class="kn">import</span> <span class="n">matching</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pysmatch</span><span class="w"> </span><span class="kn">import</span> <span class="n">visualization</span>
+
+<span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span>
+    <span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span>
+    <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%(asctime)s</span><span class="s1"> - </span><span class="si">%(levelname)s</span><span class="s1"> - </span><span class="si">%(message)s</span><span class="s1">&#39;</span><span class="p">,</span>
+    <span class="n">datefmt</span><span class="o">=</span><span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1"> %H:%M:%S&#39;</span>
+<span class="p">)</span>
+
+<div class="viewcode-block" id="Matcher">
+<a class="viewcode-back" href="../../api/matcher.html#pysmatch.Matcher.Matcher">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Matcher</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A class to perform propensity score matching (PSM).</span>
+
+<span class="sd">    This class encapsulates the entire PSM workflow, including propensity</span>
+<span class="sd">    score estimation, matching, and balance assessment.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        data (pd.DataFrame): The input DataFrame containing treatment, outcome, and covariates.</span>
+<span class="sd">        treatment (str): The name of the treatment column.</span>
+<span class="sd">        outcome (str): The name of the outcome column.</span>
+<span class="sd">        covariates (list): A list of covariate column names.</span>
+<span class="sd">        exclude (list): A list of columns to exclude from calculations (often includes treatment and outcome).</span>
+<span class="sd">        scores (pd.Series): Propensity scores estimated for each observation.</span>
+<span class="sd">        matched_data (pd.DataFrame): DataFrame containing the matched pairs/groups.</span>
+<span class="sd">        model_fit (object): The fitted propensity score model object.</span>
+<span class="sd">        balance_stats (pd.DataFrame): Statistics assessing covariate balance before and after matching.</span>
+<span class="sd">        n_matches (int): The number of matches to find for each treated unit (used in some matching methods).</span>
+<span class="sd">        method (str): The matching method used (e.g., &quot;nearest&quot;, &quot;optimal&quot;, &quot;radius&quot;).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">test</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">control</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">yvar</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">formula</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">exclude</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initializes the Matcher object.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data (pd.DataFrame): The input DataFrame. Must contain treatment, outcome,</span>
+<span class="sd">                and covariate columns.</span>
+<span class="sd">            treatment (str): The name of the column indicating treatment status (e.g., 0 or 1).</span>
+<span class="sd">            outcome (str): The name of the column containing the outcome variable.</span>
+<span class="sd">            covariates (list): A list of column names to be used as covariates for</span>
+<span class="sd">                propensity score estimation and matching.</span>
+<span class="sd">            exclude (list, optional): A list of column names to exclude from internal</span>
+<span class="sd">                calculations (typically includes treatment and outcome). If None, defaults</span>
+<span class="sd">                to [treatment, outcome]. Defaults to None.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If input data types are incorrect or required columns are missing.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">exclude</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">exclude</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">yvar</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">test</span><span class="o">.</span><span class="n">columns</span> <span class="ow">or</span> <span class="n">yvar</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">control</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">yvar</span><span class="si">}</span><span class="s2">&#39; must be present in both test and control DataFrames.&quot;</span><span class="p">)</span>
+
+        <span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s2">&quot;figure.figsize&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+        <span class="n">aux_match</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;scores&#39;</span><span class="p">,</span> <span class="s1">&#39;match_id&#39;</span><span class="p">,</span> <span class="s1">&#39;weight&#39;</span><span class="p">,</span> <span class="s1">&#39;record_id&#39;</span><span class="p">]</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">test</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">control</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;all&quot;</span><span class="p">)</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;all&quot;</span><span class="p">)</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">index</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">t</span><span class="p">,</span> <span class="n">c</span><span class="p">],</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">control_color</span> <span class="o">=</span> <span class="s2">&quot;#1F77B4&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_color</span> <span class="o">=</span> <span class="s2">&quot;#FF7F0E&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">yvar</span> <span class="o">=</span> <span class="n">yvar</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">exclude</span> <span class="o">=</span> <span class="n">exclude</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">yvar</span><span class="p">]</span> <span class="o">+</span> <span class="n">aux_match</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">formula</span> <span class="o">=</span> <span class="n">formula</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nmodels</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">swdata</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_accuracy</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">errors</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># 确保yvar为二元变量</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">yvar</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">yvar</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xvars</span> <span class="o">=</span> <span class="p">[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">exclude</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">original_xvars</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xvars</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">xvars</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">X</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">xvars</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">yvar</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">yvar</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">control</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">yvar</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">testn</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">test</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">controln</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">control</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">testn</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">controln</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">minority</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">majority</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">minority</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">majority</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Formula: </span><span class="si">{</span><span class="n">yvar</span><span class="si">}</span><span class="s1"> ~ </span><span class="si">{</span><span class="s2">&quot; + &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xvars</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;n majority: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">yvar</span><span class="p">]</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">majority</span><span class="p">])</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;n minority: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">yvar</span><span class="p">]</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">minority</span><span class="p">])</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Matcher.fit_model">
+<a class="viewcode-back" href="../../api/matcher.html#pysmatch.Matcher.Matcher.fit_model">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">X</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span> <span class="n">model_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                  <span class="n">balance</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fits a single propensity score model.</span>
+
+<span class="sd">        Internal helper method that calls `pysmatch.modeling.fit_model`. This is</span>
+<span class="sd">        typically used within `fit_scores`, especially when fitting multiple models</span>
+<span class="sd">        for balancing or ensembling.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            index (int): An identifier for the model (e.g., its index in an ensemble).</span>
+<span class="sd">            X (pd.DataFrame): The feature matrix (covariates).</span>
+<span class="sd">            y (pd.Series): The target variable (treatment indicator).</span>
+<span class="sd">            model_type (str): The type of model to fit (e.g., &#39;linear&#39;, &#39;rf&#39;, &#39;gb&#39;).</span>
+<span class="sd">            balance (bool): Whether the fitting process should aim to balance covariates</span>
+<span class="sd">                            (e.g., by undersampling the majority class or using class weights).</span>
+<span class="sd">            max_iter (int, optional): Maximum iterations for iterative solvers (like logistic</span>
+<span class="sd">                                      regression). Defaults to 100.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Dict[str, Any]: A dictionary containing the fitted model object under the key &#39;model&#39;</span>
+<span class="sd">                            and its accuracy under the key &#39;accuracy&#39;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">modeling</span><span class="o">.</span><span class="n">fit_model</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">model_type</span><span class="p">,</span> <span class="n">balance</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Matcher.fit_scores">
+<a class="viewcode-back" href="../../api/matcher.html#pysmatch.Matcher.Matcher.fit_scores">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit_scores</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">balance</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">nmodels</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                   <span class="n">n_jobs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">model_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;linear&#39;</span><span class="p">,</span>
+                   <span class="n">max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">use_optuna</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                   <span class="n">n_trials</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fits propensity score model(s) to estimate scores.</span>
+
+<span class="sd">        Supports single model fitting, ensemble fitting for balance (by undersampling</span>
+<span class="sd">        the majority class across multiple models), or hyperparameter tuning using Optuna.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            balance (bool, optional): If True, attempts to create balanced models. If `nmodels`</span>
+<span class="sd">                                      is greater than 1, this typically involves fitting multiple</span>
+<span class="sd">                                      models on undersampled majority data. If `nmodels` is 1,</span>
+<span class="sd">                                      it might involve using class weights or other balancing</span>
+<span class="sd">                                      techniques within the single model fit. Defaults to True.</span>
+<span class="sd">            nmodels (Optional[int], optional): The number of models to fit in an ensemble.</span>
+<span class="sd">                                               If None and `balance` is True, it&#39;s estimated based</span>
+<span class="sd">                                               on the majority/minority class ratio. If None and</span>
+<span class="sd">                                               `balance` is False, it defaults to 1. Ignored if</span>
+<span class="sd">                                               `use_optuna` is True. Defaults to None.</span>
+<span class="sd">            n_jobs (int, optional): The number of parallel jobs to run when fitting multiple</span>
+<span class="sd">                                    models (`nmodels` &gt; 1). Uses `ThreadPool`. Defaults to 1.</span>
+<span class="sd">            model_type (str, optional): The type of classification model to use for propensity</span>
+<span class="sd">                                        score estimation (e.g., &#39;linear&#39; for Logistic Regression,</span>
+<span class="sd">                                        &#39;rf&#39; for Random Forest, &#39;gb&#39; for Gradient Boosting).</span>
+<span class="sd">                                        Passed to `fit_model`. Defaults to &#39;linear&#39;.</span>
+<span class="sd">            max_iter (int, optional): Maximum iterations for the solver in iterative models like</span>
+<span class="sd">                                      Logistic Regression. Passed to `fit_model`. Defaults to 100.</span>
+<span class="sd">            use_optuna (bool, optional): If True, uses Optuna for hyperparameter tuning instead</span>
+<span class="sd">                                         of fitting `nmodels`. `nmodels` is ignored. Defaults to False.</span>
+<span class="sd">            n_trials (int, optional): The number of trials for Optuna optimization if `use_optuna`</span>
+<span class="sd">                                      is True. Defaults to 10.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None: Models and accuracies are stored in `self.models` and `self.model_accuracy`.</span>
+<span class="sd">                  Propensity scores are calculated and stored later via `predict_scores()`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">multiprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">cpu_count</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">multiprocessing.pool</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThreadPool</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_accuracy</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_type</span> <span class="o">=</span> <span class="n">model_type</span>
+        <span class="n">num_cores</span> <span class="o">=</span> <span class="n">cpu_count</span><span class="p">()</span>
+        <span class="n">n_jobs</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">num_cores</span><span class="p">,</span> <span class="n">n_jobs</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;This computer has: </span><span class="si">{</span><span class="n">num_cores</span><span class="si">}</span><span class="s2"> cores, using </span><span class="si">{</span><span class="n">n_jobs</span><span class="si">}</span><span class="s2"> workers.&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">use_optuna</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">modeling</span><span class="o">.</span><span class="n">optuna_tuner</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">model_type</span><span class="o">=</span><span class="n">model_type</span><span class="p">,</span>
+                                           <span class="n">n_trials</span><span class="o">=</span><span class="n">n_trials</span><span class="p">,</span> <span class="n">balance</span><span class="o">=</span><span class="n">balance</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;model&#39;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model_accuracy</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;accuracy&#39;</span><span class="p">])</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Optuna] Best Accuracy: </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;accuracy&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2%</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="n">balance</span> <span class="ow">and</span> <span class="n">nmodels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># 根据少数/多数样本比例估计模型数，用于集成</span>
+            <span class="n">minority_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">yvar</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">minority</span><span class="p">]</span>
+            <span class="n">majority_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">yvar</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">majority</span><span class="p">]</span>
+            <span class="n">nmodels</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">majority_df</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">minority_df</span><span class="p">))</span> <span class="o">/</span> <span class="mi">10</span><span class="p">)</span> <span class="o">*</span> <span class="mi">10</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">nmodels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nmodels</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">nmodels</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">nmodels</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">balance</span> <span class="ow">and</span> <span class="n">nmodels</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">ThreadPool</span><span class="p">(</span><span class="n">n_jobs</span><span class="p">)</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
+                <span class="n">tasks</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">model_type</span><span class="p">,</span> <span class="n">balance</span><span class="p">,</span> <span class="n">max_iter</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nmodels</span><span class="p">)</span>
+                <span class="p">]</span>
+                <span class="n">results</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">starmap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fit_model</span><span class="p">,</span> <span class="n">tasks</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s1">&#39;model&#39;</span><span class="p">])</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">model_accuracy</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s1">&#39;accuracy&#39;</span><span class="p">])</span>
+            <span class="n">avg_accuracy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_accuracy</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Average Accuracy: </span><span class="si">{</span><span class="n">avg_accuracy</span><span class="si">:</span><span class="s2">.2%</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fit_model</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">model_type</span><span class="p">,</span> <span class="n">balance</span><span class="p">,</span> <span class="n">max_iter</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;model&#39;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model_accuracy</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;accuracy&#39;</span><span class="p">])</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Accuracy: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">model_accuracy</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="mi">100</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">%&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Matcher.predict_scores">
+<a class="viewcode-back" href="../../api/matcher.html#pysmatch.Matcher.Matcher.predict_scores">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">predict_scores</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Predicts propensity scores using the fitted model(s).</span>
+
+<span class="sd">        If multiple models were fitted (ensemble), the scores are averaged across models.</span>
+<span class="sd">        The predicted scores are added to the `self.data` DataFrame as a &#39;scores&#39; column.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None: Scores are stored in `self.data[&#39;scores&#39;]`.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            RuntimeError: If `fit_scores()` has not been called successfully yet (no models exist).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;No trained models found. Please call fit_scores() first.&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="n">model_preds</span> <span class="o">=</span> <span class="p">[</span><span class="n">model</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">)[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">model</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">]</span>
+        <span class="n">scores</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">model_preds</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;scores&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">scores</span></div>
+
+
+<div class="viewcode-block" id="Matcher.match">
+<a class="viewcode-back" href="../../api/matcher.html#pysmatch.Matcher.Matcher.match">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">match</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span> <span class="n">nmatches</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;min&#39;</span><span class="p">,</span>
+              <span class="n">replacement</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Performs matching based on estimated propensity scores.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            method (str, optional): The matching algorithm to use.</span>
+<span class="sd">                Options: &quot;nearest&quot;, &quot;optimal&quot;, &quot;radius&quot;. Defaults to &quot;nearest&quot;.</span>
+<span class="sd">            n_matches (int, optional): The number of control units to match to each</span>
+<span class="sd">                treated unit (for &#39;nearest&#39; neighbor). Defaults to 1.</span>
+<span class="sd">            caliper (float, optional): The maximum allowable distance (caliper) between</span>
+<span class="sd">                propensity scores for a match. If None, no caliper is applied.</span>
+<span class="sd">                Defaults to None. For &#39;radius&#39; matching, this defines the radius.</span>
+<span class="sd">            replace (bool, optional): Whether control units can be matched multiple times</span>
+<span class="sd">                (matching with replacement). Defaults to False.</span>
+<span class="sd">            **kwargs: Additional keyword arguments passed to the specific matching algorithm.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            pd.DataFrame: A DataFrame containing the matched treated and control units.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            RuntimeError: If propensity scores have not been estimated yet.</span>
+<span class="sd">            ValueError: If an invalid matching method is specified.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span> <span class="o">=</span> <span class="n">matching</span><span class="o">.</span><span class="n">perform_match</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">yvar</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
+            <span class="n">nmatches</span><span class="o">=</span><span class="n">nmatches</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">replacement</span><span class="o">=</span><span class="n">replacement</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Matcher.plot_scores">
+<a class="viewcode-back" href="../../api/matcher.html#pysmatch.Matcher.Matcher.plot_scores">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plot_scores</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plots the distribution of propensity scores before matching.</span>
+
+<span class="sd">        Visualizes the overlap of scores between the test (treated) and control groups</span>
+<span class="sd">        in the original (unmatched) data. Requires scores to be calculated first.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">visualization</span><span class="o">.</span><span class="n">plot_scores</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">yvar</span><span class="p">,</span>
+                                  <span class="n">control_color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">control_color</span><span class="p">,</span>
+                                  <span class="n">test_color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">test_color</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Matcher.tune_threshold">
+<a class="viewcode-back" href="../../api/matcher.html#pysmatch.Matcher.Matcher.tune_threshold">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">tune_threshold</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">nmatches</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+                       <span class="n">rng</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Evaluates matching retention across a range of threshold values.</span>
+
+<span class="sd">        Performs matching repeatedly for different threshold values and plots the</span>
+<span class="sd">        proportion of the minority group retained at each threshold. This helps in</span>
+<span class="sd">        selecting an appropriate threshold/caliper value.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            method (str): The matching method to use (e.g., &#39;min&#39;, &#39;nn&#39;, &#39;radius&#39;) for</span>
+<span class="sd">                          each threshold evaluation. Passed to `matching.tune_threshold`.</span>
+<span class="sd">            nmatches (int, optional): The number of matches to seek (relevant for &#39;nn&#39;/&#39;min&#39;).</span>
+<span class="sd">                                      Defaults to 1.</span>
+<span class="sd">            rng (Optional[np.ndarray], optional): A NumPy array specifying the sequence of</span>
+<span class="sd">                                                  threshold values to test. If None, a default</span>
+<span class="sd">                                                  range (0 to 0.001 by 0.0001) is used.</span>
+<span class="sd">                                                  Defaults to None.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">rng</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">,</span> <span class="mf">0.0001</span><span class="p">)</span>
+        <span class="n">thresholds</span><span class="p">,</span> <span class="n">retained</span> <span class="o">=</span> <span class="n">matching</span><span class="o">.</span><span class="n">tune_threshold</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">yvar</span><span class="p">,</span>
+                                                       <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">nmatches</span><span class="o">=</span><span class="n">nmatches</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">thresholds</span><span class="p">,</span> <span class="n">retained</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Proportion of Data Retained for Threshold Grid&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Proportion Retained&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Threshold&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">(</span><span class="n">thresholds</span><span class="p">,</span> <span class="n">rotation</span><span class="o">=</span><span class="mi">90</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Matcher.record_frequency">
+<a class="viewcode-back" href="../../api/matcher.html#pysmatch.Matcher.Matcher.record_frequency">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">record_frequency</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculates the frequency of each original record in the matched dataset.</span>
+
+<span class="sd">        Useful when matching with replacement, as control units might appear multiple times.</span>
+<span class="sd">        Requires `match()` to have been run successfully. The matched data must contain</span>
+<span class="sd">        a &#39;match_id&#39; or similar identifier linking back to original records if counts</span>
+<span class="sd">        are desired per original record. *Correction: Based on `assign_weight_vector`,</span>
+<span class="sd">        it seems &#39;record_id&#39; is the key identifier.*</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            pd.DataFrame: A DataFrame with columns like &#39;record_id&#39; and &#39;n_records&#39; (frequency count),</span>
+<span class="sd">                          or an empty DataFrame if matching hasn&#39;t been done.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;No matched data found. Please run match() first.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+        <span class="n">freqs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="p">[</span><span class="s1">&#39;match_id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+        <span class="n">freqs</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;freq&#39;</span><span class="p">,</span> <span class="s1">&#39;n_records&#39;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">freqs</span></div>
+
+
+<div class="viewcode-block" id="Matcher.assign_weight_vector">
+<a class="viewcode-back" href="../../api/matcher.html#pysmatch.Matcher.Matcher.assign_weight_vector">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">assign_weight_vector</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Assigns inverse frequency weights to records in the matched dataset.</span>
+
+<span class="sd">        Calculates weights as `1 / count`, where `count` is the number of times an</span>
+<span class="sd">        original record (identified by `record_id`) appears in the matched dataset.</span>
+<span class="sd">        This is often used in analyses after matching with replacement to account for</span>
+<span class="sd">        controls matched multiple times. The weights are added as a &#39;weight&#39; column</span>
+<span class="sd">        to `self.matched_data`.</span>
+
+<span class="sd">        Requires `match()` to have been run and `matched_data` to contain &#39;record_id&#39;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;No matched data found. Please run match() first.&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="n">record_freqs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;record_id&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">size</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;count&#39;</span><span class="p">)</span>
+        <span class="n">record_freqs</span><span class="p">[</span><span class="s1">&#39;weight&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">record_freqs</span><span class="p">[</span><span class="s1">&#39;count&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">record_freqs</span><span class="p">[[</span><span class="s1">&#39;record_id&#39;</span><span class="p">,</span> <span class="s1">&#39;weight&#39;</span><span class="p">]],</span> <span class="n">on</span><span class="o">=</span><span class="s1">&#39;record_id&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Matcher.prop_test">
+<a class="viewcode-back" href="../../api/matcher.html#pysmatch.Matcher.Matcher.prop_test">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">prop_test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">col</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Performs Chi-Square tests for a categorical variable before and after matching.</span>
+
+<span class="sd">        Compares the distribution of a categorical variable (`col`) between the test and</span>
+<span class="sd">        control groups in both the original (`self.data`) and matched (`self.matched_data`)</span>
+<span class="sd">        datasets using the Chi-Square test of independence.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            col (str): The name of the categorical column to test. The method checks if the</span>
+<span class="sd">                       column is likely categorical (not continuous) and not in `self.exclude`.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Optional[Dict[str, Any]]: A dictionary containing the variable name (&#39;var&#39;), the</span>
+<span class="sd">                                      p-value from the Chi-Square test before matching (&#39;before&#39;),</span>
+<span class="sd">                                      and the p-value after matching (&#39;after&#39;). Returns None if</span>
+<span class="sd">                                      the variable is continuous, excluded, or if tests fail.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">scipy</span><span class="w"> </span><span class="kn">import</span> <span class="n">stats</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">uf</span><span class="o">.</span><span class="n">is_continuous</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">)</span> <span class="ow">and</span> <span class="n">col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">exclude</span><span class="p">:</span>
+            <span class="n">before_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prep_prop_test</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">col</span><span class="p">)</span>
+            <span class="n">after_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prep_prop_test</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="p">,</span> <span class="n">col</span><span class="p">)</span>
+            <span class="n">pval_before</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">stats</span><span class="o">.</span><span class="n">chi2_contingency</span><span class="p">(</span><span class="n">before_data</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">6</span><span class="p">)</span>
+            <span class="n">pval_after</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">stats</span><span class="o">.</span><span class="n">chi2_contingency</span><span class="p">(</span><span class="n">after_data</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">6</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;var&#39;</span><span class="p">:</span> <span class="n">col</span><span class="p">,</span> <span class="s1">&#39;before&#39;</span><span class="p">:</span> <span class="n">pval_before</span><span class="p">,</span> <span class="s1">&#39;after&#39;</span><span class="p">:</span> <span class="n">pval_after</span><span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2"> is a continuous variable or excluded.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="Matcher.prep_prop_test">
+<a class="viewcode-back" href="../../api/matcher.html#pysmatch.Matcher.Matcher.prep_prop_test">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">prep_prop_test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">var</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Prepares a contingency table for the Chi-Square test.</span>
+
+<span class="sd">        Creates a cross-tabulation of the specified variable (`var`) against the</span>
+<span class="sd">        treatment variable (`self.yvar`) from the given DataFrame. Handles potential</span>
+<span class="sd">        missing categories by ensuring both treatment groups (0 and 1) are present</span>
+<span class="sd">        as columns, filled with 0 counts if necessary.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data (pd.DataFrame): The DataFrame (either original or matched) to use.</span>
+<span class="sd">            var (str): The categorical variable name.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Optional[list]: A list-of-lists representation of the contingency table suitable</span>
+<span class="sd">                            for `scipy.stats.chi2_contingency`. Returns None if the input</span>
+<span class="sd">                            data is empty or the variable is missing.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">counts</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="n">var</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">yvar</span><span class="p">])</span><span class="o">.</span><span class="n">size</span><span class="p">()</span><span class="o">.</span><span class="n">unstack</span><span class="p">(</span><span class="n">fill_value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">counts</span> <span class="o">=</span> <span class="n">counts</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">fill_value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">counts</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Matcher.compare_continuous">
+<a class="viewcode-back" href="../../api/matcher.html#pysmatch.Matcher.Matcher.compare_continuous">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compare_continuous</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">save</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">return_table</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">plot_result</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compares continuous variables between groups before and after matching.</span>
+
+<span class="sd">        Delegates the comparison logic and plotting to `visualization.compare_continuous`.</span>
+<span class="sd">        Typically calculates and displays standardized mean differences (SMD) or performs</span>
+<span class="sd">        t-tests for all continuous covariates found in `self.xvars`.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            save (bool, optional): Whether to save any generated plots (functionality depends</span>
+<span class="sd">                                   on the implementation in `visualization.compare_continuous`).</span>
+<span class="sd">                                   Defaults to False.</span>
+<span class="sd">            return_table (bool, optional): If True, returns the comparison results as a</span>
+<span class="sd">                                           DataFrame. Defaults to False.</span>
+<span class="sd">            plot_result (bool, optional): If True, generates and displays plots (e.g., Love plot)</span>
+<span class="sd">                                          summarizing the balance. Defaults to True.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Optional[pd.DataFrame]: If `return_table` is True, returns a DataFrame containing</span>
+<span class="sd">                                    the comparison statistics (e.g., SMD before/after).</span>
+<span class="sd">                                    Otherwise, returns None.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">visualization</span><span class="o">.</span><span class="n">compare_continuous</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">return_table</span><span class="o">=</span><span class="n">return_table</span><span class="p">,</span> <span class="n">plot_result</span><span class="o">=</span><span class="n">plot_result</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Matcher.compare_categorical">
+<a class="viewcode-back" href="../../api/matcher.html#pysmatch.Matcher.Matcher.compare_categorical">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compare_categorical</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">return_table</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">plot_result</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compares categorical variables between groups before and after matching.</span>
+
+<span class="sd">        Delegates the comparison logic and plotting to `visualization.compare_categorical`.</span>
+<span class="sd">        Typically calculates and displays differences in proportions or performs Chi-Square</span>
+<span class="sd">        tests for all categorical covariates found in `self.xvars`.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            return_table (bool, optional): If True, returns the comparison results as a</span>
+<span class="sd">                                           DataFrame. Defaults to False.</span>
+<span class="sd">            plot_result (bool, optional): If True, generates and displays plots summarizing</span>
+<span class="sd">                                          the balance for categorical variables. Defaults to True.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Optional[pd.DataFrame]: If `return_table` is True, returns a DataFrame containing</span>
+<span class="sd">                                    the comparison statistics (e.g., p-values before/after).</span>
+<span class="sd">                                    Otherwise, returns None.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">visualization</span><span class="o">.</span><span class="n">compare_categorical</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">return_table</span><span class="o">=</span><span class="n">return_table</span><span class="p">,</span> <span class="n">plot_result</span><span class="o">=</span><span class="n">plot_result</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Matcher.plot_matched_scores">
+<a class="viewcode-back" href="../../api/matcher.html#pysmatch.Matcher.Matcher.plot_matched_scores">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plot_matched_scores</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plots the distribution of propensity scores after matching.</span>
+
+<span class="sd">        Visualizes the score overlap between test and control groups specifically</span>
+<span class="sd">        within the `self.matched_data`. Requires `match()` to have been run.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">visualization</span><span class="o">.</span><span class="n">plot_matched_scores</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">yvar</span><span class="p">,</span>
+            <span class="n">control_color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">control_color</span><span class="p">,</span>
+            <span class="n">test_color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">test_color</span>
+        <span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Miao Hancheng.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
