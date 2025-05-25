@@ -23,7 +23,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="pysmatch.modeling" href="modeling.html" />
-    <link rel="prev" title="API Reference" href="../api.html" /> 
+    <link rel="prev" title="Changelog" href="../changelog.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -49,7 +49,6 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../usage.html">Usage Guide</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../changelog.html">Changelog</a></li>
 </ul>
@@ -58,16 +57,13 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">pysmatch.Matcher</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#pysmatch.Matcher.Matcher"><code class="docutils literal notranslate"><span class="pre">Matcher</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#pysmatch.Matcher.Matcher.data"><code class="docutils literal notranslate"><span class="pre">Matcher.data</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#pysmatch.Matcher.Matcher.treatment"><code class="docutils literal notranslate"><span class="pre">Matcher.treatment</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#pysmatch.Matcher.Matcher.outcome"><code class="docutils literal notranslate"><span class="pre">Matcher.outcome</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#pysmatch.Matcher.Matcher.covariates"><code class="docutils literal notranslate"><span class="pre">Matcher.covariates</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pysmatch.Matcher.Matcher.treatment_col"><code class="docutils literal notranslate"><span class="pre">Matcher.treatment_col</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#pysmatch.Matcher.Matcher.exclude"><code class="docutils literal notranslate"><span class="pre">Matcher.exclude</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#pysmatch.Matcher.Matcher.scores"><code class="docutils literal notranslate"><span class="pre">Matcher.scores</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#pysmatch.Matcher.Matcher.matched_data"><code class="docutils literal notranslate"><span class="pre">Matcher.matched_data</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#pysmatch.Matcher.Matcher.model_fit"><code class="docutils literal notranslate"><span class="pre">Matcher.model_fit</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#pysmatch.Matcher.Matcher.balance_stats"><code class="docutils literal notranslate"><span class="pre">Matcher.balance_stats</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#pysmatch.Matcher.Matcher.n_matches"><code class="docutils literal notranslate"><span class="pre">Matcher.n_matches</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#pysmatch.Matcher.Matcher.method"><code class="docutils literal notranslate"><span class="pre">Matcher.method</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pysmatch.Matcher.Matcher.models"><code class="docutils literal notranslate"><span class="pre">Matcher.models</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pysmatch.Matcher.Matcher.model_accuracy"><code class="docutils literal notranslate"><span class="pre">Matcher.model_accuracy</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pysmatch.Matcher.Matcher.exhaustive_matching_default"><code class="docutils literal notranslate"><span class="pre">Matcher.exhaustive_matching_default</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#pysmatch.Matcher.Matcher.assign_weight_vector"><code class="docutils literal notranslate"><span class="pre">Matcher.assign_weight_vector()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#pysmatch.Matcher.Matcher.compare_categorical"><code class="docutils literal notranslate"><span class="pre">Matcher.compare_categorical()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#pysmatch.Matcher.Matcher.compare_continuous"><code class="docutils literal notranslate"><span class="pre">Matcher.compare_continuous()</span></code></a></li>
@@ -105,7 +101,6 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
-          <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
       <li class="breadcrumb-item active">pysmatch.Matcher</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/api/matcher.rst.txt" rel="nofollow"> View page source</a>
@@ -120,7 +115,7 @@
 <span id="pysmatch-matcher"></span><span id="api-matcher"></span><h1>pysmatch.Matcher<a class="headerlink" href="#module-pysmatch.Matcher" title="Link to this heading"></a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="pysmatch.Matcher.Matcher">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pysmatch.Matcher.</span></span><span class="sig-name descname"><span class="pre">Matcher</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">test</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">control</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yvar</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">formula</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pysmatch/Matcher.html#Matcher"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.Matcher.Matcher" title="Link to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pysmatch.Matcher.</span></span><span class="sig-name descname"><span class="pre">Matcher</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">test</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">control</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yvar</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">formula</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exhaustive_matching_default</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pysmatch/Matcher.html#Matcher"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.Matcher.Matcher" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>A class to perform propensity score matching (PSM).</p>
 <p>This class encapsulates the entire PSM workflow, including propensity
@@ -128,7 +123,7 @@ score estimation, matching, and balance assessment.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="pysmatch.Matcher.Matcher.data">
 <span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#pysmatch.Matcher.Matcher.data" title="Link to this definition"></a></dt>
-<dd><p>The input DataFrame containing treatment, outcome, and covariates.</p>
+<dd><p>The input DataFrame containing treatment, outcome, covariates, and record_id.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>pd.DataFrame</p>
@@ -137,9 +132,9 @@ score estimation, matching, and balance assessment.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pysmatch.Matcher.Matcher.treatment">
-<span class="sig-name descname"><span class="pre">treatment</span></span><a class="headerlink" href="#pysmatch.Matcher.Matcher.treatment" title="Link to this definition"></a></dt>
-<dd><p>The name of the treatment column.</p>
+<dt class="sig sig-object py" id="pysmatch.Matcher.Matcher.treatment_col">
+<span class="sig-name descname"><span class="pre">treatment_col</span></span><a class="headerlink" href="#pysmatch.Matcher.Matcher.treatment_col" title="Link to this definition"></a></dt>
+<dd><p>The name of the treatment column (internally referred to as yvar).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>str</p>
@@ -148,9 +143,9 @@ score estimation, matching, and balance assessment.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pysmatch.Matcher.Matcher.outcome">
-<span class="sig-name descname"><span class="pre">outcome</span></span><a class="headerlink" href="#pysmatch.Matcher.Matcher.outcome" title="Link to this definition"></a></dt>
-<dd><p>The name of the outcome column.</p>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">#</span> <span class="pre">outcome</span></span></dt>
+<dd><p>The name of the outcome column. (Note: Original docstring had this, but class doesn’t explicitly use it beyond yvar for treatment)</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>str</p>
@@ -159,9 +154,9 @@ score estimation, matching, and balance assessment.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pysmatch.Matcher.Matcher.covariates">
-<span class="sig-name descname"><span class="pre">covariates</span></span><a class="headerlink" href="#pysmatch.Matcher.Matcher.covariates" title="Link to this definition"></a></dt>
-<dd><p>A list of covariate column names.</p>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">#</span> <span class="pre">covariates</span></span></dt>
+<dd><p>A list of covariate column names. (Note: xvars serves this purpose)</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>list</p>
@@ -172,7 +167,7 @@ score estimation, matching, and balance assessment.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="pysmatch.Matcher.Matcher.exclude">
 <span class="sig-name descname"><span class="pre">exclude</span></span><a class="headerlink" href="#pysmatch.Matcher.Matcher.exclude" title="Link to this definition"></a></dt>
-<dd><p>A list of columns to exclude from calculations (often includes treatment and outcome).</p>
+<dd><p>A list of columns to exclude from calculations.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>list</p>
@@ -183,7 +178,7 @@ score estimation, matching, and balance assessment.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="pysmatch.Matcher.Matcher.scores">
 <span class="sig-name descname"><span class="pre">scores</span></span><a class="headerlink" href="#pysmatch.Matcher.Matcher.scores" title="Link to this definition"></a></dt>
-<dd><p>Propensity scores estimated for each observation.</p>
+<dd><p>Propensity scores estimated for each observation, stored in <cite>data[‘scores’]</cite>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>pd.Series</p>
@@ -203,20 +198,31 @@ score estimation, matching, and balance assessment.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pysmatch.Matcher.Matcher.model_fit">
-<span class="sig-name descname"><span class="pre">model_fit</span></span><a class="headerlink" href="#pysmatch.Matcher.Matcher.model_fit" title="Link to this definition"></a></dt>
-<dd><p>The fitted propensity score model object.</p>
+<dt class="sig sig-object py" id="pysmatch.Matcher.Matcher.models">
+<span class="sig-name descname"><span class="pre">models</span></span><a class="headerlink" href="#pysmatch.Matcher.Matcher.models" title="Link to this definition"></a></dt>
+<dd><p>List of fitted propensity score model objects.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>object</p>
+<dd class="field-odd"><p>List[Any]</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pysmatch.Matcher.Matcher.balance_stats">
-<span class="sig-name descname"><span class="pre">balance_stats</span></span><a class="headerlink" href="#pysmatch.Matcher.Matcher.balance_stats" title="Link to this definition"></a></dt>
-<dd><p>Statistics assessing covariate balance before and after matching.</p>
+<dt class="sig sig-object py" id="pysmatch.Matcher.Matcher.model_accuracy">
+<span class="sig-name descname"><span class="pre">model_accuracy</span></span><a class="headerlink" href="#pysmatch.Matcher.Matcher.model_accuracy" title="Link to this definition"></a></dt>
+<dd><p>List of accuracies for the fitted models.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[float]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">#</span> <span class="pre">balance_stats</span></span></dt>
+<dd><p>Statistics assessing covariate balance. (Generated by comparison methods)</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>pd.DataFrame</p>
@@ -225,9 +231,9 @@ score estimation, matching, and balance assessment.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pysmatch.Matcher.Matcher.n_matches">
-<span class="sig-name descname"><span class="pre">n_matches</span></span><a class="headerlink" href="#pysmatch.Matcher.Matcher.n_matches" title="Link to this definition"></a></dt>
-<dd><p>The number of matches to find for each treated unit (used in some matching methods).</p>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">#</span> <span class="pre">n_matches</span></span></dt>
+<dd><p>The number of matches to find (parameter in match method).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>int</p>
@@ -236,9 +242,9 @@ score estimation, matching, and balance assessment.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pysmatch.Matcher.Matcher.method">
-<span class="sig-name descname"><span class="pre">method</span></span><a class="headerlink" href="#pysmatch.Matcher.Matcher.method" title="Link to this definition"></a></dt>
-<dd><p>The matching method used (e.g., “nearest”, “optimal”, “radius”).</p>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">#</span> <span class="pre">method</span></span></dt>
+<dd><p>The matching method used (parameter in match method).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>str</p>
@@ -246,110 +252,62 @@ score estimation, matching, and balance assessment.</p>
 </dl>
 </dd></dl>
 
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmatch.Matcher.Matcher.exhaustive_matching_default">
+<span class="sig-name descname"><span class="pre">exhaustive_matching_default</span></span><a class="headerlink" href="#pysmatch.Matcher.Matcher.exhaustive_matching_default" title="Link to this definition"></a></dt>
+<dd><p>Default behavior for exhaustive matching for the instance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="pysmatch.Matcher.Matcher.assign_weight_vector">
 <span class="sig-name descname"><span class="pre">assign_weight_vector</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/pysmatch/Matcher.html#Matcher.assign_weight_vector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.Matcher.Matcher.assign_weight_vector" title="Link to this definition"></a></dt>
-<dd><p>Assigns inverse frequency weights to records in the matched dataset.</p>
-<p>Calculates weights as <cite>1 / count</cite>, where <cite>count</cite> is the number of times an
-original record (identified by <cite>record_id</cite>) appears in the matched dataset.
-This is often used in analyses after matching with replacement to account for
-controls matched multiple times. The weights are added as a ‘weight’ column
-to <cite>self.matched_data</cite>.</p>
-<p>Requires <cite>match()</cite> to have been run and <cite>matched_data</cite> to contain ‘record_id’.</p>
+<dd><p>Assigns inverse frequency weights to records in the matched dataset.
+Weights are 1/count, where count is how many times an original record
+(identified by <cite>record_id</cite>) appears. Added as ‘weight’ column.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pysmatch.Matcher.Matcher.compare_categorical">
 <span class="sig-name descname"><span class="pre">compare_categorical</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">return_table</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_result</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pysmatch/Matcher.html#Matcher.compare_categorical"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.Matcher.Matcher.compare_categorical" title="Link to this definition"></a></dt>
-<dd><p>Compares categorical variables between groups before and after matching.</p>
-<p>Delegates the comparison logic and plotting to <cite>visualization.compare_categorical</cite>.
-Typically calculates and displays differences in proportions or performs Chi-Square
-tests for all categorical covariates found in <cite>self.xvars</cite>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>return_table</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, returns the comparison results as a
-DataFrame. Defaults to False.</p></li>
-<li><p><strong>plot_result</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, generates and displays plots summarizing
-the balance for categorical variables. Defaults to True.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><dl class="simple">
-<dt>If <cite>return_table</cite> is True, returns a DataFrame containing</dt><dd><p>the comparison statistics (e.g., p-values before/after).
-Otherwise, returns None.</p>
-</dd>
-</dl>
-</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Optional[pd.DataFrame]</p>
-</dd>
-</dl>
+<dd><p>Compares categorical variables between groups before and after matching.
+Delegates to <cite>visualization.compare_categorical</cite>.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pysmatch.Matcher.Matcher.compare_continuous">
 <span class="sig-name descname"><span class="pre">compare_continuous</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">save</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_table</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_result</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pysmatch/Matcher.html#Matcher.compare_continuous"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.Matcher.Matcher.compare_continuous" title="Link to this definition"></a></dt>
-<dd><p>Compares continuous variables between groups before and after matching.</p>
-<p>Delegates the comparison logic and plotting to <cite>visualization.compare_continuous</cite>.
-Typically calculates and displays standardized mean differences (SMD) or performs
-t-tests for all continuous covariates found in <cite>self.xvars</cite>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>save</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to save any generated plots (functionality depends
-on the implementation in <cite>visualization.compare_continuous</cite>).
-Defaults to False.</p></li>
-<li><p><strong>return_table</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, returns the comparison results as a
-DataFrame. Defaults to False.</p></li>
-<li><p><strong>plot_result</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, generates and displays plots (e.g., Love plot)
-summarizing the balance. Defaults to True.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><dl class="simple">
-<dt>If <cite>return_table</cite> is True, returns a DataFrame containing</dt><dd><p>the comparison statistics (e.g., SMD before/after).
-Otherwise, returns None.</p>
-</dd>
-</dl>
-</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Optional[pd.DataFrame]</p>
-</dd>
-</dl>
+<dd><p>Compares continuous variables between groups before and after matching.
+Delegates to <cite>visualization.compare_continuous</cite>.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pysmatch.Matcher.Matcher.fit_model">
 <span class="sig-name descname"><span class="pre">fit_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Series</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">balance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_iter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">100</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/pysmatch/Matcher.html#Matcher.fit_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.Matcher.Matcher.fit_model" title="Link to this definition"></a></dt>
 <dd><p>Fits a single propensity score model.</p>
-<p>Internal helper method that calls <cite>pysmatch.modeling.fit_model</cite>. This is
-typically used within <cite>fit_scores</cite>, especially when fitting multiple models
-for balancing or ensembling.</p>
+<p>Internal helper method that calls <cite>pysmatch.modeling.fit_model</cite>.
+:param index: An identifier for the model.
+:type index: int
+:param X: The feature matrix (covariates).
+:type X: pd.DataFrame
+:param y: The target variable (treatment indicator).
+:type y: pd.Series
+:param model_type: The type of model to fit (e.g., ‘linear’, ‘rf’, ‘gb’).
+:type model_type: str
+:param balance: Whether the fitting process should aim to balance covariates.
+:type balance: bool
+:param max_iter: Maximum iterations for iterative solvers. Defaults to 100.
+:type max_iter: int, optional</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>index</strong> (<em>int</em>) – An identifier for the model (e.g., its index in an ensemble).</p></li>
-<li><p><strong>X</strong> (<em>pd.DataFrame</em>) – The feature matrix (covariates).</p></li>
-<li><p><strong>y</strong> (<em>pd.Series</em>) – The target variable (treatment indicator).</p></li>
-<li><p><strong>model_type</strong> (<em>str</em>) – The type of model to fit (e.g., ‘linear’, ‘rf’, ‘gb’).</p></li>
-<li><p><strong>balance</strong> (<em>bool</em>) – Whether the fitting process should aim to balance covariates
-(e.g., by undersampling the majority class or using class weights).</p></li>
-<li><p><strong>max_iter</strong> (<em>int</em><em>, </em><em>optional</em>) – Maximum iterations for iterative solvers (like logistic
-regression). Defaults to 100.</p></li>
-</ul>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A dictionary containing the fitted model and its accuracy.</p>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><dl class="simple">
-<dt>A dictionary containing the fitted model object under the key ‘model’</dt><dd><p>and its accuracy under the key ‘accuracy’.</p>
-</dd>
-</dl>
-</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Dict[str, Any]</p>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dict[str, Any]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -358,77 +316,39 @@ regression). Defaults to 100.</p></li>
 <dt class="sig sig-object py" id="pysmatch.Matcher.Matcher.fit_scores">
 <span class="sig-name descname"><span class="pre">fit_scores</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">balance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nmodels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_jobs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'linear'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_iter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_optuna</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_trials</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/pysmatch/Matcher.html#Matcher.fit_scores"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.Matcher.Matcher.fit_scores" title="Link to this definition"></a></dt>
 <dd><p>Fits propensity score model(s) to estimate scores.</p>
-<p>Supports single model fitting, ensemble fitting for balance (by undersampling
-the majority class across multiple models), or hyperparameter tuning using Optuna.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>balance</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, attempts to create balanced models. If <cite>nmodels</cite>
-is greater than 1, this typically involves fitting multiple
-models on undersampled majority data. If <cite>nmodels</cite> is 1,
-it might involve using class weights or other balancing
-techniques within the single model fit. Defaults to True.</p></li>
-<li><p><strong>nmodels</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em><em>, </em><em>optional</em>) – The number of models to fit in an ensemble.
-If None and <cite>balance</cite> is True, it’s estimated based
-on the majority/minority class ratio. If None and
-<cite>balance</cite> is False, it defaults to 1. Ignored if
-<cite>use_optuna</cite> is True. Defaults to None.</p></li>
-<li><p><strong>n_jobs</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of parallel jobs to run when fitting multiple
-models (<cite>nmodels</cite> &gt; 1). Uses <cite>ThreadPool</cite>. Defaults to 1.</p></li>
-<li><p><strong>model_type</strong> (<em>str</em><em>, </em><em>optional</em>) – The type of classification model to use for propensity
-score estimation (e.g., ‘linear’ for Logistic Regression,
-‘rf’ for Random Forest, ‘gb’ for Gradient Boosting).
-Passed to <cite>fit_model</cite>. Defaults to ‘linear’.</p></li>
-<li><p><strong>max_iter</strong> (<em>int</em><em>, </em><em>optional</em>) – Maximum iterations for the solver in iterative models like
-Logistic Regression. Passed to <cite>fit_model</cite>. Defaults to 100.</p></li>
-<li><p><strong>use_optuna</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, uses Optuna for hyperparameter tuning instead
-of fitting <cite>nmodels</cite>. <cite>nmodels</cite> is ignored. Defaults to False.</p></li>
-<li><p><strong>n_trials</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of trials for Optuna optimization if <cite>use_optuna</cite>
-is True. Defaults to 10.</p></li>
+<li><p><strong>balance</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, attempts to create balanced models. Defaults to True.</p></li>
+<li><p><strong>nmodels</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em><em>, </em><em>optional</em>) – Number of models for ensemble. Auto-estimated if None and balance=True.</p></li>
+<li><p><strong>n_jobs</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of parallel jobs for ensemble fitting. Defaults to 1.</p></li>
+<li><p><strong>model_type</strong> (<em>str</em><em>, </em><em>optional</em>) – Type of model (‘linear’, ‘rf’, ‘gb’). Defaults to ‘linear’.</p></li>
+<li><p><strong>max_iter</strong> (<em>int</em><em>, </em><em>optional</em>) – Max iterations for solver. Defaults to 100.</p></li>
+<li><p><strong>use_optuna</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, use Optuna for hyperparameter tuning. Defaults to False.</p></li>
+<li><p><strong>n_trials</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of Optuna trials if use_optuna is True. Defaults to 10.</p></li>
 </ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><dl class="simple">
-<dt>Models and accuracies are stored in <cite>self.models</cite> and <cite>self.model_accuracy</cite>.</dt><dd><p>Propensity scores are calculated and stored later via <cite>predict_scores()</cite>.</p>
-</dd>
-</dl>
-</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pysmatch.Matcher.Matcher.match">
-<span class="sig-name descname"><span class="pre">match</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nmatches</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'min'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">replacement</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/pysmatch/Matcher.html#Matcher.match"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.Matcher.Matcher.match" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">match</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nmatches</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'min'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">replacement</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exhaustive_matching</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/pysmatch/Matcher.html#Matcher.match"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.Matcher.Matcher.match" title="Link to this definition"></a></dt>
 <dd><p>Performs matching based on estimated propensity scores.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>method</strong> (<em>str</em><em>, </em><em>optional</em>) – The matching algorithm to use.
-Options: “nearest”, “optimal”, “radius”. Defaults to “nearest”.</p></li>
-<li><p><strong>n_matches</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of control units to match to each
-treated unit (for ‘nearest’ neighbor). Defaults to 1.</p></li>
-<li><p><strong>caliper</strong> (<em>float</em><em>, </em><em>optional</em>) – The maximum allowable distance (caliper) between
-propensity scores for a match. If None, no caliper is applied.
-Defaults to None. For ‘radius’ matching, this defines the radius.</p></li>
-<li><p><strong>replace</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether control units can be matched multiple times
-(matching with replacement). Defaults to False.</p></li>
-<li><p><strong>**kwargs</strong> – Additional keyword arguments passed to the specific matching algorithm.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A DataFrame containing the matched treated and control units.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>pd.DataFrame</p>
-</dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><ul class="simple">
-<li><p><strong>RuntimeError</strong> – If propensity scores have not been estimated yet.</p></li>
-<li><p><strong>ValueError</strong> – If an invalid matching method is specified.</p></li>
+<li><p><strong>threshold</strong> (<em>float</em><em>, </em><em>optional</em>) – Threshold for score difference. Defaults to 0.001.</p></li>
+<li><p><strong>nmatches</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of controls to match to each test unit. Defaults to 1.</p></li>
+<li><p><strong>method</strong> (<em>str</em><em>, </em><em>optional</em>) – The matching algorithm to use when exhaustive_matching is False.
+Passed to <cite>pysmatch.matching.perform_match</cite>. Defaults to ‘min’.</p></li>
+<li><p><strong>replacement</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether controls can be matched to multiple test units
+when exhaustive_matching is False. Passed to <cite>pysmatch.matching.perform_match</cite>.
+Defaults to False.</p></li>
+<li><p><strong>exhaustive_matching</strong> (<em>Optional</em><em>[</em><em>bool</em><em>]</em><em>, </em><em>optional</em>) – If True, attempts to use a wider range of controls
+by prioritizing unused or less-used controls.
+If None, uses the instance’s default
+<cite>self.exhaustive_matching_default</cite>. Defaults to None.</p></li>
 </ul>
 </dd>
 </dl>
@@ -437,60 +357,37 @@ Defaults to None. For ‘radius’ matching, this defines the radius.</p></li>
 <dl class="py method">
 <dt class="sig sig-object py" id="pysmatch.Matcher.Matcher.plot_matched_scores">
 <span class="sig-name descname"><span class="pre">plot_matched_scores</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/pysmatch/Matcher.html#Matcher.plot_matched_scores"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.Matcher.Matcher.plot_matched_scores" title="Link to this definition"></a></dt>
-<dd><p>Plots the distribution of propensity scores after matching.</p>
-<p>Visualizes the score overlap between test and control groups specifically
-within the <cite>self.matched_data</cite>. Requires <cite>match()</cite> to have been run.</p>
+<dd><p>Plots the distribution of propensity scores after matching.
+Visualizes score overlap in <cite>self.matched_data</cite>.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pysmatch.Matcher.Matcher.plot_scores">
 <span class="sig-name descname"><span class="pre">plot_scores</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/pysmatch/Matcher.html#Matcher.plot_scores"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.Matcher.Matcher.plot_scores" title="Link to this definition"></a></dt>
-<dd><p>Plots the distribution of propensity scores before matching.</p>
-<p>Visualizes the overlap of scores between the test (treated) and control groups
-in the original (unmatched) data. Requires scores to be calculated first.</p>
+<dd><p>Plots the distribution of propensity scores before matching.
+Visualizes score overlap between test (treated) and control groups.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pysmatch.Matcher.Matcher.predict_scores">
 <span class="sig-name descname"><span class="pre">predict_scores</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/pysmatch/Matcher.html#Matcher.predict_scores"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.Matcher.Matcher.predict_scores" title="Link to this definition"></a></dt>
-<dd><p>Predicts propensity scores using the fitted model(s).</p>
-<p>If multiple models were fitted (ensemble), the scores are averaged across models.
-The predicted scores are added to the <cite>self.data</cite> DataFrame as a ‘scores’ column.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Scores are stored in <cite>self.data[‘scores’]</cite>.</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>None</p>
-</dd>
-<dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>RuntimeError</strong> – If <cite>fit_scores()</cite> has not been called successfully yet (no models exist).</p>
-</dd>
-</dl>
+<dd><p>Predicts propensity scores using the fitted model(s).
+Scores are stored in <cite>self.data[‘scores’]</cite>.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pysmatch.Matcher.Matcher.prep_prop_test">
-<span class="sig-name descname"><span class="pre">prep_prop_test</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span></span></span><a class="reference internal" href="../_modules/pysmatch/Matcher.html#Matcher.prep_prop_test"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.Matcher.Matcher.prep_prop_test" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">prep_prop_test</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/pysmatch/Matcher.html#Matcher.prep_prop_test"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.Matcher.Matcher.prep_prop_test" title="Link to this definition"></a></dt>
 <dd><p>Prepares a contingency table for the Chi-Square test.</p>
-<p>Creates a cross-tabulation of the specified variable (<cite>var</cite>) against the
-treatment variable (<cite>self.yvar</cite>) from the given DataFrame. Handles potential
-missing categories by ensuring both treatment groups (0 and 1) are present
-as columns, filled with 0 counts if necessary.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>data</strong> (<em>pd.DataFrame</em>) – The DataFrame (either original or matched) to use.</p></li>
+<li><p><strong>data</strong> (<em>pd.DataFrame</em>) – The DataFrame (original or matched) to use.</p></li>
 <li><p><strong>var</strong> (<em>str</em>) – The categorical variable name.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><dl class="simple">
-<dt>A list-of-lists representation of the contingency table suitable</dt><dd><p>for <cite>scipy.stats.chi2_contingency</cite>. Returns None if the input
-data is empty or the variable is missing.</p>
-</dd>
-</dl>
-</p>
+<dd class="field-even"><p>List-of-lists for <cite>scipy.stats.chi2_contingency</cite>. None if error.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Optional[list]</p>
@@ -502,22 +399,12 @@ data is empty or the variable is missing.</p>
 <dt class="sig sig-object py" id="pysmatch.Matcher.Matcher.prop_test">
 <span class="sig-name descname"><span class="pre">prop_test</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">col</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/pysmatch/Matcher.html#Matcher.prop_test"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.Matcher.Matcher.prop_test" title="Link to this definition"></a></dt>
 <dd><p>Performs Chi-Square tests for a categorical variable before and after matching.</p>
-<p>Compares the distribution of a categorical variable (<cite>col</cite>) between the test and
-control groups in both the original (<cite>self.data</cite>) and matched (<cite>self.matched_data</cite>)
-datasets using the Chi-Square test of independence.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>col</strong> (<em>str</em>) – The name of the categorical column to test. The method checks if the
-column is likely categorical (not continuous) and not in <cite>self.exclude</cite>.</p>
+<dd class="field-odd"><p><strong>col</strong> (<em>str</em>) – Name of the categorical column to test.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><dl class="simple">
-<dt>A dictionary containing the variable name (‘var’), the</dt><dd><p>p-value from the Chi-Square test before matching (‘before’),
-and the p-value after matching (‘after’). Returns None if
-the variable is continuous, excluded, or if tests fail.</p>
-</dd>
-</dl>
-</p>
+<dd class="field-even"><p>Dict with ‘var’, ‘before’ p-value, ‘after’ p-value. None if error.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Optional[Dict[str, Any]]</p>
@@ -528,44 +415,22 @@ the variable is continuous, excluded, or if tests fail.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="pysmatch.Matcher.Matcher.record_frequency">
 <span class="sig-name descname"><span class="pre">record_frequency</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="reference internal" href="../_modules/pysmatch/Matcher.html#Matcher.record_frequency"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.Matcher.Matcher.record_frequency" title="Link to this definition"></a></dt>
-<dd><p>Calculates the frequency of each original record in the matched dataset.</p>
-<p>Useful when matching with replacement, as control units might appear multiple times.
-Requires <cite>match()</cite> to have been run successfully. The matched data must contain
-a ‘match_id’ or similar identifier linking back to original records if counts
-are desired per original record. <em>Correction: Based on `assign_weight_vector`,
-it seems ‘record_id’ is the key identifier.</em></p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p><dl class="simple">
-<dt>A DataFrame with columns like ‘record_id’ and ‘n_records’ (frequency count),</dt><dd><p>or an empty DataFrame if matching hasn’t been done.</p>
-</dd>
-</dl>
-</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>pd.DataFrame</p>
-</dd>
-</dl>
+<dd><p>Calculates the frequency of each original record pair in the matched dataset.
+Requires <cite>match()</cite> to have been run. <cite>matched_data</cite> must contain ‘match_id’.
+:returns: DataFrame with ‘match_id’ and ‘n_records’ (frequency of pair).
+:rtype: pd.DataFrame</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pysmatch.Matcher.Matcher.tune_threshold">
 <span class="sig-name descname"><span class="pre">tune_threshold</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nmatches</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/pysmatch/Matcher.html#Matcher.tune_threshold"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.Matcher.Matcher.tune_threshold" title="Link to this definition"></a></dt>
 <dd><p>Evaluates matching retention across a range of threshold values.</p>
-<p>Performs matching repeatedly for different threshold values and plots the
-proportion of the minority group retained at each threshold. This helps in
-selecting an appropriate threshold/caliper value.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>method</strong> (<em>str</em>) – The matching method to use (e.g., ‘min’, ‘nn’, ‘radius’) for
-each threshold evaluation. Passed to <cite>matching.tune_threshold</cite>.</p></li>
-<li><p><strong>nmatches</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of matches to seek (relevant for ‘nn’/’min’).
-Defaults to 1.</p></li>
-<li><p><strong>rng</strong> (<em>Optional</em><em>[</em><em>np.ndarray</em><em>]</em><em>, </em><em>optional</em>) – A NumPy array specifying the sequence of
-threshold values to test. If None, a default
-range (0 to 0.001 by 0.0001) is used.
-Defaults to None.</p></li>
+<li><p><strong>method</strong> (<em>str</em>) – Matching method (‘min’, ‘nn’, ‘radius’) for evaluation.</p></li>
+<li><p><strong>nmatches</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of matches for ‘nn’/’min’. Defaults to 1.</p></li>
+<li><p><strong>rng</strong> (<em>Optional</em><em>[</em><em>np.ndarray</em><em>]</em><em>, </em><em>optional</em>) – Threshold values to test. Defaults to np.arange(0, 0.001, 0.0001).</p></li>
 </ul>
 </dd>
 </dl>
@@ -579,7 +444,7 @@ Defaults to None.</p></li>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="../api.html" class="btn btn-neutral float-left" title="API Reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../changelog.html" class="btn btn-neutral float-left" title="Changelog" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="modeling.html" class="btn btn-neutral float-right" title="pysmatch.modeling" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

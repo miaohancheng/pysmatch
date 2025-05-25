@@ -29,11 +29,12 @@ index
    :caption: 目录 (Contents):
    :hidden:
 
-   index
+   readme_en          <-- 添加：链接到英文 README 页面
+   readme_zh          <-- 添加：链接到中文 README 页面
    installation
    usage
-   example_notebook
-   api
+   example            <-- 添加：链接到 Example Notebook 页面
+   api                <-- 保持你现有的 API 页面链接
    contributing
    changelog
 

@@ -46,7 +46,6 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../usage.html">Usage Guide</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../api.html">API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Changelog</a></li>
 </ul>
@@ -91,10 +90,12 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaultdict</span> <span class="c1"># Added for exhaustive_matching</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tqdm</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span> <span class="c1"># Added for progress bar in exhaustive_matching</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">pysmatch</span><span class="w"> </span><span class="kn">import</span> <span class="n">utils</span> <span class="k">as</span> <span class="n">uf</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pysmatch</span><span class="w"> </span><span class="kn">import</span> <span class="n">utils</span> <span class="k">as</span> <span class="n">uf</span> <span class="c1"># Assuming this is the correct alias for utils</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pysmatch</span><span class="w"> </span><span class="kn">import</span> <span class="n">modeling</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">pysmatch</span><span class="w"> </span><span class="kn">import</span> <span class="n">matching</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pysmatch</span><span class="w"> </span><span class="kn">import</span> <span class="n">matching</span> <span class="c1"># This module is used if not exhaustive_matching</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pysmatch</span><span class="w"> </span><span class="kn">import</span> <span class="n">visualization</span>
 
 <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span>
@@ -113,80 +114,128 @@
 <span class="sd">    score estimation, matching, and balance assessment.</span>
 
 <span class="sd">    Attributes:</span>
-<span class="sd">        data (pd.DataFrame): The input DataFrame containing treatment, outcome, and covariates.</span>
-<span class="sd">        treatment (str): The name of the treatment column.</span>
-<span class="sd">        outcome (str): The name of the outcome column.</span>
-<span class="sd">        covariates (list): A list of covariate column names.</span>
-<span class="sd">        exclude (list): A list of columns to exclude from calculations (often includes treatment and outcome).</span>
-<span class="sd">        scores (pd.Series): Propensity scores estimated for each observation.</span>
+<span class="sd">        data (pd.DataFrame): The input DataFrame containing treatment, outcome, covariates, and record_id.</span>
+<span class="sd">        treatment_col (str): The name of the treatment column (internally referred to as yvar).</span>
+<span class="sd">        # outcome (str): The name of the outcome column. (Note: Original docstring had this, but class doesn&#39;t explicitly use it beyond yvar for treatment)</span>
+<span class="sd">        # covariates (list): A list of covariate column names. (Note: xvars serves this purpose)</span>
+<span class="sd">        exclude (list): A list of columns to exclude from calculations.</span>
+<span class="sd">        scores (pd.Series): Propensity scores estimated for each observation, stored in `data[&#39;scores&#39;]`.</span>
 <span class="sd">        matched_data (pd.DataFrame): DataFrame containing the matched pairs/groups.</span>
-<span class="sd">        model_fit (object): The fitted propensity score model object.</span>
-<span class="sd">        balance_stats (pd.DataFrame): Statistics assessing covariate balance before and after matching.</span>
-<span class="sd">        n_matches (int): The number of matches to find for each treated unit (used in some matching methods).</span>
-<span class="sd">        method (str): The matching method used (e.g., &quot;nearest&quot;, &quot;optimal&quot;, &quot;radius&quot;).</span>
+<span class="sd">        models (List[Any]): List of fitted propensity score model objects.</span>
+<span class="sd">        model_accuracy (List[float]): List of accuracies for the fitted models.</span>
+<span class="sd">        # balance_stats (pd.DataFrame): Statistics assessing covariate balance. (Generated by comparison methods)</span>
+<span class="sd">        # n_matches (int): The number of matches to find (parameter in match method).</span>
+<span class="sd">        # method (str): The matching method used (parameter in match method).</span>
+<span class="sd">        exhaustive_matching_default (bool): Default behavior for exhaustive matching for the instance.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">test</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">control</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">yvar</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-                 <span class="n">formula</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">exclude</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+                 <span class="n">formula</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">exclude</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">exhaustive_matching_default</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Initializes the Matcher object.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            data (pd.DataFrame): The input DataFrame. Must contain treatment, outcome,</span>
-<span class="sd">                and covariate columns.</span>
-<span class="sd">            treatment (str): The name of the column indicating treatment status (e.g., 0 or 1).</span>
-<span class="sd">            outcome (str): The name of the column containing the outcome variable.</span>
-<span class="sd">            covariates (list): A list of column names to be used as covariates for</span>
-<span class="sd">                propensity score estimation and matching.</span>
-<span class="sd">            exclude (list, optional): A list of column names to exclude from internal</span>
-<span class="sd">                calculations (typically includes treatment and outcome). If None, defaults</span>
-<span class="sd">                to [treatment, outcome]. Defaults to None.</span>
-
+<span class="sd">            test (pd.DataFrame): DataFrame for the test/treated group.</span>
+<span class="sd">            control (pd.DataFrame): DataFrame for the control group.</span>
+<span class="sd">            yvar (str): The name of the column indicating treatment status (e.g., 0 for control, 1 for test).</span>
+<span class="sd">                        This column will be created in the combined data.</span>
+<span class="sd">            formula (Optional[str]): R-style formula for propensity score model. If None,</span>
+<span class="sd">                                     all columns not in `exclude` or `yvar` are used.</span>
+<span class="sd">            exclude (Optional[List[str]]): A list of column names to exclude from</span>
+<span class="sd">                                           covariates. `yvar` is automatically excluded.</span>
+<span class="sd">            exhaustive_matching_default (bool, optional): Default setting for whether to use</span>
+<span class="sd">                                                          exhaustive matching. Defaults to False.</span>
 <span class="sd">        Raises:</span>
 <span class="sd">            ValueError: If input data types are incorrect or required columns are missing.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">exclude</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">exclude</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">if</span> <span class="n">yvar</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">test</span><span class="o">.</span><span class="n">columns</span> <span class="ow">or</span> <span class="n">yvar</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">control</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">yvar</span><span class="si">}</span><span class="s2">&#39; must be present in both test and control DataFrames.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Ensure yvar is not in user-provided test/control data yet, as we&#39;ll create it.</span>
+        <span class="c1"># Or, if it is, ensure it&#39;s correctly formatted.</span>
+        <span class="c1"># For this implementation, we assume yvar will be created based on test/control distinction.</span>
 
         <span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s2">&quot;figure.figsize&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
-        <span class="n">aux_match</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;scores&#39;</span><span class="p">,</span> <span class="s1">&#39;match_id&#39;</span><span class="p">,</span> <span class="s1">&#39;weight&#39;</span><span class="p">,</span> <span class="s1">&#39;record_id&#39;</span><span class="p">]</span>
-        <span class="n">t</span> <span class="o">=</span> <span class="n">test</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="n">c</span> <span class="o">=</span> <span class="n">control</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="n">t</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;all&quot;</span><span class="p">)</span>
-        <span class="n">c</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;all&quot;</span><span class="p">)</span>
-        <span class="n">c</span><span class="o">.</span><span class="n">index</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">t</span><span class="p">,</span> <span class="n">c</span><span class="p">],</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">aux_match_cols</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;scores&#39;</span><span class="p">,</span> <span class="s1">&#39;match_id&#39;</span><span class="p">,</span> <span class="s1">&#39;weight&#39;</span><span class="p">,</span> <span class="s1">&#39;record_id&#39;</span><span class="p">,</span> <span class="s1">&#39;pair_score_diff&#39;</span><span class="p">,</span> <span class="s1">&#39;matched_as&#39;</span><span class="p">]</span> <span class="c1"># Added new potential cols</span>
+
+        <span class="n">t_df</span> <span class="o">=</span> <span class="n">test</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">c_df</span> <span class="o">=</span> <span class="n">control</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="c1"># Assign treatment indicator</span>
+        <span class="n">t_df</span><span class="p">[</span><span class="n">yvar</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">c_df</span><span class="p">[</span><span class="n">yvar</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># Drop all-NA columns separately before concat</span>
+        <span class="n">t_df</span> <span class="o">=</span> <span class="n">t_df</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;all&quot;</span><span class="p">)</span>
+        <span class="n">c_df</span> <span class="o">=</span> <span class="n">c_df</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;all&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Reset index before concat to ensure unique indices if they weren&#39;t already</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">t_df</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="n">c_df</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)],</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># Add a unique record_id for each original observation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;record_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">index</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">control_color</span> <span class="o">=</span> <span class="s2">&quot;#1F77B4&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">test_color</span> <span class="o">=</span> <span class="s2">&quot;#FF7F0E&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">yvar</span> <span class="o">=</span> <span class="n">yvar</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">exclude</span> <span class="o">=</span> <span class="n">exclude</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">yvar</span><span class="p">]</span> <span class="o">+</span> <span class="n">aux_match</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">formula</span> <span class="o">=</span> <span class="n">formula</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">nmodels</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">treatment_col</span> <span class="o">=</span> <span class="n">yvar</span> <span class="c1"># Renamed for clarity from self.yvar to self.treatment_col</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">exclude</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">exclude</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">treatment_col</span><span class="p">]</span> <span class="o">+</span> <span class="n">aux_match_cols</span><span class="p">))</span> <span class="c1"># Ensure yvar is excluded, handle potential duplicates</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">formula</span> <span class="o">=</span> <span class="n">formula</span> <span class="c1"># Not directly used in this class structure&#39;s fit_model, but stored</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nmodels</span> <span class="o">=</span> <span class="mi">1</span> <span class="c1"># Default, can be changed by fit_scores</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">swdata</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">swdata</span> <span class="o">=</span> <span class="kc">None</span> <span class="c1"># Seems unused in the provided code, kept for compatibility if it was from a larger context</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">model_accuracy</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">errors</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">errors</span> <span class="o">=</span> <span class="mi">0</span> <span class="c1"># Seems unused</span>
 
-        <span class="c1"># 确保yvar为二元变量</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">yvar</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">yvar</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">xvars</span> <span class="o">=</span> <span class="p">[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">exclude</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">exhaustive_matching_default</span> <span class="o">=</span> <span class="n">exhaustive_matching_default</span>
+
+        <span class="c1"># Ensure treatment_col is integer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">treatment_col</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">treatment_col</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+
+        <span class="c1"># Determine covariates (xvars)</span>
+        <span class="c1"># Exclude columns that might have been added by matching or are in aux_match_cols</span>
+        <span class="n">potential_xvars</span> <span class="o">=</span> <span class="p">[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">exclude</span> <span class="ow">and</span> <span class="n">col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">aux_match_cols</span><span class="p">]</span>
+        <span class="c1"># Further exclude if they are all NA or have no variance, or are not numeric/categorical</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xvars</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">potential_xvars</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">(</span><span class="n">dropna</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span> <span class="c1"># Keep if more than 1 unique value (handles NaNs too)</span>
+                <span class="c1"># A more robust check for usability as a covariate might be needed here depending on models</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">xvars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">col</span><span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">original_xvars</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xvars</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="c1"># Drop rows where any of the selected covariates (xvars) are NA</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">xvars</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;DataFrame is empty after dropping NA values in covariates. Please check input data and covariates.&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span> <span class="c1"># Initialize as empty</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">X</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">xvars</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">yvar</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">test</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">yvar</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">control</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">yvar</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">testn</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">test</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">controln</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">control</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">testn</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">controln</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">minority</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">majority</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">treatment_col</span><span class="p">]</span>
+
+        <span class="c1"># Re-define test_df and control_df based on the (potentially cleaned) self.data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">treatment_col</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">control_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">treatment_col</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">testn</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">test_df</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">controln</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">control_df</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">testn</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">controln</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;No test or control samples after initial processing. Matching may not be possible.&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">minority</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">majority</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span> <span class="c1"># Indicate invalid state</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">testn</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">controln</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">minority</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">majority</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span> <span class="c1"># Treatment is minority or equal</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">minority</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">majority</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Formula: </span><span class="si">{</span><span class="n">yvar</span><span class="si">}</span><span class="s1"> ~ </span><span class="si">{</span><span class="s2">&quot; + &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xvars</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;n majority: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">yvar</span><span class="p">]</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">majority</span><span class="p">])</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;n minority: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">yvar</span><span class="p">]</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">minority</span><span class="p">])</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">minority</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">majority</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span> <span class="c1"># Control is minority</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Treatment column: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">treatment_col</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Covariates (xvars): </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">xvars</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">minority</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;N majority group (treatment=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">majority</span><span class="si">}</span><span class="s1">): </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">treatment_col</span><span class="p">]</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">majority</span><span class="p">])</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;N minority group (treatment=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">minority</span><span class="si">}</span><span class="s1">): </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">treatment_col</span><span class="p">]</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">minority</span><span class="p">])</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Could not determine majority/minority due to empty test/control groups.&quot;</span><span class="p">)</span>
+
 
 <div class="viewcode-block" id="Matcher.fit_model">
 <a class="viewcode-back" href="../../api/matcher.html#pysmatch.Matcher.Matcher.fit_model">[docs]</a>
@@ -195,23 +244,16 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Fits a single propensity score model.</span>
 
-<span class="sd">        Internal helper method that calls `pysmatch.modeling.fit_model`. This is</span>
-<span class="sd">        typically used within `fit_scores`, especially when fitting multiple models</span>
-<span class="sd">        for balancing or ensembling.</span>
-
+<span class="sd">        Internal helper method that calls `pysmatch.modeling.fit_model`.</span>
 <span class="sd">        Args:</span>
-<span class="sd">            index (int): An identifier for the model (e.g., its index in an ensemble).</span>
+<span class="sd">            index (int): An identifier for the model.</span>
 <span class="sd">            X (pd.DataFrame): The feature matrix (covariates).</span>
 <span class="sd">            y (pd.Series): The target variable (treatment indicator).</span>
 <span class="sd">            model_type (str): The type of model to fit (e.g., &#39;linear&#39;, &#39;rf&#39;, &#39;gb&#39;).</span>
-<span class="sd">            balance (bool): Whether the fitting process should aim to balance covariates</span>
-<span class="sd">                            (e.g., by undersampling the majority class or using class weights).</span>
-<span class="sd">            max_iter (int, optional): Maximum iterations for iterative solvers (like logistic</span>
-<span class="sd">                                      regression). Defaults to 100.</span>
-
+<span class="sd">            balance (bool): Whether the fitting process should aim to balance covariates.</span>
+<span class="sd">            max_iter (int, optional): Maximum iterations for iterative solvers. Defaults to 100.</span>
 <span class="sd">        Returns:</span>
-<span class="sd">            Dict[str, Any]: A dictionary containing the fitted model object under the key &#39;model&#39;</span>
-<span class="sd">                            and its accuracy under the key &#39;accuracy&#39;.</span>
+<span class="sd">            Dict[str, Any]: A dictionary containing the fitted model and its accuracy.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">modeling</span><span class="o">.</span><span class="n">fit_model</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">model_type</span><span class="p">,</span> <span class="n">balance</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">)</span></div>
 
@@ -225,80 +267,83 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Fits propensity score model(s) to estimate scores.</span>
 
-<span class="sd">        Supports single model fitting, ensemble fitting for balance (by undersampling</span>
-<span class="sd">        the majority class across multiple models), or hyperparameter tuning using Optuna.</span>
-
 <span class="sd">        Args:</span>
-<span class="sd">            balance (bool, optional): If True, attempts to create balanced models. If `nmodels`</span>
-<span class="sd">                                      is greater than 1, this typically involves fitting multiple</span>
-<span class="sd">                                      models on undersampled majority data. If `nmodels` is 1,</span>
-<span class="sd">                                      it might involve using class weights or other balancing</span>
-<span class="sd">                                      techniques within the single model fit. Defaults to True.</span>
-<span class="sd">            nmodels (Optional[int], optional): The number of models to fit in an ensemble.</span>
-<span class="sd">                                               If None and `balance` is True, it&#39;s estimated based</span>
-<span class="sd">                                               on the majority/minority class ratio. If None and</span>
-<span class="sd">                                               `balance` is False, it defaults to 1. Ignored if</span>
-<span class="sd">                                               `use_optuna` is True. Defaults to None.</span>
-<span class="sd">            n_jobs (int, optional): The number of parallel jobs to run when fitting multiple</span>
-<span class="sd">                                    models (`nmodels` &gt; 1). Uses `ThreadPool`. Defaults to 1.</span>
-<span class="sd">            model_type (str, optional): The type of classification model to use for propensity</span>
-<span class="sd">                                        score estimation (e.g., &#39;linear&#39; for Logistic Regression,</span>
-<span class="sd">                                        &#39;rf&#39; for Random Forest, &#39;gb&#39; for Gradient Boosting).</span>
-<span class="sd">                                        Passed to `fit_model`. Defaults to &#39;linear&#39;.</span>
-<span class="sd">            max_iter (int, optional): Maximum iterations for the solver in iterative models like</span>
-<span class="sd">                                      Logistic Regression. Passed to `fit_model`. Defaults to 100.</span>
-<span class="sd">            use_optuna (bool, optional): If True, uses Optuna for hyperparameter tuning instead</span>
-<span class="sd">                                         of fitting `nmodels`. `nmodels` is ignored. Defaults to False.</span>
-<span class="sd">            n_trials (int, optional): The number of trials for Optuna optimization if `use_optuna`</span>
-<span class="sd">                                      is True. Defaults to 10.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            None: Models and accuracies are stored in `self.models` and `self.model_accuracy`.</span>
-<span class="sd">                  Propensity scores are calculated and stored later via `predict_scores()`.</span>
+<span class="sd">            balance (bool, optional): If True, attempts to create balanced models. Defaults to True.</span>
+<span class="sd">            nmodels (Optional[int], optional): Number of models for ensemble. Auto-estimated if None and balance=True.</span>
+<span class="sd">            n_jobs (int, optional): Number of parallel jobs for ensemble fitting. Defaults to 1.</span>
+<span class="sd">            model_type (str, optional): Type of model (&#39;linear&#39;, &#39;rf&#39;, &#39;gb&#39;). Defaults to &#39;linear&#39;.</span>
+<span class="sd">            max_iter (int, optional): Max iterations for solver. Defaults to 100.</span>
+<span class="sd">            use_optuna (bool, optional): If True, use Optuna for hyperparameter tuning. Defaults to False.</span>
+<span class="sd">            n_trials (int, optional): Number of Optuna trials if use_optuna is True. Defaults to 10.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">multiprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">cpu_count</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">multiprocessing.pool</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThreadPool</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_accuracy</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">model_type</span> <span class="o">=</span> <span class="n">model_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_type</span> <span class="o">=</span> <span class="n">model_type</span> <span class="c1"># Store model_type used</span>
         <span class="n">num_cores</span> <span class="o">=</span> <span class="n">cpu_count</span><span class="p">()</span>
-        <span class="n">n_jobs</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">num_cores</span><span class="p">,</span> <span class="n">n_jobs</span><span class="p">)</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;This computer has: </span><span class="si">{</span><span class="n">num_cores</span><span class="si">}</span><span class="s2"> cores, using </span><span class="si">{</span><span class="n">n_jobs</span><span class="si">}</span><span class="s2"> workers.&quot;</span><span class="p">)</span>
+        <span class="n">n_jobs</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">num_cores</span><span class="p">,</span> <span class="n">n_jobs</span> <span class="k">if</span> <span class="n">n_jobs</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">num_cores</span><span class="p">)</span> <span class="c1"># Ensure n_jobs is at least 1</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;This computer has: </span><span class="si">{</span><span class="n">num_cores</span><span class="si">}</span><span class="s2"> cores, using </span><span class="si">{</span><span class="n">n_jobs</span><span class="si">}</span><span class="s2"> workers for fitting scores.&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">empty</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Feature matrix (X) or target vector (y) is empty. Cannot fit scores.&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
 
         <span class="k">if</span> <span class="n">use_optuna</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Using Optuna for hyperparameter tuning with </span><span class="si">{</span><span class="n">n_trials</span><span class="si">}</span><span class="s2"> trials.&quot;</span><span class="p">)</span>
             <span class="n">result</span> <span class="o">=</span> <span class="n">modeling</span><span class="o">.</span><span class="n">optuna_tuner</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">model_type</span><span class="o">=</span><span class="n">model_type</span><span class="p">,</span>
                                            <span class="n">n_trials</span><span class="o">=</span><span class="n">n_trials</span><span class="p">,</span> <span class="n">balance</span><span class="o">=</span><span class="n">balance</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;model&#39;</span><span class="p">])</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">model_accuracy</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;accuracy&#39;</span><span class="p">])</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Optuna] Best Accuracy: </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;accuracy&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2%</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nmodels</span> <span class="o">=</span> <span class="mi">1</span>
             <span class="k">return</span>
 
-        <span class="k">if</span> <span class="n">balance</span> <span class="ow">and</span> <span class="n">nmodels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="c1"># 根据少数/多数样本比例估计模型数，用于集成</span>
-            <span class="n">minority_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">yvar</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">minority</span><span class="p">]</span>
-            <span class="n">majority_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">yvar</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">majority</span><span class="p">]</span>
-            <span class="n">nmodels</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">majority_df</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">minority_df</span><span class="p">))</span> <span class="o">/</span> <span class="mi">10</span><span class="p">)</span> <span class="o">*</span> <span class="mi">10</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">nmodels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">nmodels</span> <span class="o">=</span> <span class="mi">1</span>
-        <span class="n">nmodels</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">nmodels</span><span class="p">)</span>
+        <span class="n">current_nmodels</span> <span class="o">=</span> <span class="n">nmodels</span> <span class="c1"># Use a temporary variable</span>
+        <span class="k">if</span> <span class="n">balance</span> <span class="ow">and</span> <span class="n">current_nmodels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">minority</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">treatment_col</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">minority</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">minority_df_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">treatment_col</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">minority</span><span class="p">])</span>
+                <span class="n">majority_df_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">treatment_col</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">majority</span><span class="p">])</span>
+                <span class="c1"># Estimate nmodels for ensemble based on class imbalance, ensuring it&#39;s at least 1</span>
+                <span class="c1"># The original logic `ceil((maj / min) / 10) * 10` can be aggressive.</span>
+                <span class="c1"># Let&#39;s use a simpler ratio or cap it.</span>
+                <span class="k">if</span> <span class="n">minority_df_len</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span> <span class="c1"># Avoid division by zero</span>
+                    <span class="n">ratio</span> <span class="o">=</span> <span class="n">majority_df_len</span> <span class="o">/</span> <span class="n">minority_df_len</span>
+                    <span class="n">current_nmodels</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">ratio</span><span class="p">))</span> <span class="c1"># Simple ratio, or a more complex heuristic</span>
+                    <span class="n">current_nmodels</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">current_nmodels</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span> <span class="c1"># Cap max models from auto-estimation</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">current_nmodels</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">current_nmodels</span> <span class="o">=</span> <span class="mi">1</span> <span class="c1"># Default if no minority group or issue</span>
+        <span class="k">if</span> <span class="n">current_nmodels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">current_nmodels</span> <span class="o">=</span> <span class="mi">1</span>
 
-        <span class="k">if</span> <span class="n">balance</span> <span class="ow">and</span> <span class="n">nmodels</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nmodels</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">current_nmodels</span><span class="p">)</span> <span class="c1"># Ensure at least one model</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Fitting </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">nmodels</span><span class="si">}</span><span class="s2"> model(s) with balance=</span><span class="si">{</span><span class="n">balance</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">balance</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmodels</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">with</span> <span class="n">ThreadPool</span><span class="p">(</span><span class="n">n_jobs</span><span class="p">)</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
                 <span class="n">tasks</span> <span class="o">=</span> <span class="p">[</span>
                     <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">model_type</span><span class="p">,</span> <span class="n">balance</span><span class="p">,</span> <span class="n">max_iter</span><span class="p">)</span>
-                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nmodels</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nmodels</span><span class="p">)</span>
                 <span class="p">]</span>
                 <span class="n">results</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">starmap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fit_model</span><span class="p">,</span> <span class="n">tasks</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s1">&#39;model&#39;</span><span class="p">])</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">model_accuracy</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s1">&#39;accuracy&#39;</span><span class="p">])</span>
-            <span class="n">avg_accuracy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_accuracy</span><span class="p">)</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Average Accuracy: </span><span class="si">{</span><span class="n">avg_accuracy</span><span class="si">:</span><span class="s2">.2%</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_accuracy</span><span class="p">:</span>
+                <span class="n">avg_accuracy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_accuracy</span><span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Average Accuracy over </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">nmodels</span><span class="si">}</span><span class="s2"> models: </span><span class="si">{</span><span class="n">avg_accuracy</span><span class="si">:</span><span class="s2">.2%</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;No model accuracies recorded for ensemble.&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span> <span class="c1"># Single model (nmodels=1 or balance=False)</span>
             <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fit_model</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">model_type</span><span class="p">,</span> <span class="n">balance</span><span class="p">,</span> <span class="n">max_iter</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;model&#39;</span><span class="p">])</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">model_accuracy</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;accuracy&#39;</span><span class="p">])</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Accuracy: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">model_accuracy</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="mi">100</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">%&quot;</span><span class="p">)</span></div>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_accuracy</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Accuracy for single model: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">model_accuracy</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="mi">100</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">%&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;No model accuracy recorded for single model.&quot;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Matcher.predict_scores">
@@ -306,54 +351,184 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">predict_scores</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Predicts propensity scores using the fitted model(s).</span>
-
-<span class="sd">        If multiple models were fitted (ensemble), the scores are averaged across models.</span>
-<span class="sd">        The predicted scores are added to the `self.data` DataFrame as a &#39;scores&#39; column.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            None: Scores are stored in `self.data[&#39;scores&#39;]`.</span>
-
-<span class="sd">        Raises:</span>
-<span class="sd">            RuntimeError: If `fit_scores()` has not been called successfully yet (no models exist).</span>
+<span class="sd">        Scores are stored in `self.data[&#39;scores&#39;]`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">:</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;No trained models found. Please call fit_scores() first.&quot;</span><span class="p">)</span>
             <span class="k">return</span>
-        <span class="n">model_preds</span> <span class="o">=</span> <span class="p">[</span><span class="n">model</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">)[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">model</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">]</span>
-        <span class="n">scores</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">model_preds</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;scores&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">scores</span></div>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Feature matrix (X) is empty. Cannot predict scores.&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">model_preds</span> <span class="o">=</span> <span class="p">[</span><span class="n">model</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">))[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">model</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">]</span> <span class="c1"># Ensure X is float for some models</span>
+            <span class="n">scores</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">model_preds</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;scores&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">scores</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Propensity scores predicted and added to &#39;scores&#39; column in self.data.&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error during propensity score prediction: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Ensure covariates in self.X are numeric and compatible with the model.&quot;</span><span class="p">)</span></div>
+
 
 
 <div class="viewcode-block" id="Matcher.match">
 <a class="viewcode-back" href="../../api/matcher.html#pysmatch.Matcher.Matcher.match">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">match</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span> <span class="n">nmatches</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;min&#39;</span><span class="p">,</span>
-              <span class="n">replacement</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+              <span class="n">replacement</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">exhaustive_matching</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Performs matching based on estimated propensity scores.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            method (str, optional): The matching algorithm to use.</span>
-<span class="sd">                Options: &quot;nearest&quot;, &quot;optimal&quot;, &quot;radius&quot;. Defaults to &quot;nearest&quot;.</span>
-<span class="sd">            n_matches (int, optional): The number of control units to match to each</span>
-<span class="sd">                treated unit (for &#39;nearest&#39; neighbor). Defaults to 1.</span>
-<span class="sd">            caliper (float, optional): The maximum allowable distance (caliper) between</span>
-<span class="sd">                propensity scores for a match. If None, no caliper is applied.</span>
-<span class="sd">                Defaults to None. For &#39;radius&#39; matching, this defines the radius.</span>
-<span class="sd">            replace (bool, optional): Whether control units can be matched multiple times</span>
-<span class="sd">                (matching with replacement). Defaults to False.</span>
-<span class="sd">            **kwargs: Additional keyword arguments passed to the specific matching algorithm.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            pd.DataFrame: A DataFrame containing the matched treated and control units.</span>
-
-<span class="sd">        Raises:</span>
-<span class="sd">            RuntimeError: If propensity scores have not been estimated yet.</span>
-<span class="sd">            ValueError: If an invalid matching method is specified.</span>
+<span class="sd">            threshold (float, optional): Threshold for score difference. Defaults to 0.001.</span>
+<span class="sd">            nmatches (int, optional): Number of controls to match to each test unit. Defaults to 1.</span>
+<span class="sd">            method (str, optional): The matching algorithm to use when exhaustive_matching is False.</span>
+<span class="sd">                                    Passed to `pysmatch.matching.perform_match`. Defaults to &#39;min&#39;.</span>
+<span class="sd">            replacement (bool, optional): Whether controls can be matched to multiple test units</span>
+<span class="sd">                                          when exhaustive_matching is False. Passed to `pysmatch.matching.perform_match`.</span>
+<span class="sd">                                          Defaults to False.</span>
+<span class="sd">            exhaustive_matching (Optional[bool], optional): If True, attempts to use a wider range of controls</span>
+<span class="sd">                                                            by prioritizing unused or less-used controls.</span>
+<span class="sd">                                                            If None, uses the instance&#39;s default</span>
+<span class="sd">                                                            `self.exhaustive_matching_default`. Defaults to None.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span> <span class="o">=</span> <span class="n">matching</span><span class="o">.</span><span class="n">perform_match</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">yvar</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
-            <span class="n">nmatches</span><span class="o">=</span><span class="n">nmatches</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">replacement</span><span class="o">=</span><span class="n">replacement</span>
-        <span class="p">)</span></div>
+        <span class="k">if</span> <span class="n">exhaustive_matching</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">exhaustive_matching</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">exhaustive_matching_default</span>
+
+        <span class="k">if</span> <span class="s1">&#39;scores&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Propensity scores (&#39;scores&#39; column) not found in self.data. &quot;</span>
+                          <span class="s2">&quot;Please run predict_scores() first.&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+            <span class="k">return</span>
+
+        <span class="c1"># Ensure `record_id` exists in self.data, it should have been added in __init__</span>
+        <span class="k">if</span> <span class="s1">&#39;record_id&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;&#39;record_id&#39; column not found in self.data. This is unexpected.&quot;</span><span class="p">)</span>
+            <span class="c1"># As a fallback, try to add it now, but ideally it&#39;s always there from __init__</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;record_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">index</span>
+            <span class="c1"># Re-define test_df and control_df if self.data was modified</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">test_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">treatment_col</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">control_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">treatment_col</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Ensure test_df and control_df are copies and up-to-date with self.data (especially &#39;scores&#39;)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">test_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">treatment_col</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">control_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">treatment_col</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">test_df</span><span class="o">.</span><span class="n">empty</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">control_df</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;No test (treated) or control samples available for matching in self.test_df or self.control_df.&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="n">exhaustive_matching</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Performing exhaustive matching: nmatches=</span><span class="si">{</span><span class="n">nmatches</span><span class="si">}</span><span class="s2">, threshold=</span><span class="si">{</span><span class="n">threshold</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">control_usage_counts</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+            <span class="n">matched_pairs_info</span> <span class="o">=</span> <span class="p">[]</span> <span class="c1"># Stores dicts: {&#39;case_record_id&#39;, &#39;control_record_id&#39;, &#39;score_diff&#39;}</span>
+
+            <span class="c1"># Ensure test_df and control_df have &#39;scores&#39; and &#39;record_id&#39;</span>
+            <span class="k">if</span> <span class="s1">&#39;scores&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">test_df</span><span class="o">.</span><span class="n">columns</span> <span class="ow">or</span> <span class="s1">&#39;scores&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">control_df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Propensity scores missing from test_df or control_df used in exhaustive matching.&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+                <span class="k">return</span>
+            <span class="k">if</span> <span class="s1">&#39;record_id&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">test_df</span><span class="o">.</span><span class="n">columns</span> <span class="ow">or</span> <span class="s1">&#39;record_id&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">control_df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Record IDs missing from test_df or control_df used in exhaustive matching.&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+                <span class="k">return</span>
+
+
+            <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">case_row</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">test_df</span><span class="o">.</span><span class="n">iterrows</span><span class="p">(),</span> <span class="n">total</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">test_df</span><span class="p">),</span> <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Exhaustive Matching&quot;</span><span class="p">):</span>
+                <span class="n">case_prop_score</span> <span class="o">=</span> <span class="n">case_row</span><span class="p">[</span><span class="s1">&#39;scores&#39;</span><span class="p">]</span>
+                <span class="n">case_record_id</span> <span class="o">=</span> <span class="n">case_row</span><span class="p">[</span><span class="s1">&#39;record_id&#39;</span><span class="p">]</span>
+
+                <span class="c1"># Calculate score differences with all controls</span>
+                <span class="c1"># Create a temporary DataFrame for eligible controls for this specific case</span>
+                <span class="n">current_controls_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">control_df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">current_controls_df</span><span class="p">[</span><span class="s1">&#39;prop_score_diff&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">current_controls_df</span><span class="p">[</span><span class="s1">&#39;scores&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">case_prop_score</span><span class="p">)</span>
+
+                <span class="c1"># Filter by threshold</span>
+                <span class="n">eligible_controls_for_case</span> <span class="o">=</span> <span class="n">current_controls_df</span><span class="p">[</span><span class="n">current_controls_df</span><span class="p">[</span><span class="s1">&#39;prop_score_diff&#39;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">threshold</span><span class="p">]</span>
+
+                <span class="k">if</span> <span class="n">eligible_controls_for_case</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+                    <span class="k">continue</span>
+
+                <span class="c1"># Add usage info for sorting</span>
+                <span class="n">eligible_controls_for_case</span><span class="p">[</span><span class="s1">&#39;is_used&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">eligible_controls_for_case</span><span class="p">[</span><span class="s1">&#39;record_id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
+                    <span class="k">lambda</span> <span class="n">rid</span><span class="p">:</span> <span class="n">control_usage_counts</span><span class="p">[</span><span class="n">rid</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span>
+                <span class="p">)</span>
+                <span class="n">eligible_controls_for_case</span><span class="p">[</span><span class="s1">&#39;usage_count&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">eligible_controls_for_case</span><span class="p">[</span><span class="s1">&#39;record_id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
+                    <span class="k">lambda</span> <span class="n">rid</span><span class="p">:</span> <span class="n">control_usage_counts</span><span class="p">[</span><span class="n">rid</span><span class="p">]</span>
+                <span class="p">)</span>
+
+                <span class="c1"># Sort: 1. unused first, 2. least used first, 3. best score_diff first</span>
+                <span class="n">eligible_controls_for_case</span> <span class="o">=</span> <span class="n">eligible_controls_for_case</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span>
+                    <span class="n">by</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;is_used&#39;</span><span class="p">,</span> <span class="s1">&#39;usage_count&#39;</span><span class="p">,</span> <span class="s1">&#39;prop_score_diff&#39;</span><span class="p">]</span>
+                <span class="p">)</span>
+
+                <span class="n">selected_controls_for_case</span> <span class="o">=</span> <span class="n">eligible_controls_for_case</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="n">nmatches</span><span class="p">)</span>
+
+                <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">control_row_selected</span> <span class="ow">in</span> <span class="n">selected_controls_for_case</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+                    <span class="n">control_record_id</span> <span class="o">=</span> <span class="n">control_row_selected</span><span class="p">[</span><span class="s1">&#39;record_id&#39;</span><span class="p">]</span>
+                    <span class="n">matched_pairs_info</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                        <span class="s1">&#39;case_record_id&#39;</span><span class="p">:</span> <span class="n">case_record_id</span><span class="p">,</span>
+                        <span class="s1">&#39;control_record_id&#39;</span><span class="p">:</span> <span class="n">control_record_id</span><span class="p">,</span>
+                        <span class="s1">&#39;score_diff&#39;</span><span class="p">:</span> <span class="n">control_row_selected</span><span class="p">[</span><span class="s1">&#39;prop_score_diff&#39;</span><span class="p">]</span>
+                    <span class="p">})</span>
+                    <span class="n">control_usage_counts</span><span class="p">[</span><span class="n">control_record_id</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">matched_pairs_info</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;No matches found with exhaustive matching.&quot;</span><span class="p">)</span>
+                <span class="k">return</span>
+
+            <span class="c1"># Construct self.matched_data in a &quot;long&quot; format:</span>
+            <span class="c1"># One row for each member of a matched pair (case or control).</span>
+            <span class="c1"># Include original data, a &#39;match_id&#39; for the pair, and &#39;record_id&#39; (original).</span>
+            <span class="n">final_matched_rows_list</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">current_match_id</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">pair</span> <span class="ow">in</span> <span class="n">matched_pairs_info</span><span class="p">:</span>
+                <span class="n">case_data_matched</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;record_id&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">pair</span><span class="p">[</span><span class="s1">&#39;case_record_id&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">control_data_matched</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;record_id&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">pair</span><span class="p">[</span><span class="s1">&#39;control_record_id&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+                <span class="n">case_data_matched</span><span class="p">[</span><span class="s1">&#39;match_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_match_id</span>
+                <span class="n">case_data_matched</span><span class="p">[</span><span class="s1">&#39;matched_as&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;case&#39;</span> <span class="c1"># Indicates if this row is the case or control part of the pair</span>
+                <span class="n">case_data_matched</span><span class="p">[</span><span class="s1">&#39;pair_score_diff&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pair</span><span class="p">[</span><span class="s1">&#39;score_diff&#39;</span><span class="p">]</span> <span class="c1"># Score diff for this specific pair</span>
+
+                <span class="n">control_data_matched</span><span class="p">[</span><span class="s1">&#39;match_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_match_id</span>
+                <span class="n">control_data_matched</span><span class="p">[</span><span class="s1">&#39;matched_as&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;control&#39;</span>
+                <span class="n">control_data_matched</span><span class="p">[</span><span class="s1">&#39;pair_score_diff&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pair</span><span class="p">[</span><span class="s1">&#39;score_diff&#39;</span><span class="p">]</span>
+
+                <span class="n">final_matched_rows_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">case_data_matched</span><span class="p">)</span>
+                <span class="n">final_matched_rows_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">control_data_matched</span><span class="p">)</span>
+                <span class="n">current_match_id</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="k">if</span> <span class="n">final_matched_rows_list</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">final_matched_rows_list</span><span class="p">)</span>
+                <span class="c1"># The &#39;record_id&#39; column is already present from self.data.</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Exhaustive matching complete. </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="p">[</span><span class="s1">&#39;match_id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">empty</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="mi">0</span><span class="si">}</span><span class="s2"> pairs formed.&quot;</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span> <span class="c1"># Not exhaustive_matching, use the provided matching.perform_match</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Performing matching using pysmatch.matching.perform_match: method=&#39;</span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">&#39;, replacement=</span><span class="si">{</span><span class="n">replacement</span><span class="si">}</span><span class="s2">, threshold=</span><span class="si">{</span><span class="n">threshold</span><span class="si">}</span><span class="s2">, nmatches=</span><span class="si">{</span><span class="n">nmatches</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span> <span class="o">=</span> <span class="n">matching</span><span class="o">.</span><span class="n">perform_match</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="c1"># Pass the full data with &#39;scores&#39; and &#39;record_id&#39;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">treatment_col</span><span class="p">,</span> <span class="c1"># Name of the treatment column</span>
+                <span class="n">threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
+                <span class="n">nmatches</span><span class="o">=</span><span class="n">nmatches</span><span class="p">,</span>
+                <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span>
+                <span class="n">replacement</span><span class="o">=</span><span class="n">replacement</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;No matches found using pysmatch.matching.perform_match.&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Matching with pysmatch.matching.perform_match complete. Matched data has </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="p">)</span><span class="si">}</span><span class="s2"> rows.&quot;</span><span class="p">)</span>
+                <span class="c1"># Ensure &#39;record_id&#39; and &#39;match_id&#39; are in the output of matching.perform_match</span>
+                <span class="c1"># as expected by other methods. If not, they might need to be added/derived here.</span>
+                <span class="c1"># For now, we assume matching.perform_match from pysmatch library handles this.</span>
+                <span class="k">if</span> <span class="s1">&#39;record_id&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;&#39;record_id&#39; not found in matched_data from matching.perform_match. Subsequent weighting might fail.&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="s1">&#39;match_id&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;&#39;match_id&#39; not found in matched_data from matching.perform_match. Record frequency might be affected.&quot;</span><span class="p">)</span></div>
+
 
 
 <div class="viewcode-block" id="Matcher.plot_scores">
@@ -361,11 +536,12 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">plot_scores</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Plots the distribution of propensity scores before matching.</span>
-
-<span class="sd">        Visualizes the overlap of scores between the test (treated) and control groups</span>
-<span class="sd">        in the original (unmatched) data. Requires scores to be calculated first.</span>
+<span class="sd">        Visualizes score overlap between test (treated) and control groups.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">visualization</span><span class="o">.</span><span class="n">plot_scores</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">yvar</span><span class="p">,</span>
+        <span class="k">if</span> <span class="s1">&#39;scores&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Scores not available in self.data. Cannot plot scores. Run predict_scores() first.&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="n">visualization</span><span class="o">.</span><span class="n">plot_scores</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">treatment_col</span><span class="p">,</span>
                                   <span class="n">control_color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">control_color</span><span class="p">,</span>
                                   <span class="n">test_color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">test_color</span><span class="p">)</span></div>
 
@@ -377,29 +553,28 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Evaluates matching retention across a range of threshold values.</span>
 
-<span class="sd">        Performs matching repeatedly for different threshold values and plots the</span>
-<span class="sd">        proportion of the minority group retained at each threshold. This helps in</span>
-<span class="sd">        selecting an appropriate threshold/caliper value.</span>
-
 <span class="sd">        Args:</span>
-<span class="sd">            method (str): The matching method to use (e.g., &#39;min&#39;, &#39;nn&#39;, &#39;radius&#39;) for</span>
-<span class="sd">                          each threshold evaluation. Passed to `matching.tune_threshold`.</span>
-<span class="sd">            nmatches (int, optional): The number of matches to seek (relevant for &#39;nn&#39;/&#39;min&#39;).</span>
-<span class="sd">                                      Defaults to 1.</span>
-<span class="sd">            rng (Optional[np.ndarray], optional): A NumPy array specifying the sequence of</span>
-<span class="sd">                                                  threshold values to test. If None, a default</span>
-<span class="sd">                                                  range (0 to 0.001 by 0.0001) is used.</span>
-<span class="sd">                                                  Defaults to None.</span>
+<span class="sd">            method (str): Matching method (&#39;min&#39;, &#39;nn&#39;, &#39;radius&#39;) for evaluation.</span>
+<span class="sd">            nmatches (int, optional): Number of matches for &#39;nn&#39;/&#39;min&#39;. Defaults to 1.</span>
+<span class="sd">            rng (Optional[np.ndarray], optional): Threshold values to test. Defaults to np.arange(0, 0.001, 0.0001).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s1">&#39;scores&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Scores not available. Cannot tune threshold. Run predict_scores() first.&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
         <span class="k">if</span> <span class="n">rng</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">,</span> <span class="mf">0.0001</span><span class="p">)</span>
-        <span class="n">thresholds</span><span class="p">,</span> <span class="n">retained</span> <span class="o">=</span> <span class="n">matching</span><span class="o">.</span><span class="n">tune_threshold</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">yvar</span><span class="p">,</span>
+            <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.0011</span><span class="p">,</span> <span class="mf">0.0001</span><span class="p">)</span> <span class="c1"># Ensure 0.001 is included</span>
+
+        <span class="c1"># Assuming matching.tune_threshold expects self.data (with &#39;scores&#39;), treatment_col name, etc.</span>
+        <span class="n">thresholds</span><span class="p">,</span> <span class="n">retained</span> <span class="o">=</span> <span class="n">matching</span><span class="o">.</span><span class="n">tune_threshold</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">treatment_col</span><span class="p">,</span>
                                                        <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">nmatches</span><span class="o">=</span><span class="n">nmatches</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
-        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">thresholds</span><span class="p">,</span> <span class="n">retained</span><span class="p">)</span>
-        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Proportion of Data Retained for Threshold Grid&quot;</span><span class="p">)</span>
-        <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Proportion Retained&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">6</span><span class="p">))</span> <span class="c1"># Ensure a figure is created for the plot</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">thresholds</span><span class="p">,</span> <span class="n">retained</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;o&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Proportion of Minority Group Retained for Threshold Grid&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Proportion Retained (Minority Group)&quot;</span><span class="p">)</span>
         <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Threshold&quot;</span><span class="p">)</span>
-        <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">(</span><span class="n">thresholds</span><span class="p">,</span> <span class="n">rotation</span><span class="o">=</span><span class="mi">90</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">(</span><span class="n">thresholds</span><span class="p">,</span> <span class="n">rotation</span><span class="o">=</span><span class="mi">45</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.7</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
         <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
 
 
@@ -407,24 +582,42 @@
 <a class="viewcode-back" href="../../api/matcher.html#pysmatch.Matcher.Matcher.record_frequency">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">record_frequency</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Calculates the frequency of each original record in the matched dataset.</span>
-
-<span class="sd">        Useful when matching with replacement, as control units might appear multiple times.</span>
-<span class="sd">        Requires `match()` to have been run successfully. The matched data must contain</span>
-<span class="sd">        a &#39;match_id&#39; or similar identifier linking back to original records if counts</span>
-<span class="sd">        are desired per original record. *Correction: Based on `assign_weight_vector`,</span>
-<span class="sd">        it seems &#39;record_id&#39; is the key identifier.*</span>
-
+<span class="sd">        Calculates the frequency of each original record pair in the matched dataset.</span>
+<span class="sd">        Requires `match()` to have been run. `matched_data` must contain &#39;match_id&#39;.</span>
 <span class="sd">        Returns:</span>
-<span class="sd">            pd.DataFrame: A DataFrame with columns like &#39;record_id&#39; and &#39;n_records&#39; (frequency count),</span>
-<span class="sd">                          or an empty DataFrame if matching hasn&#39;t been done.</span>
+<span class="sd">            pd.DataFrame: DataFrame with &#39;match_id&#39; and &#39;n_records&#39; (frequency of pair).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;No matched data found. Please run match() first.&quot;</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
-        <span class="n">freqs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="p">[</span><span class="s1">&#39;match_id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
-        <span class="n">freqs</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;freq&#39;</span><span class="p">,</span> <span class="s1">&#39;n_records&#39;</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">freqs</span></div>
+            <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;match_id&#39;</span><span class="p">,</span> <span class="s1">&#39;n_records&#39;</span><span class="p">])</span> <span class="c1"># Return empty df with expected columns</span>
+        <span class="k">if</span> <span class="s1">&#39;match_id&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;&#39;match_id&#39; column not found in matched_data. Cannot calculate record frequency per pair.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;match_id&#39;</span><span class="p">,</span> <span class="s1">&#39;n_records&#39;</span><span class="p">])</span>
+
+        <span class="c1"># This counts how many records (rows) belong to each match_id (i.e., 2 for a pair)</span>
+        <span class="c1"># If the goal is to count how many times an *original control record* was used,</span>
+        <span class="c1"># then it should group by &#39;record_id&#39; for control units.</span>
+        <span class="c1"># The original docstring said &quot;frequency of each original record&quot;.</span>
+        <span class="c1"># The implementation `self.matched_data[&#39;match_id&#39;].value_counts()` counts occurrences of each pair ID.</span>
+        <span class="c1"># If `matched_data` is long (2 rows per pair), this will count how many times each pair ID appears (should be 2).</span>
+        <span class="c1"># Let&#39;s assume the goal is to count how many times each *original control record* appears in matched pairs.</span>
+
+        <span class="c1"># If using exhaustive matching and long format matched_data:</span>
+        <span class="k">if</span> <span class="s1">&#39;matched_as&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">columns</span> <span class="ow">and</span> <span class="s1">&#39;record_id&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">control_records_in_matched</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="p">[</span><span class="s1">&#39;matched_as&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;control&#39;</span><span class="p">]</span>
+            <span class="n">freqs</span> <span class="o">=</span> <span class="n">control_records_in_matched</span><span class="p">[</span><span class="s1">&#39;record_id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+            <span class="n">freqs</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;record_id&#39;</span><span class="p">,</span> <span class="s1">&#39;n_occurrences_as_control&#39;</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">freqs</span>
+        <span class="k">else</span><span class="p">:</span> <span class="c1"># Fallback or if matched_data structure is different (e.g. from external matching.perform_match)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Cannot determine control record frequency due to unexpected matched_data structure. &quot;</span>
+                            <span class="s2">&quot;Falling back to counting &#39;match_id&#39; occurrences if available.&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s1">&#39;match_id&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span> <span class="c1"># Original implementation&#39;s spirit</span>
+                <span class="n">freqs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="p">[</span><span class="s1">&#39;match_id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+                <span class="n">freqs</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;match_id&#39;</span><span class="p">,</span> <span class="s1">&#39;n_records_in_pair_id&#39;</span><span class="p">]</span> <span class="c1"># Renamed for clarity</span>
+                <span class="k">return</span> <span class="n">freqs</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="s1">&#39;frequency&#39;</span><span class="p">])</span></div>
+
 
 
 <div class="viewcode-block" id="Matcher.assign_weight_vector">
@@ -432,21 +625,29 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">assign_weight_vector</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Assigns inverse frequency weights to records in the matched dataset.</span>
-
-<span class="sd">        Calculates weights as `1 / count`, where `count` is the number of times an</span>
-<span class="sd">        original record (identified by `record_id`) appears in the matched dataset.</span>
-<span class="sd">        This is often used in analyses after matching with replacement to account for</span>
-<span class="sd">        controls matched multiple times. The weights are added as a &#39;weight&#39; column</span>
-<span class="sd">        to `self.matched_data`.</span>
-
-<span class="sd">        Requires `match()` to have been run and `matched_data` to contain &#39;record_id&#39;.</span>
+<span class="sd">        Weights are 1/count, where count is how many times an original record</span>
+<span class="sd">        (identified by `record_id`) appears. Added as &#39;weight&#39; column.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;No matched data found. Please run match() first.&quot;</span><span class="p">)</span>
             <span class="k">return</span>
-        <span class="n">record_freqs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;record_id&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">size</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;count&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s1">&#39;record_id&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;&#39;record_id&#39; column not found in matched_data. Cannot assign weights.&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="c1"># Calculate frequency of each original record_id in the matched set</span>
+        <span class="n">record_freqs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="p">[</span><span class="s1">&#39;record_id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;count&#39;</span><span class="p">)</span>
+        <span class="n">record_freqs</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;index&#39;</span><span class="p">:</span> <span class="s1">&#39;record_id&#39;</span><span class="p">},</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
         <span class="n">record_freqs</span><span class="p">[</span><span class="s1">&#39;weight&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">record_freqs</span><span class="p">[</span><span class="s1">&#39;count&#39;</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">record_freqs</span><span class="p">[[</span><span class="s1">&#39;record_id&#39;</span><span class="p">,</span> <span class="s1">&#39;weight&#39;</span><span class="p">]],</span> <span class="n">on</span><span class="o">=</span><span class="s1">&#39;record_id&#39;</span><span class="p">)</span></div>
+
+        <span class="c1"># Merge weights back into self.matched_data</span>
+        <span class="k">if</span> <span class="s1">&#39;weight&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span> <span class="c1"># Drop existing weight column if it exists to prevent merge issues</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;weight&#39;</span><span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">record_freqs</span><span class="p">[[</span><span class="s1">&#39;record_id&#39;</span><span class="p">,</span> <span class="s1">&#39;weight&#39;</span><span class="p">]],</span> <span class="n">on</span><span class="o">=</span><span class="s1">&#39;record_id&#39;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Inverse frequency weights assigned to &#39;weight&#39; column in matched_data.&quot;</span><span class="p">)</span></div>
+
 
 
 <div class="viewcode-block" id="Matcher.prop_test">
@@ -455,55 +656,75 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Performs Chi-Square tests for a categorical variable before and after matching.</span>
 
-<span class="sd">        Compares the distribution of a categorical variable (`col`) between the test and</span>
-<span class="sd">        control groups in both the original (`self.data`) and matched (`self.matched_data`)</span>
-<span class="sd">        datasets using the Chi-Square test of independence.</span>
-
 <span class="sd">        Args:</span>
-<span class="sd">            col (str): The name of the categorical column to test. The method checks if the</span>
-<span class="sd">                       column is likely categorical (not continuous) and not in `self.exclude`.</span>
-
+<span class="sd">            col (str): Name of the categorical column to test.</span>
 <span class="sd">        Returns:</span>
-<span class="sd">            Optional[Dict[str, Any]]: A dictionary containing the variable name (&#39;var&#39;), the</span>
-<span class="sd">                                      p-value from the Chi-Square test before matching (&#39;before&#39;),</span>
-<span class="sd">                                      and the p-value after matching (&#39;after&#39;). Returns None if</span>
-<span class="sd">                                      the variable is continuous, excluded, or if tests fail.</span>
+<span class="sd">            Optional[Dict[str, Any]]: Dict with &#39;var&#39;, &#39;before&#39; p-value, &#39;after&#39; p-value. None if error.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">scipy</span><span class="w"> </span><span class="kn">import</span> <span class="n">stats</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">uf</span><span class="o">.</span><span class="n">is_continuous</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">)</span> <span class="ow">and</span> <span class="n">col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">exclude</span><span class="p">:</span>
-            <span class="n">before_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prep_prop_test</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">col</span><span class="p">)</span>
-            <span class="n">after_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prep_prop_test</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="p">,</span> <span class="n">col</span><span class="p">)</span>
-            <span class="n">pval_before</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">stats</span><span class="o">.</span><span class="n">chi2_contingency</span><span class="p">(</span><span class="n">before_data</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">6</span><span class="p">)</span>
-            <span class="n">pval_after</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">stats</span><span class="o">.</span><span class="n">chi2_contingency</span><span class="p">(</span><span class="n">after_data</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">6</span><span class="p">)</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">scipy</span><span class="w"> </span><span class="kn">import</span> <span class="n">stats</span> <span class="c1"># Local import</span>
+        <span class="k">if</span> <span class="n">col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span> <span class="ow">or</span> <span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">empty</span> <span class="ow">and</span> <span class="n">col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">columns</span><span class="p">):</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Column &#39;</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2">&#39; not found in original or matched data for prop_test.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">col</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">treatment_col</span> <span class="ow">or</span> <span class="n">col</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">exclude</span><span class="p">:</span> <span class="c1"># Check against self.exclude as defined in __init__</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Column &#39;</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2">&#39; is the treatment variable or in the global exclude list. Skipping prop_test.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="c1"># Use the utility function from pysmatch.utils (uf) if it exists, otherwise basic check</span>
+        <span class="n">is_col_continuous</span> <span class="o">=</span> <span class="n">uf</span><span class="o">.</span><span class="n">is_continuous</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">)</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">uf</span><span class="p">,</span> <span class="s1">&#39;is_continuous&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="ow">in</span> <span class="s1">&#39;ifc&#39;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_col_continuous</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">before_data_table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prep_prop_test</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">col</span><span class="p">)</span>
+                <span class="n">pval_before</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">stats</span><span class="o">.</span><span class="n">chi2_contingency</span><span class="p">(</span><span class="n">before_data_table</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">6</span><span class="p">)</span> <span class="k">if</span> <span class="n">before_data_table</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">before_data_table</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+            <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Chi-square test failed for &#39;</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2">&#39; before matching (possibly all values are same in a group): </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">pval_before</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+            <span class="n">pval_after</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">after_data_table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prep_prop_test</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="p">,</span> <span class="n">col</span><span class="p">)</span>
+                    <span class="n">pval_after</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">stats</span><span class="o">.</span><span class="n">chi2_contingency</span><span class="p">(</span><span class="n">after_data_table</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">6</span><span class="p">)</span> <span class="k">if</span> <span class="n">after_data_table</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">after_data_table</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+                <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Chi-square test failed for &#39;</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2">&#39; after matching: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="n">pval_after</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
             <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;var&#39;</span><span class="p">:</span> <span class="n">col</span><span class="p">,</span> <span class="s1">&#39;before&#39;</span><span class="p">:</span> <span class="n">pval_before</span><span class="p">,</span> <span class="s1">&#39;after&#39;</span><span class="p">:</span> <span class="n">pval_after</span><span class="p">}</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2"> is a continuous variable or excluded.&quot;</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2"> is detected as a continuous variable. Skipping prop_test.&quot;</span><span class="p">)</span>
             <span class="k">return</span> <span class="kc">None</span></div>
 
 
 <div class="viewcode-block" id="Matcher.prep_prop_test">
 <a class="viewcode-back" href="../../api/matcher.html#pysmatch.Matcher.Matcher.prep_prop_test">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">prep_prop_test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">var</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">prep_prop_test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">var</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Prepares a contingency table for the Chi-Square test.</span>
 
-<span class="sd">        Creates a cross-tabulation of the specified variable (`var`) against the</span>
-<span class="sd">        treatment variable (`self.yvar`) from the given DataFrame. Handles potential</span>
-<span class="sd">        missing categories by ensuring both treatment groups (0 and 1) are present</span>
-<span class="sd">        as columns, filled with 0 counts if necessary.</span>
-
 <span class="sd">        Args:</span>
-<span class="sd">            data (pd.DataFrame): The DataFrame (either original or matched) to use.</span>
+<span class="sd">            data (pd.DataFrame): The DataFrame (original or matched) to use.</span>
 <span class="sd">            var (str): The categorical variable name.</span>
-
 <span class="sd">        Returns:</span>
-<span class="sd">            Optional[list]: A list-of-lists representation of the contingency table suitable</span>
-<span class="sd">                            for `scipy.stats.chi2_contingency`. Returns None if the input</span>
-<span class="sd">                            data is empty or the variable is missing.</span>
+<span class="sd">            Optional[list]: List-of-lists for `scipy.stats.chi2_contingency`. None if error.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">counts</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="n">var</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">yvar</span><span class="p">])</span><span class="o">.</span><span class="n">size</span><span class="p">()</span><span class="o">.</span><span class="n">unstack</span><span class="p">(</span><span class="n">fill_value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-        <span class="n">counts</span> <span class="o">=</span> <span class="n">counts</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">fill_value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">counts</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span></div>
+        <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">empty</span> <span class="ow">or</span> <span class="n">var</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">treatment_col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cannot prep_prop_test for &#39;</span><span class="si">{</span><span class="n">var</span><span class="si">}</span><span class="s2">&#39;: data is empty or columns missing.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Ensure there are at least two categories in &#39;var&#39; and two groups in &#39;treatment_col&#39; within the data subset</span>
+            <span class="k">if</span> <span class="n">data</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">treatment_col</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Not enough categories/groups for &#39;</span><span class="si">{</span><span class="n">var</span><span class="si">}</span><span class="s2">&#39; in provided data for chi-square test.&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="kc">None</span>
+
+            <span class="n">counts</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">crosstab</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">var</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">treatment_col</span><span class="p">])</span>
+            <span class="c1"># Ensure both treatment groups (0 and 1) are present as columns</span>
+            <span class="k">if</span> <span class="mi">0</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">counts</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span> <span class="n">counts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">if</span> <span class="mi">1</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">counts</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span> <span class="n">counts</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">counts</span> <span class="o">=</span> <span class="n">counts</span><span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]]</span> <span class="c1"># Ensure correct order</span>
+            <span class="k">return</span> <span class="n">counts</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error preparing contingency table for &#39;</span><span class="si">{</span><span class="n">var</span><span class="si">}</span><span class="s2">&#39;: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span></div>
+
 
 
 <div class="viewcode-block" id="Matcher.compare_continuous">
@@ -511,25 +732,11 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">compare_continuous</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">save</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">return_table</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">plot_result</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compares continuous variables between groups before and after matching.</span>
-
-<span class="sd">        Delegates the comparison logic and plotting to `visualization.compare_continuous`.</span>
-<span class="sd">        Typically calculates and displays standardized mean differences (SMD) or performs</span>
-<span class="sd">        t-tests for all continuous covariates found in `self.xvars`.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            save (bool, optional): Whether to save any generated plots (functionality depends</span>
-<span class="sd">                                   on the implementation in `visualization.compare_continuous`).</span>
-<span class="sd">                                   Defaults to False.</span>
-<span class="sd">            return_table (bool, optional): If True, returns the comparison results as a</span>
-<span class="sd">                                           DataFrame. Defaults to False.</span>
-<span class="sd">            plot_result (bool, optional): If True, generates and displays plots (e.g., Love plot)</span>
-<span class="sd">                                          summarizing the balance. Defaults to True.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            Optional[pd.DataFrame]: If `return_table` is True, returns a DataFrame containing</span>
-<span class="sd">                                    the comparison statistics (e.g., SMD before/after).</span>
-<span class="sd">                                    Otherwise, returns None.</span>
+<span class="sd">        Delegates to `visualization.compare_continuous`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">visualization</span><span class="p">,</span> <span class="s1">&#39;compare_continuous&#39;</span><span class="p">):</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;visualization.compare_continuous function not found.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">return_table</span> <span class="k">else</span> <span class="kc">None</span>
         <span class="k">return</span> <span class="n">visualization</span><span class="o">.</span><span class="n">compare_continuous</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">return_table</span><span class="o">=</span><span class="n">return_table</span><span class="p">,</span> <span class="n">plot_result</span><span class="o">=</span><span class="n">plot_result</span><span class="p">)</span></div>
 
 
@@ -538,22 +745,11 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">compare_categorical</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">return_table</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">plot_result</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compares categorical variables between groups before and after matching.</span>
-
-<span class="sd">        Delegates the comparison logic and plotting to `visualization.compare_categorical`.</span>
-<span class="sd">        Typically calculates and displays differences in proportions or performs Chi-Square</span>
-<span class="sd">        tests for all categorical covariates found in `self.xvars`.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            return_table (bool, optional): If True, returns the comparison results as a</span>
-<span class="sd">                                           DataFrame. Defaults to False.</span>
-<span class="sd">            plot_result (bool, optional): If True, generates and displays plots summarizing</span>
-<span class="sd">                                          the balance for categorical variables. Defaults to True.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            Optional[pd.DataFrame]: If `return_table` is True, returns a DataFrame containing</span>
-<span class="sd">                                    the comparison statistics (e.g., p-values before/after).</span>
-<span class="sd">                                    Otherwise, returns None.</span>
+<span class="sd">        Delegates to `visualization.compare_categorical`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">visualization</span><span class="p">,</span> <span class="s1">&#39;compare_categorical&#39;</span><span class="p">):</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;visualization.compare_categorical function not found.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">return_table</span> <span class="k">else</span> <span class="kc">None</span>
         <span class="k">return</span> <span class="n">visualization</span><span class="o">.</span><span class="n">compare_categorical</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">return_table</span><span class="o">=</span><span class="n">return_table</span><span class="p">,</span> <span class="n">plot_result</span><span class="o">=</span><span class="n">plot_result</span><span class="p">)</span></div>
 
 
@@ -562,13 +758,21 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">plot_matched_scores</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Plots the distribution of propensity scores after matching.</span>
-
-<span class="sd">        Visualizes the score overlap between test and control groups specifically</span>
-<span class="sd">        within the `self.matched_data`. Requires `match()` to have been run.</span>
+<span class="sd">        Visualizes score overlap in `self.matched_data`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Matched data is empty. Cannot plot matched scores.&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="s1">&#39;scores&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Scores not available in self.matched_data. Cannot plot matched scores.&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">treatment_col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Treatment column &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">treatment_col</span><span class="si">}</span><span class="s2">&#39; not in self.matched_data. Cannot plot matched scores.&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+
         <span class="n">visualization</span><span class="o">.</span><span class="n">plot_matched_scores</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">matched_data</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">yvar</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">treatment_col</span><span class="p">,</span> <span class="c1"># Use the stored treatment column name</span>
             <span class="n">control_color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">control_color</span><span class="p">,</span>
             <span class="n">test_color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">test_color</span>
         <span class="p">)</span></div>
