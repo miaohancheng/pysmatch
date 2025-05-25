@@ -184,6 +184,31 @@ loan_status ~ loan_amnt + funded_amnt + funded_amnt_inv + term + int_rate + inst
 n majority: 207723
 n minority: 1219
 ```
+
+
+**Exhaustive Matching Details**
+```python
+
+matcher_instance_exhaustive = Matcher(test=test_data,
+                                      control=control_data,
+                                      yvar=treatment_var,
+                                      exhaustive_matching_default=True) 
+matcher_instance_exhaustive.fit_scores(balance=True, nmodels=5)
+matcher_instance_exhaustive.predict_scores()
+matcher_instance_exhaustive.match(threshold=0.002, nmatches=2) 
+
+```
+The exhaustive_matching parameter (in Matcher initialization or the match method) enables a strategy to maximize control group utilization. When True:
+
+It identifies potential controls within the threshold for each treated unit.
+
+Controls are prioritized for matching if they are unused, then by least used, and finally by the closest propensity score.
+
+This inherently allows controls to be matched multiple times but aims to use as many unique controls as possible first.
+
+The resulting matched_data is in a "long" format (one row per unit in a pair) and includes match_id, record_id, and matched_as ('case' or 'control') columns.
+
+
 ## **Addressing Class Imbalance**
 
 

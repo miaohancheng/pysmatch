@@ -205,6 +205,32 @@ loan_status ~ loan_amnt + funded_amnt + funded_amnt_inv + term + int_rate + inst
 n majority: 207723
 n minority: 1219
 ```
+
+
+
+**“详尽匹配”详细说明**
+```python
+
+matcher_instance_exhaustive = Matcher(test=test_data,
+                                      control=control_data,
+                                      yvar=treatment_var,
+                                      exhaustive_matching_default=True) 
+matcher_instance_exhaustive.fit_scores(balance=True, nmodels=5)
+matcher_instance_exhaustive.predict_scores()
+matcher_instance_exhaustive.match(threshold=0.002, nmatches=2) 
+
+```
+Matcher 初始化或 match 方法中的 exhaustive_matching 参数启用了一种旨在最大化控制组利用率的策略。当其值为 True 时：
+
+它会为每个处理组单元在指定的 threshold （阈值）内识别潜在的控制组单元。
+
+控制组单元的匹配优先级顺序为：尚未使用过的优先，其次是使用次数较少的，最后按倾向得分最接近的。
+
+这种方法本质上允许控制组单元被多次匹配，但其目标是首先使用尽可能多的独立控制组单元。
+
+由此产生的 matched_data 是“长格式”的（匹配对中的每个单元各占一行），并包含 match_id（匹配对ID）、record_id（原始记录ID）和 matched_as（标记为 'case' 或 'control'）等列。
+
+
 ## **处理类别不平衡**
 
 

@@ -105,7 +105,7 @@ print("\n--- Performing Exhaustive Matching ---")
 matcher_instance_exhaustive = Matcher(test=test_data,
                                       control=control_data,
                                       yvar=treatment_var,
-                                      exhaustive_matching_default=True) # Or set in match()
+                                      exhaustive_matching_default=True)
 matcher_instance_exhaustive.fit_scores(balance=True, nmodels=5)
 matcher_instance_exhaustive.predict_scores()
 matcher_instance_exhaustive.match(threshold=0.002, nmatches=2) # Requesting 2 matches per test unit
