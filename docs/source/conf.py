@@ -121,3 +121,10 @@ source_suffix = {
     '.rst': 'restructuredtext',
     '.md': 'markdown',  # <--- 确保有这行
 }
+
+
+
+# -- Napoleon settings -------------------------------------------------------
+napoleon_google_docstring = True
+napoleon_numpy_docstring = True
+# ... 其他 Napoleon 设置 ...
