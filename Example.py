@@ -71,11 +71,11 @@ print(f"Test group size in Matcher: {matcher_instance.testn}, Control group size
 # nmodels is recommended to be adjusted based on the sample size of the minority class.
 # Using n_jobs > 1 for parallel processing if your machine has multiple cores.
 if matcher_instance.testn > 0 and matcher_instance.controln > 0: # Ensure there's data to fit on
-    matcher_instance.fit_scores(balance=True, nmodels=10, model_type='linear', n_jobs=2)
+    matcher_instance.fit_scores(balance=True, nmodels=10, model_type='tree', n_jobs=2)
     # Example with another model type:
     # matcher_instance.fit_scores(balance=True, nmodels=5, model_type='tree', n_jobs=2) # Using CatBoost
     # Example with Optuna for hyperparameter tuning:
-    # matcher_instance.fit_scores(balance=True, model_type='rf', use_optuna=True, n_trials=20, n_jobs=2)
+    # matcher_instance.fit_scores(balance=True, model_type='tree', use_optuna=True, n_trials=20, n_jobs=2)
 
     print("\n--- Propensity Score Models Fitted ---")
     if matcher_instance.models:
