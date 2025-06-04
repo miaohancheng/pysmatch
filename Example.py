@@ -66,8 +66,7 @@ print(f"Initial data shape in Matcher: {matcher_instance.data.shape}")
 print(f"Test group size in Matcher: {matcher_instance.testn}, Control group size in Matcher: {matcher_instance.controln}")
 
 # --- 3. Fit Propensity Score Model(s) ---
-# Available model_type options: 'linear' (Logistic Regression), 'knn' (K-Nearest Neighbors),
-# 'rf' (Random Forest), 'gb' (Gradient Boosting), 'tree' (CatBoost).
+# Available model_type options: 'linear' (Logistic Regression), 'knn' (K-Nearest Neighbors),'tree' (CatBoost).
 # nmodels is recommended to be adjusted based on the sample size of the minority class.
 # Using n_jobs > 1 for parallel processing if your machine has multiple cores.
 if matcher_instance.testn > 0 and matcher_instance.controln > 0: # Ensure there's data to fit on
