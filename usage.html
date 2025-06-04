@@ -93,8 +93,7 @@
 <p>Provide examples and guides on how to use the core functionalities of pysmatch.</p>
 <section id="basic-example">
 <h2>Basic Example<a class="headerlink" href="#basic-example" title="Link to this heading"></a></h2>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example.py</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pysmatch.Matcher</span><span class="w"> </span><span class="kn">import</span> <span class="n">Matcher</span> <span class="c1"># Assuming Matcher.py is in pysmatch directory</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
@@ -105,34 +104,10 @@
 <span class="c1"># --- 1. Load and Prepare Data ---</span>
 <span class="c1"># Load loan.csv data as per user&#39;s request</span>
 <span class="n">path</span> <span class="o">=</span> <span class="s2">&quot;misc/loan.csv&quot;</span> <span class="c1"># Ensure this path is correct or the file is in the same directory</span>
-<span class="k">try</span><span class="p">:</span>
-    <span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-<span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error: Data file &#39;</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&#39; not found. Please ensure the path is correct.&quot;</span><span class="p">)</span>
-    <span class="n">exit</span><span class="p">()</span>
-
-<span class="c1"># Create test and control groups based on &#39;loan_status&#39;</span>
-<span class="c1"># Ensure &#39;loan_status&#39; column exists in your DataFrame</span>
-<span class="k">if</span> <span class="s1">&#39;loan_status&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error: Column &#39;loan_status&#39; not found in </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
-    <span class="n">exit</span><span class="p">()</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
 
 <span class="n">test_data_full</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">loan_status</span> <span class="o">==</span> <span class="s2">&quot;Default&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="c1"># Use .copy() to avoid SettingWithCopyWarning</span>
 <span class="n">control_data_full</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">loan_status</span> <span class="o">==</span> <span class="s2">&quot;Fully Paid&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-
-<span class="c1"># Check if test_data_full and control_data_full are empty</span>
-<span class="k">if</span> <span class="n">test_data_full</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Warning: No test data found for &#39;Default&#39; status. Please check your data and filter conditions.&quot;</span><span class="p">)</span>
-<span class="k">if</span> <span class="n">control_data_full</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Warning: No control data found for &#39;Fully Paid&#39; status. Please check your data and filter conditions.&quot;</span><span class="p">)</span>
-
-<span class="c1"># Matcher will handle the creation of the treatment variable (yvar) internally</span>
-<span class="c1"># based on the test and control DataFrames passed to it.</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;--- Sample Test Data (from loan.csv) ---&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">test_data_full</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">--- Sample Control Data (from loan.csv) ---&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">control_data_full</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>
 
 <span class="c1"># --- 2. Initialize Matcher ---</span>
 <span class="c1"># Define the treatment variable name (Matcher will create this column)</span>
@@ -164,7 +139,7 @@
 <span class="c1"># Available model_type options: &#39;linear&#39; (Logistic Regression), &#39;knn&#39; (K-Nearest Neighbors),&#39;tree&#39; (CatBoost).</span>
 <span class="c1"># nmodels is recommended to be adjusted based on the sample size of the minority class.</span>
 <span class="c1"># Using n_jobs &gt; 1 for parallel processing if your machine has multiple cores.</span>
-<span class="k">if</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">testn</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">controln</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span> <span class="c1"># Ensure there&#39;s data to fit on</span>
+<span class="k">if</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">testn</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">controln</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
     <span class="n">matcher_instance</span><span class="o">.</span><span class="n">fit_scores</span><span class="p">(</span><span class="n">balance</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nmodels</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">model_type</span><span class="o">=</span><span class="s1">&#39;tree&#39;</span><span class="p">,</span> <span class="n">n_jobs</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
     <span class="c1"># Example with another model type:</span>
     <span class="c1"># matcher_instance.fit_scores(balance=True, nmodels=5, model_type=&#39;tree&#39;, n_jobs=2) # Using CatBoost</span>
@@ -172,51 +147,25 @@
     <span class="c1"># matcher_instance.fit_scores(balance=True, model_type=&#39;tree&#39;, use_optuna=True, n_trials=20, n_jobs=2)</span>
 
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">--- Propensity Score Models Fitted ---&quot;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">models</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Number of models fitted: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">matcher_instance</span><span class="o">.</span><span class="n">models</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">model_accuracy</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Average model accuracy: </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">matcher_instance</span><span class="o">.</span><span class="n">model_accuracy</span><span class="p">)</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Model accuracy not available.&quot;</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No models were fitted (possibly due to data issues).&quot;</span><span class="p">)</span>
-<span class="k">else</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">--- Skipping Propensity Score Model Fitting (No test or control data in Matcher) ---&quot;</span><span class="p">)</span>
-
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Number of models fitted: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">matcher_instance</span><span class="o">.</span><span class="n">models</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Average model accuracy: </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">matcher_instance</span><span class="o">.</span><span class="n">model_accuracy</span><span class="p">)</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
 <span class="c1"># --- 4. Predict Propensity Scores ---</span>
 <span class="k">if</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">models</span><span class="p">:</span> <span class="c1"># Only predict if models were fitted</span>
     <span class="n">matcher_instance</span><span class="o">.</span><span class="n">predict_scores</span><span class="p">()</span>
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">--- Propensity Scores Predicted ---&quot;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="s1">&#39;scores&#39;</span> <span class="ow">in</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Scores column added to internal data:&quot;</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="n">matcher_instance</span><span class="o">.</span><span class="n">data</span><span class="p">[[</span><span class="s1">&#39;record_id&#39;</span><span class="p">,</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">treatment_col</span><span class="p">,</span> <span class="s1">&#39;scores&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Scores column not found after prediction.&quot;</span><span class="p">)</span>
-<span class="k">else</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">--- Skipping Propensity Score Prediction (No models fitted) ---&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Scores column added to internal data:&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">matcher_instance</span><span class="o">.</span><span class="n">data</span><span class="p">[[</span><span class="s1">&#39;record_id&#39;</span><span class="p">,</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">treatment_col</span><span class="p">,</span> <span class="s1">&#39;scores&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>
 
 
 <span class="c1"># --- 5. Plot Score Distributions (Before Matching) ---</span>
-<span class="k">if</span> <span class="s1">&#39;scores&#39;</span> <span class="ow">in</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">--- Plotting Score Distributions (Before Matching) ---&quot;</span><span class="p">)</span>
-    <span class="n">matcher_instance</span><span class="o">.</span><span class="n">plot_scores</span><span class="p">()</span> <span class="c1"># This will show a plot</span>
-<span class="k">else</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">--- Skipping Score Distribution Plot (Scores not available) ---&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">--- Plotting Score Distributions (Before Matching) ---&quot;</span><span class="p">)</span>
+<span class="n">matcher_instance</span><span class="o">.</span><span class="n">plot_scores</span><span class="p">()</span> <span class="c1"># This will show a plot</span>
+
 
 <span class="c1"># --- 6. Tune Threshold (Optional) ---</span>
 <span class="c1"># This helps decide a good threshold value by seeing retention rates.</span>
-<span class="k">if</span> <span class="s1">&#39;scores&#39;</span> <span class="ow">in</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">--- Tuning Threshold (Example) ---&quot;</span><span class="p">)</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="c1"># Ensure the tune_threshold function in the matching module is working correctly.</span>
-        <span class="n">matcher_instance</span><span class="o">.</span><span class="n">tune_threshold</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">nmatches</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">0.0001</span><span class="p">,</span> <span class="mf">0.0051</span><span class="p">,</span> <span class="mf">0.0005</span><span class="p">))</span>
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not run tune_threshold: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="k">else</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">--- Skipping Threshold Tuning (Scores not available) ---&quot;</span><span class="p">)</span>
-
-
+<span class="n">matcher_instance</span><span class="o">.</span><span class="n">tune_threshold</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">nmatches</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">0.0001</span><span class="p">,</span> <span class="mf">0.0051</span><span class="p">,</span> <span class="mf">0.0005</span><span class="p">))</span>
 <span class="c1"># --- 7. Perform Matching ---</span>
 <span class="c1"># The match method offers flexibility:</span>
 <span class="c1"># - Standard matching: `exhaustive_matching=False` (default).</span>
@@ -225,107 +174,74 @@
 <span class="c1"># - Exhaustive matching: `exhaustive_matching=True`.</span>
 <span class="c1">#   - `method` and `replacement` parameters are ignored for exhaustive matching as its logic is internal.</span>
 
-<span class="k">if</span> <span class="s1">&#39;scores&#39;</span> <span class="ow">in</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span> <span class="c1"># Ensure scores are available for matching</span>
-    <span class="c1"># Example 7a: Standard Matching with replacement</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">--- Performing Standard Matching (exhaustive_matching=False, replacement=True) ---&quot;</span><span class="p">)</span>
-    <span class="n">matcher_instance</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">threshold</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">nmatches</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">replacement</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exhaustive_matching</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Standard matching (with replacement) complete. Matched data shape: </span><span class="si">{</span><span class="n">matcher_instance</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Sample of standard matched data:&quot;</span><span class="p">)</span>
-        <span class="n">display_cols_standard</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;record_id&#39;</span><span class="p">,</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">treatment_col</span><span class="p">,</span> <span class="s1">&#39;scores&#39;</span><span class="p">]</span>
-        <span class="k">if</span> <span class="s1">&#39;match_id&#39;</span> <span class="ow">in</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span> <span class="c1"># &#39;match_id&#39; might be named differently by external func</span>
-            <span class="n">display_cols_standard</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;match_id&#39;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="s1">&#39;weight&#39;</span> <span class="ow">in</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span> <span class="c1"># Weights are often added after matching with replacement</span>
-            <span class="n">display_cols_standard</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;weight&#39;</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="n">matcher_instance</span><span class="o">.</span><span class="n">matched_data</span><span class="p">[</span><span class="n">display_cols_standard</span><span class="p">]</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No matches found with standard matching (with replacement).&quot;</span><span class="p">)</span>
+<span class="c1"># Example 7a: Standard Matching with replacement</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">--- Performing Standard Matching (exhaustive_matching=False, replacement=True) ---&quot;</span><span class="p">)</span>
+<span class="n">matcher_instance</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">threshold</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">nmatches</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">replacement</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exhaustive_matching</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Standard matching (with replacement) complete. Matched data shape: </span><span class="si">{</span><span class="n">matcher_instance</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Sample of standard matched data:&quot;</span><span class="p">)</span>
+<span class="n">display_cols_standard</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;record_id&#39;</span><span class="p">,</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">treatment_col</span><span class="p">,</span> <span class="s1">&#39;scores&#39;</span><span class="p">]</span>
+<span class="k">if</span> <span class="s1">&#39;match_id&#39;</span> <span class="ow">in</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span> <span class="c1"># &#39;match_id&#39; might be named differently by external func</span>
+    <span class="n">display_cols_standard</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;match_id&#39;</span><span class="p">)</span>
+<span class="k">if</span> <span class="s1">&#39;weight&#39;</span> <span class="ow">in</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span> <span class="c1"># Weights are often added after matching with replacement</span>
+    <span class="n">display_cols_standard</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;weight&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">matcher_instance</span><span class="o">.</span><span class="n">matched_data</span><span class="p">[</span><span class="n">display_cols_standard</span><span class="p">]</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>
 
-    <span class="c1"># Example 7b: Exhaustive Matching</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">--- Performing Exhaustive Matching (exhaustive_matching=True) ---&quot;</span><span class="p">)</span>
-    <span class="c1"># For exhaustive matching, &#39;method&#39; and &#39;replacement&#39; are handled internally by the new logic.</span>
-    <span class="c1"># You can set exhaustive_matching_default=True in __init__ or exhaustive_matching=True in match() call.</span>
+<span class="c1"># Example 7b: Exhaustive Matching</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">--- Performing Exhaustive Matching (exhaustive_matching=True) ---&quot;</span><span class="p">)</span>
+<span class="c1"># For exhaustive matching, &#39;method&#39; and &#39;replacement&#39; are handled internally by the new logic.</span>
+<span class="c1"># You can set exhaustive_matching_default=True in __init__ or exhaustive_matching=True in match() call.</span>
 
-    <span class="c1"># Re-matching on the same instance (matched_data will be overwritten)</span>
-    <span class="c1"># Or, create a new Matcher instance if you want to keep the previous standard match results.</span>
-    <span class="n">matcher_instance</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">threshold</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">nmatches</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">exhaustive_matching</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="c1"># Requesting 1 match per test unit</span>
+<span class="c1"># Re-matching on the same instance (matched_data will be overwritten)</span>
+<span class="c1"># Or, create a new Matcher instance if you want to keep the previous standard match results.</span>
+<span class="n">matcher_instance</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">threshold</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">nmatches</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">exhaustive_matching</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="c1"># Requesting 1 match per test unit</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Exhaustive matching complete. Matched data shape: </span><span class="si">{</span><span class="n">matcher_instance</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Sample of exhaustive matched data (long format):&quot;</span><span class="p">)</span>
+<span class="n">display_cols_exhaustive</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;record_id&#39;</span><span class="p">,</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">treatment_col</span><span class="p">,</span> <span class="s1">&#39;scores&#39;</span><span class="p">,</span> <span class="s1">&#39;match_id&#39;</span><span class="p">,</span> <span class="s1">&#39;matched_as&#39;</span><span class="p">,</span> <span class="s1">&#39;pair_score_diff&#39;</span><span class="p">]</span>
+<span class="n">actual_display_cols_exhaustive</span> <span class="o">=</span> <span class="p">[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">display_cols_exhaustive</span> <span class="k">if</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">matcher_instance</span><span class="o">.</span><span class="n">matched_data</span><span class="p">[</span><span class="n">actual_display_cols_exhaustive</span><span class="p">]</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>
 
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Exhaustive matching complete. Matched data shape: </span><span class="si">{</span><span class="n">matcher_instance</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Sample of exhaustive matched data (long format):&quot;</span><span class="p">)</span>
-        <span class="c1"># Columns from exhaustive matching: record_id, match_id, matched_as, pair_score_diff, and original data</span>
-        <span class="n">display_cols_exhaustive</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;record_id&#39;</span><span class="p">,</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">treatment_col</span><span class="p">,</span> <span class="s1">&#39;scores&#39;</span><span class="p">,</span> <span class="s1">&#39;match_id&#39;</span><span class="p">,</span> <span class="s1">&#39;matched_as&#39;</span><span class="p">,</span> <span class="s1">&#39;pair_score_diff&#39;</span><span class="p">]</span>
-        <span class="n">actual_display_cols_exhaustive</span> <span class="o">=</span> <span class="p">[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">display_cols_exhaustive</span> <span class="k">if</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
-        <span class="nb">print</span><span class="p">(</span><span class="n">matcher_instance</span><span class="o">.</span><span class="n">matched_data</span><span class="p">[</span><span class="n">actual_display_cols_exhaustive</span><span class="p">]</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>
+<span class="c1"># --- 8. Plot Matched Score Distributions (after Exhaustive Matching) ---</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">--- Plotting Matched Score Distributions (Exhaustive) ---&quot;</span><span class="p">)</span>
+<span class="n">matcher_instance</span><span class="o">.</span><span class="n">plot_matched_scores</span><span class="p">()</span> <span class="c1"># This will show a plot</span>
 
-        <span class="c1"># --- 8. Plot Matched Score Distributions (after Exhaustive Matching) ---</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">--- Plotting Matched Score Distributions (Exhaustive) ---&quot;</span><span class="p">)</span>
-        <span class="n">matcher_instance</span><span class="o">.</span><span class="n">plot_matched_scores</span><span class="p">()</span> <span class="c1"># This will show a plot</span>
+<span class="c1"># --- 9. Record Frequency and Weighting (Example with Exhaustive Matched Data) ---</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">--- Record Frequency (Controls in Exhaustive Matched Data) ---&quot;</span><span class="p">)</span>
+<span class="c1"># This shows how many times each original control record was used</span>
+<span class="n">control_usage_freq</span> <span class="o">=</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">record_frequency</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">control_usage_freq</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>
 
-        <span class="c1"># --- 9. Record Frequency and Weighting (Example with Exhaustive Matched Data) ---</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">--- Record Frequency (Controls in Exhaustive Matched Data) ---&quot;</span><span class="p">)</span>
-        <span class="c1"># This shows how many times each original control record was used</span>
-        <span class="n">control_usage_freq</span> <span class="o">=</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">record_frequency</span><span class="p">()</span>
-        <span class="nb">print</span><span class="p">(</span><span class="n">control_usage_freq</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>
-
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">--- Assigning Weights (Exhaustive Matched Data) ---&quot;</span><span class="p">)</span>
-        <span class="n">matcher_instance</span><span class="o">.</span><span class="n">assign_weight_vector</span><span class="p">()</span>
-        <span class="k">if</span> <span class="s1">&#39;weight&#39;</span> <span class="ow">in</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Weights assigned. Sample:&quot;</span><span class="p">)</span>
-            <span class="n">weight_display_cols</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;record_id&#39;</span><span class="p">,</span> <span class="s1">&#39;match_id&#39;</span><span class="p">,</span> <span class="s1">&#39;weight&#39;</span><span class="p">]</span>
-            <span class="k">if</span> <span class="s1">&#39;matched_as&#39;</span> <span class="ow">in</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
-                <span class="n">weight_display_cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;matched_as&#39;</span><span class="p">)</span>
-            <span class="n">actual_weight_display_cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">weight_display_cols</span> <span class="k">if</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
-            <span class="nb">print</span><span class="p">(</span><span class="n">matcher_instance</span><span class="o">.</span><span class="n">matched_data</span><span class="p">[</span><span class="n">actual_weight_display_cols</span><span class="p">]</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Weight column not found after assignment.&quot;</span><span class="p">)</span>
-
-        <span class="c1"># --- 10. Covariate Balance Assessment (Example with Exhaustive Matched Data) ---</span>
-        <span class="c1"># Ensure visualization.compare_continuous and compare_categorical are implemented</span>
-        <span class="c1"># and that the Matcher instance has the necessary attributes (self.test, self.control, self.yvar)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">--- Comparing Continuous Variables (Exhaustive Matched Data) ---&quot;</span><span class="p">)</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">continuous_comparison</span> <span class="o">=</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">compare_continuous</span><span class="p">(</span><span class="n">return_table</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">plot_result</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">continuous_comparison</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">continuous_comparison</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Continuous variables comparison table:&quot;</span><span class="p">)</span>
-                <span class="nb">print</span><span class="p">(</span><span class="n">continuous_comparison</span><span class="p">)</span>
-            <span class="k">elif</span> <span class="n">continuous_comparison</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">continuous_comparison</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Continuous variables comparison table is empty (no continuous xvars or other issue).&quot;</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Continuous variables comparison returned None.&quot;</span><span class="p">)</span>
-        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not compare continuous variables: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">--- Assigning Weights (Exhaustive Matched Data) ---&quot;</span><span class="p">)</span>
+<span class="n">matcher_instance</span><span class="o">.</span><span class="n">assign_weight_vector</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Weights assigned. Sample:&quot;</span><span class="p">)</span>
+<span class="n">weight_display_cols</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;record_id&#39;</span><span class="p">,</span> <span class="s1">&#39;match_id&#39;</span><span class="p">,</span> <span class="s1">&#39;weight&#39;</span><span class="p">]</span>
+<span class="k">if</span> <span class="s1">&#39;matched_as&#39;</span> <span class="ow">in</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+    <span class="n">weight_display_cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;matched_as&#39;</span><span class="p">)</span>
+<span class="n">actual_weight_display_cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">weight_display_cols</span> <span class="k">if</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">matched_data</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">matcher_instance</span><span class="o">.</span><span class="n">matched_data</span><span class="p">[</span><span class="n">actual_weight_display_cols</span><span class="p">]</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>
 
 
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">--- Comparing Categorical Variables (Exhaustive Matched Data) ---&quot;</span><span class="p">)</span>
-        <span class="c1"># Example: &#39;grade&#39; is a categorical variable in loan.csv data</span>
-        <span class="c1"># prop_test is for individual categorical variables.</span>
-        <span class="c1"># compare_categorical would ideally iterate through them.</span>
-        <span class="k">if</span> <span class="s1">&#39;grade&#39;</span> <span class="ow">in</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">xvars</span><span class="p">:</span> <span class="c1"># Assuming &#39;grade&#39; was selected as a covariate</span>
-            <span class="n">grade_prop_test</span> <span class="o">=</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">prop_test</span><span class="p">(</span><span class="s1">&#39;grade&#39;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">grade_prop_test</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Prop_test results for &#39;grade&#39;:&quot;</span><span class="p">)</span>
-                <span class="nb">print</span><span class="p">(</span><span class="n">grade_prop_test</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Prop_test for &#39;grade&#39; did not return results (e.g., not detected as categorical, excluded, or data issue).&quot;</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;&#39;grade&#39; not in selected covariates (xvars), skipping its prop_test.&quot;</span><span class="p">)</span>
+<span class="c1"># --- 10. Covariate Balance Assessment (Example with Exhaustive Matched Data) ---</span>
+<span class="c1"># Ensure visualization.compare_continuous and compare_categorical are implemented</span>
+<span class="c1"># and that the Matcher instance has the necessary attributes (self.test, self.control, self.yvar)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">--- Comparing Continuous Variables (Exhaustive Matched Data) ---&quot;</span><span class="p">)</span>
+<span class="n">continuous_comparison</span> <span class="o">=</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">compare_continuous</span><span class="p">(</span><span class="n">return_table</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">plot_result</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Continuous variables comparison table:&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">continuous_comparison</span><span class="p">)</span>
 
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">categorical_comparison</span> <span class="o">=</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">compare_categorical</span><span class="p">(</span><span class="n">return_table</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">plot_result</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">categorical_comparison</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">categorical_comparison</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Categorical variables comparison table:&quot;</span><span class="p">)</span>
-                <span class="nb">print</span><span class="p">(</span><span class="n">categorical_comparison</span><span class="p">)</span>
-            <span class="k">elif</span> <span class="n">categorical_comparison</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">categorical_comparison</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Categorical variables comparison table is empty (no categorical xvars or other issue).&quot;</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Categorical variables comparison returned None.&quot;</span><span class="p">)</span>
-        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not compare categorical variables: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No matches found with exhaustive matching, skipping further analysis steps.&quot;</span><span class="p">)</span>
-<span class="k">else</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">--- Skipping Matching and Further Analysis (Scores not available or no test/control data) ---&quot;</span><span class="p">)</span>
+
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">--- Comparing Categorical Variables (Exhaustive Matched Data) ---&quot;</span><span class="p">)</span>
+<span class="c1"># Example: &#39;grade&#39; is a categorical variable in loan.csv data</span>
+<span class="c1"># prop_test is for individual categorical variables.</span>
+<span class="c1"># compare_categorical would ideally iterate through them.</span>
+<span class="n">grade_prop_test</span> <span class="o">=</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">prop_test</span><span class="p">(</span><span class="s1">&#39;grade&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Prop_test results for &#39;grade&#39;:&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">grade_prop_test</span><span class="p">)</span>
+
+
+<span class="n">categorical_comparison</span> <span class="o">=</span> <span class="n">matcher_instance</span><span class="o">.</span><span class="n">compare_categorical</span><span class="p">(</span><span class="n">return_table</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">plot_result</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Categorical variables comparison table:&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">categorical_comparison</span><span class="p">)</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">--- Example Script Finished ---&quot;</span><span class="p">)</span>
 </pre></div>
