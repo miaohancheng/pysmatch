@@ -74,8 +74,8 @@ def fit_model(index: int, X: pd.DataFrame, y: pd.Series, model_type: str,
         random_state=seed,
     )
 
-    original_numerical_features = X_resampled.select_dtypes(include=np.number).columns.tolist()
-    original_categorical_features = X_resampled.select_dtypes(exclude=np.number).columns.tolist()
+    original_numerical_features = X_resampled.select_dtypes(include='number').columns.tolist()
+    original_categorical_features = X_resampled.select_dtypes(exclude='number').columns.tolist()
 
     pipeline: Pipeline # Define type for pipeline
 
@@ -176,8 +176,8 @@ def optuna_tuner(X: pd.DataFrame, y: pd.Series, model_type: str, n_trials: int =
         random_state=random_state,
     )
 
-    numerical_features_opt = X_resampled.select_dtypes(include=np.number).columns.tolist()
-    categorical_features_opt = X_resampled.select_dtypes(exclude=np.number).columns.tolist()
+    numerical_features_opt = X_resampled.select_dtypes(include='number').columns.tolist()
+    categorical_features_opt = X_resampled.select_dtypes(exclude='number').columns.tolist()
 
     def objective(trial: optuna.trial.Trial) -> float:
         preprocessor_obj: ColumnTransformer
