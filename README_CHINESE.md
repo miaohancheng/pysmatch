@@ -2,8 +2,8 @@
 
 [![PyPI version](https://badge.fury.io/py/pysmatch.svg?icon=si%3Apython&icon_color=%23ffffff)](https://badge.fury.io/py/pysmatch)
 [![Downloads](https://static.pepy.tech/badge/pysmatch)](https://pepy.tech/project/pysmatch)
-![GitHub License](https://img.shields.io/github/license/miaohancheng/pysmatch)
-[![codecov](https://codecov.io/github/miaohancheng/pysmatch/graph/badge.svg?token=TUYDEDRV45)](https://codecov.io/github/miaohancheng/pysmatch)
+![GitHub License](https://img.shields.io/github/license/mhcone/pysmatch)
+[![codecov](https://codecov.io/github/mhcone/pysmatch/graph/badge.svg?token=TUYDEDRV45)](https://codecov.io/github/mhcone/pysmatch)
 
 **PSM（Propensity Score Matching，倾向得分匹配）** 是一种统计方法，用于处理观察性研究中的选择偏差问题，尤其是在评估处理效果时。通过计算处理和未处理组每个观察单元的倾向得分——即在给定观察到的协变量条件下接受处理的条件概率，并基于这些得分来匹配处理组和控制组的个体，使得两组在协变量上更为相似。这种方法能够在非随机化的研究设计中模仿随机化实验的效果，以估计干预的因果效应。
 
@@ -11,7 +11,7 @@
 
 ## 多语言文档
 
-[[English](https://github.com/mhcone/pysmatch/blob/main/README.md)|中文]
+[English](https://github.com/mhcone/pysmatch/blob/main/README.md) | [中文](https://github.com/mhcone/pysmatch/blob/main/README_CHINESE.md)
 
 ### **此版本更新与主要特性**
 
@@ -31,6 +31,13 @@
 
 ```bash
 pip install pysmatch
+```
+
+可选扩展依赖：
+
+```bash
+pip install "pysmatch[tree]"  # 启用 CatBoost
+pip install "pysmatch[tune]"  # 启用 Optuna 调参
 ```
 
 ## 快速开始
@@ -234,7 +241,7 @@ Matcher 初始化或 match 方法中的 exhaustive_matching 参数启用了一�
 ## **处理类别不平衡**
 
 
-我们的数据存在显著的类别不平衡，对照组（完全偿还贷款）数量远超测试组（违约贷款）。为了解决这个问题，我们在拟合倾向得分模型时设置 balance=True，这告诉 pysmatch 对多数类进行欠采样，以创建平衡的数据集用于模型训练。
+我们的数据存在显著的类别不平衡，对照组（完全偿还贷款）数量远超测试组（违约贷款）。为了解决这个问题，我们在拟合倾向得分模型时设置 `balance=True`。默认会在训练集上执行**过采样**（`RandomOverSampler`）；如果希望改为欠采样，可设置 `balance_strategy="under"`。
 
 我们还指定 nmodels=100 来在不同的随机样本上训练 100 个模型，确保多数类的更多部分参与模型训练。
 
@@ -254,7 +261,14 @@ np.random.seed(42)
 # ============ (1) Noraml train (Without optuna) =============
 # m.fit_scores(balance=True, nmodels=10, n_jobs=3, model_type='knn')
 # m.fit_scores(balance=True, nmodels=10, n_jobs=3, model_type='tree', max_iter=100)
-m.fit_scores(balance=True, nmodels=10, n_jobs=3, model_type='linear', max_iter=200)
+m.fit_scores(
+    balance=True,
+    balance_strategy='over',  # 或 'under'
+    nmodels=10,
+    n_jobs=3,
+    model_type='linear',
+    max_iter=200
+)
 
 # ============ (2) Utilize optuna (Only train one best model) =============
 # m.fit_scores(
@@ -541,5 +555,3 @@ pysmatch 使用 MIT 许可证。
 
 
 **免责声明**: 此示例中使用的数据仅用于演示目的。请确保您在分析中使用任何数据集时拥有相应的权利和权限。
-
-

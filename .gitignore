@@ -7,9 +7,12 @@ build/
 
 # Test & Coverage
 .coverage
+.coverage.*
 coverage.xml
 .cache/
 .pytest_cache/
+catboost_info/
+pysmatch/_version.py
 
 # Jupyter
 .ipynb_checkpoints/

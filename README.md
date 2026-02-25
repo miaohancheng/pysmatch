@@ -2,8 +2,8 @@
 
 [![PyPI version](https://badge.fury.io/py/pysmatch.svg?icon=si%3Apython&icon_color=%23ffffff)](https://badge.fury.io/py/pysmatch)
 [![Downloads](https://static.pepy.tech/badge/pysmatch)](https://pepy.tech/project/pysmatch)
-![GitHub License](https://img.shields.io/github/license/miaohancheng/pysmatch)
-[![codecov](https://codecov.io/github/miaohancheng/pysmatch/graph/badge.svg?token=TUYDEDRV45)](https://codecov.io/github/miaohancheng/pysmatch)
+![GitHub License](https://img.shields.io/github/license/mhcone/pysmatch)
+[![codecov](https://codecov.io/github/mhcone/pysmatch/graph/badge.svg?token=TUYDEDRV45)](https://codecov.io/github/mhcone/pysmatch)
 
 **Propensity Score Matching (PSM)** is a statistical technique used to address selection bias in observational studies, particularly in the assessment of treatment effects. It involves calculating the propensity score—the probability of receiving treatment given observed covariates—for each unit in both treatment and control groups. Units are then matched based on these scores, making the groups more comparable on the covariates. This method attempts to mimic the effects of a randomized experiment in non-randomized study designs, aiming to estimate the causal effects of an intervention.
 
@@ -11,7 +11,7 @@
 `pysmatch` is an improved and extended version of [`pymatch`](https://github.com/benmiroglio/pymatch), providing a robust tool for propensity score matching in Python. This package fixes known bugs from the original project and introduces new features such as parallel computing and model selection, enhancing performance and flexibility.
 
 ## Multilingual Readme
-[English|[中文](https://github.com/mhcone/pysmatch/blob/main/README_CHINESE.md)]
+[English](https://github.com/mhcone/pysmatch/blob/main/README.md) | [中文](https://github.com/mhcone/pysmatch/blob/main/README_CHINESE.md)
 
 ### **What’s New & Key Features**
 
@@ -32,6 +32,13 @@ Overall, these enhancements provide a **cleaner, faster, and more robust** match
 
 ```bash
 pip install pysmatch
+```
+
+Optional extras:
+
+```bash
+pip install "pysmatch[tree]"  # CatBoost support
+pip install "pysmatch[tune]"  # Optuna tuning
 ```
 
 #
@@ -213,7 +220,7 @@ The resulting matched_data is in a "long" format (one row per unit in a pair) an
 
 
 
-Our data exhibits significant class imbalance, with the majority group (fully paid loans) greatly outnumbering the minority group (defaulted loans). To address this, we set balance=True when fitting the propensity score models, which tells pysmatch to undersample the majority class to create balanced datasets for model training.
+Our data exhibits significant class imbalance, with the majority group (fully paid loans) greatly outnumbering the minority group (defaulted loans). To address this, we set `balance=True` when fitting propensity score models. By default this applies **oversampling** (`RandomOverSampler`) on the training split. You can switch to undersampling by setting `balance_strategy="under"`.
 
 
 
@@ -238,7 +245,14 @@ np.random.seed(42)
 # ===== (1) Standard Approach (Train multiple models without Optuna) =====
 # m.fit_scores(balance=True, nmodels=10, n_jobs=3, model_type='knn')
 # m.fit_scores(balance=True, nmodels=10, n_jobs=3, model_type='tree', max_iter=100)
-m.fit_scores(balance=True, nmodels=10, n_jobs=3, model_type='linear', max_iter=200)
+m.fit_scores(
+    balance=True,
+    balance_strategy='over',  # or 'under'
+    nmodels=10,
+    n_jobs=3,
+    model_type='linear',
+    max_iter=200
+)
 
 # ===== (2) Optuna Tuning (Only train one "best" model) =====
 # m.fit_scores(

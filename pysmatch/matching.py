@@ -9,13 +9,11 @@ from typing import Union
 def perform_match(data: pd.DataFrame, yvar: str, threshold: float = 0.001,
                   nmatches: int = 1, method: str = 'min', replacement: bool = False) -> pd.DataFrame:
     """
-    Performs nearest neighbor matching based on propensity scores within a radius.
+    Perform nearest-neighbor matching using propensity scores.
 
-    Finds suitable match(es) from the control group for each record in the test
-    (treatment) group based on propensity scores ('scores' column). It uses
-    `sklearn.neighbors.NearestNeighbors` with `radius=threshold` to find potential
-    neighbors and then applies selection logic based on the `method` parameter
-    ('min' or 'random') to choose up to `nmatches`.
+    For each treated sample, this function searches control samples within
+    ``threshold`` score distance and selects up to ``nmatches`` controls.
+    Selection can be deterministic (``method="min"``) or random.
 
     Args:
         data (pd.DataFrame): DataFrame containing both test and control groups,
@@ -27,21 +25,15 @@ def perform_match(data: pd.DataFrame, yvar: str, threshold: float = 0.001,
         nmatches (int, optional): The maximum number of control matches to find for
                                   each test unit within the specified radius/threshold.
                                   Defaults to 1.
-        method (str, optional): The method for selecting matches among neighbors found
-                                within the radius. Options:
-                                'min': Selects the `nmatches` neighbors with the smallest
-                                       score difference.
-                                'random': Selects `nmatches` neighbors randomly from those
-                                          within the radius.
-                                Defaults to 'min'.
+        method (str, optional): Match selection method. Use ``"min"`` for smallest
+                                score differences or ``"random"`` for random sampling.
+                                Defaults to ``"min"``.
         replacement (bool, optional): Whether control units can be matched multiple times
                                       (used more than once as a match). Defaults to False.
 
     Returns:
-        pd.DataFrame: A DataFrame containing the matched test and control units.
-                      Includes original columns plus 'match_id' (linking matched pairs/groups)
-                      and 'record_id' (preserving the original index of the unit). Returns
-                      an empty DataFrame if no matches are found.
+        pd.DataFrame: Matched treated/control rows with ``match_id`` and ``record_id``.
+                      Returns an empty DataFrame if no matches are found.
 
     Raises:
         ValueError: If the 'scores' column is not found in the input `data`.
@@ -189,6 +181,20 @@ def prop_retained(original_data: pd.DataFrame, matched_data: pd.DataFrame, yvar:
                was empty.
     """
     minority = 1 if (original_data[yvar] == 1).sum() <= (original_data[yvar] == 0).sum() else 0
-    denom = len(original_data[original_data[yvar] == minority])
-    num = len(matched_data[matched_data[yvar] == minority])
-    return num / denom if denom > 0 else 0
+    original_minority = original_data[original_data[yvar] == minority]
+    matched_minority = matched_data[matched_data[yvar] == minority]
+
+    original_id_col = "record_id" if "record_id" in original_minority.columns else None
+    matched_id_col = "record_id" if "record_id" in matched_minority.columns else None
+
+    if original_id_col is not None:
+        denom = original_minority[original_id_col].nunique()
+    else:
+        denom = original_minority.index.nunique()
+
+    if matched_id_col is not None:
+        num = matched_minority[matched_id_col].nunique()
+    else:
+        num = matched_minority.index.nunique()
+
+    return num / denom if denom > 0 else 0.0

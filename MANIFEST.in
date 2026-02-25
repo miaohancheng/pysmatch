@@ -1,0 +1,13 @@
+exclude .coverage
+exclude .coverage.*
+exclude coverage.xml
+exclude Example.ipynb
+exclude misc/.coo
+prune Example_files
+prune catboost_info
+prune build
+prune docs/build
+prune .pytest_cache
+prune .ipynb_checkpoints
+global-exclude __pycache__
+global-exclude *.py[cod]

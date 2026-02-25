@@ -38,3 +38,18 @@ def test_optuna_tuner_multi_type(sample_xy, model_type):
     best_score = result['accuracy']
     assert model is not None, "Optuna 调参后应返回最终的模型"
     assert 0 <= best_score <= 1
+
+
+def test_fit_model_under_sampling(sample_xy):
+    X, y = sample_xy
+    result = fit_model(
+        index=0,
+        X=X,
+        y=y,
+        model_type="linear",
+        balance=True,
+        balance_strategy="under",
+        max_iter=50,
+    )
+    assert result["model"] is not None
+    assert 0 <= result["accuracy"] <= 1

@@ -40,10 +40,7 @@ jobs:
 
       - name: Build Sphinx documentation
         run: |
-          cd docs  # 进入包含 Makefile 的目录
-          make html # 运行构建命令
-          # 或者直接使用 sphinx-build:
-          # sphinx-build -b html source build/html
+          sphinx-build -W -b html docs/source docs/build/html
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4 # 使用部署 Action

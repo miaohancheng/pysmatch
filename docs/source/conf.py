@@ -68,7 +68,6 @@ myst_enable_extensions = [
     "strikethrough",
     "substitution",   # Allows defining substitutions
     "tasklist",       # Allows checkbox lists - [ ] and - [x]
-    "table",          # <-- ESSENTIAL: Enable GFM tables
 ]
 
 # Add any paths that contain templates here, relative to this directory.

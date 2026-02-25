@@ -95,18 +95,10 @@ def chi2_distance(t: np.ndarray, c: np.ndarray, bins: Union[int, str] = 'auto') 
 
 def grouped_permutation_test(f, t: np.ndarray, c: np.ndarray, n_samples: int = 1000) -> tuple:
     """
-    Performs a permutation test for a given statistic function `f`.
+    Perform a permutation test for a user-defined statistic.
 
-    Evaluates the significance of an observed test statistic calculated by function `f`
-    applied to samples `t` and `c`. It does this by:
-    1. Calculating the observed statistic `truth = f(t, c)`.
-    2. Repeatedly (`n_samples` times):
-        a. Combining `t` and `c`.
-        b. Shuffling the combined data.
-        c. Splitting the shuffled data back into two samples of the original sizes.
-        d. Calculating the statistic `f` on the permuted samples.
-        e. Counting how often the permuted statistic is greater than or equal to `truth`.
-    3. Calculating the p-value as the proportion of permuted statistics that met the condition in 2e.
+    The observed statistic is compared against statistics computed from shuffled
+    splits of the pooled samples.
 
     Args:
         f (Callable[[np.ndarray, np.ndarray], float]): A function that takes two numpy arrays
@@ -118,10 +110,7 @@ def grouped_permutation_test(f, t: np.ndarray, c: np.ndarray, n_samples: int = 1
                                    Defaults to 1000.
 
     Returns:
-        tuple: A tuple containing:
-            - p_value (float): The estimated p-value from the permutation test.
-            - truth (float): The observed test statistic calculated on the original samples.
-                             Returns (1.0, np.nan) or similar if inputs are invalid.
+        tuple: ``(p_value, truth)``, where ``truth`` is the observed statistic.
     """
     truth = f(t, c)
     combined = np.concatenate((t, c))
@@ -167,8 +156,8 @@ def progress(i: int, n: int, prestr: str = '') -> None:
     """
     Displays a simple progress indicator in the console.
 
-    Prints a progress string like "[prefix]: i/n" to standard output, overwriting
-    the previous line using the carriage return character `\r`.
+    Prints a progress string like ``[prefix]: i/n`` and updates it in-place by
+    writing a carriage return.
 
     Args:
         i (int): The current step or item number (should be 1-based or adjusted).

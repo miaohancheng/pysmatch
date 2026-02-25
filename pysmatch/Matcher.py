@@ -143,7 +143,8 @@ class Matcher:
 
 
     def fit_model(self, index: int, X: pd.DataFrame, y: pd.Series, model_type: str,
-                  balance: bool, max_iter: int = 100) -> Dict[str, Any]:
+                  balance: bool, max_iter: int = 100,
+                  balance_strategy: str = "over") -> Dict[str, Any]:
         """
         Fits a single propensity score model.
 
@@ -155,15 +156,24 @@ class Matcher:
             model_type (str): The type of model to fit (e.g., 'linear', 'rf', 'gb').
             balance (bool): Whether the fitting process should aim to balance covariates.
             max_iter (int, optional): Maximum iterations for iterative solvers. Defaults to 100.
+            balance_strategy (str, optional): Class-balancing strategy, "over" or "under".
         Returns:
             Dict[str, Any]: A dictionary containing the fitted model and its accuracy.
         """
-        return modeling.fit_model(index, X, y, model_type, balance, max_iter=max_iter)
+        return modeling.fit_model(
+            index,
+            X,
+            y,
+            model_type,
+            balance,
+            max_iter=max_iter,
+            balance_strategy=balance_strategy,
+        )
 
     def fit_scores(self, balance: bool = True, nmodels: Optional[int] = None,
                    n_jobs: int = 1, model_type: str = 'linear',
                    max_iter: int = 100, use_optuna: bool = False,
-                   n_trials: int = 10) -> None:
+                   n_trials: int = 10, balance_strategy: str = "over") -> None:
         """
         Fits propensity score model(s) to estimate scores.
 
@@ -175,12 +185,18 @@ class Matcher:
             max_iter (int, optional): Max iterations for solver. Defaults to 100.
             use_optuna (bool, optional): If True, use Optuna for hyperparameter tuning. Defaults to False.
             n_trials (int, optional): Number of Optuna trials if use_optuna is True. Defaults to 10.
+            balance_strategy (str, optional): Balancing strategy when balance=True.
+                                              Options: "over" or "under". Defaults to "over".
         """
         from multiprocessing import cpu_count
         from multiprocessing.pool import ThreadPool
 
         self.models, self.model_accuracy = [], []
         self.model_type = model_type
+        if balance_strategy not in {"over", "under"}:
+            raise ValueError(
+                f"Invalid balance_strategy='{balance_strategy}'. Expected 'over' or 'under'."
+            )
         num_cores = cpu_count()
         n_jobs = min(num_cores, n_jobs if n_jobs > 0 else num_cores)
         logging.info(f"This computer has: {num_cores} cores, using {n_jobs} workers for fitting scores.")
@@ -192,7 +208,8 @@ class Matcher:
         if use_optuna:
             logging.info(f"Using Optuna for hyperparameter tuning with {n_trials} trials for model_type='{model_type}'.")
             result = modeling.optuna_tuner(self.X, self.y, model_type=model_type,
-                                           n_trials=n_trials, balance=balance)
+                                           n_trials=n_trials, balance=balance,
+                                           balance_strategy=balance_strategy)
             self.models.append(result['model'])
             self.model_accuracy.append(result['accuracy'])
             logging.info(f"[Optuna] Best Accuracy: {result['accuracy']:.2%}")
@@ -224,14 +241,22 @@ class Matcher:
                     len(self.data[self.data[self.treatment_col] == self.majority]) == 0:
                 logging.warning(f"Cannot perform balanced ensemble fitting as one class has no samples. Fitting a single model instead.")
                 # Fallback to fitting a single model
-                result = self.fit_model(0, self.X, self.y, model_type, balance=False, max_iter=max_iter) # balance=False if one class is empty
+                result = self.fit_model(
+                    0,
+                    self.X,
+                    self.y,
+                    model_type,
+                    balance=False,
+                    max_iter=max_iter,
+                    balance_strategy=balance_strategy,
+                ) # balance=False if one class is empty
                 self.models.append(result['model'])
                 self.model_accuracy.append(result['accuracy'])
                 self.nmodels = 1
             else:
                 with ThreadPool(n_jobs) as pool:
                     tasks = [
-                        (i, self.X, self.y, model_type, balance, max_iter)
+                        (i, self.X, self.y, model_type, balance, max_iter, balance_strategy)
                         for i in range(self.nmodels)
                     ]
                     results = pool.starmap(self.fit_model, tasks)
@@ -239,7 +264,15 @@ class Matcher:
                     self.models.append(res['model'])
                     self.model_accuracy.append(res['accuracy'])
         else:
-            result = self.fit_model(0, self.X, self.y, model_type, balance, max_iter)
+            result = self.fit_model(
+                0,
+                self.X,
+                self.y,
+                model_type,
+                balance,
+                max_iter,
+                balance_strategy,
+            )
             self.models.append(result['model'])
             self.model_accuracy.append(result['accuracy'])
 
@@ -354,7 +387,9 @@ class Matcher:
                 temp_controls_df = current_control_df.copy()
                 temp_controls_df['prop_score_diff'] = np.abs(temp_controls_df['scores'] - case_prop_score)
 
-                eligible_controls_for_case = temp_controls_df[temp_controls_df['prop_score_diff'] <= threshold]
+                eligible_controls_for_case = temp_controls_df[
+                    temp_controls_df['prop_score_diff'] <= threshold
+                ].copy()
 
                 if eligible_controls_for_case.empty:
                     continue
@@ -460,8 +495,8 @@ class Matcher:
         Evaluates matching retention across a range of threshold values.
 
         Args:
-            method (str): Matching method ('min', 'nn', 'radius') for evaluation.
-            nmatches (int, optional): Number of matches for 'nn'/'min'. Defaults to 1.
+            method (str): Matching method ('min' or 'random') for evaluation.
+            nmatches (int, optional): Number of matches per treated sample. Defaults to 1.
             rng (Optional[np.ndarray], optional): Threshold values to test. Defaults to np.arange(0, 0.001, 0.0001).
         """
         if 'scores' not in self.data.columns:

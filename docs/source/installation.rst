@@ -13,20 +13,23 @@ Or install from source:
 
 .. code-block:: bash
 
-   git clone https://github.com/miaohancheng/pysmatch.git
+   git clone https://github.com/mhcone/pysmatch.git
    cd pysmatch
    pip install .
 
 Dependencies
 ------------
-* Python 3.x
+Core dependencies:
+* Python 3.9+
 * pandas
 * numpy
 * scipy
 * statsmodels
 * scikit-learn
 * matplotlib
-* catboost
-* optuna
 * imbalanced-learn
 * seaborn
+
+Optional dependencies:
+* ``pip install "pysmatch[tree]"`` for CatBoost models
+* ``pip install "pysmatch[tune]"`` for Optuna tuning

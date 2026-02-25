@@ -90,15 +90,8 @@ def compare_continuous(matcher, return_table: bool = False, plot_result: bool = 
     """
     Compares continuous variables between groups before and after matching.
 
-    For each continuous covariate identified in the `matcher` object:
-    1. Calculates standardized median and mean differences before and after matching.
-    2. Performs permutation tests based on Chi-square distance before and after matching.
-    3. Performs bootstrap Kolmogorov-Smirnov (KS) tests before and after matching.
-    4. If `plot_result` is True, generates side-by-side Empirical Cumulative
-       Distribution Function (ECDF) plots comparing the distributions before and
-       after matching, annotated with the calculated statistics (KS p-value,
-       permutation p-value, standardized differences).
-    5. Collects these statistics into a DataFrame.
+    For each continuous covariate, this function computes summary balance
+    statistics before/after matching and can optionally render ECDF plots.
 
     Args:
         matcher (Matcher): An instance of the `pysmatch.Matcher` class, which must
@@ -189,15 +182,9 @@ def compare_categorical(matcher, return_table: bool = False, plot_result: bool =
     """
     Compares categorical variables between groups before and after matching.
 
-    For each categorical covariate identified in the `matcher` object:
-    1. Calculates the proportional difference (test % - control %) for each category
-       level before and after matching.
-    2. Performs Chi-Square tests of independence between the variable and the group
-       indicator (`yvar`) before and after matching (using `matcher.prop_test`).
-    3. If `plot_result` is True, generates bar plots showing the proportional
-       differences for each category before and after matching, annotated with the
-       Chi-Square p-values.
-    4. Collects the Chi-Square test results into a DataFrame.
+    For each categorical covariate, this function computes proportional
+    differences and Chi-square p-values before/after matching, and can
+    optionally plot the proportional differences.
 
     Args:
         matcher (Matcher): An instance of the `pysmatch.Matcher` class, containing
