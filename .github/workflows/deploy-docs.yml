@@ -38,6 +38,10 @@ jobs:
           # 安装项目本身，以便 autodoc 可以找到它
           pip install .
 
+      - name: Check README/docs sync
+        run: |
+          python scripts/sync_readme_to_docs.py --check
+
       - name: Build Sphinx documentation
         run: |
           sphinx-build -W -b html docs/source docs/build/html

@@ -1,3 +1,6 @@
+<!-- AUTO-GENERATED: DO NOT EDIT. -->
+<!-- Source: ../../README.md -->
+
 # `pysmatch`
 
 [![PyPI version](https://badge.fury.io/py/pysmatch.svg?icon=si%3Apython&icon_color=%23ffffff)](https://badge.fury.io/py/pysmatch)

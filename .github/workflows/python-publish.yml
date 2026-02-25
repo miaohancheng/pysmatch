@@ -30,6 +30,10 @@ jobs:
           pip install -e ".[all]"  # 安装本地包和可选依赖（tree+tune）
           pip install pytest-cov codecov
 
+      - name: Check README/docs sync
+        run: |
+          python scripts/sync_readme_to_docs.py --check
+
       - name: Run tests with coverage
         run: |
           MPLBACKEND=Agg python -m pytest --cov=pysmatch --cov-report xml --cov-report term
