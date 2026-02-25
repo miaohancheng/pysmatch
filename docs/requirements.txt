@@ -2,6 +2,7 @@
 sphinx
 sphinx-rtd-theme
 myst-parser
+linkify-it-py
 nbsphinx
 ipykernel
 catboost
