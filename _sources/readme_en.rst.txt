@@ -1,9 +1,22 @@
 .. _readme_en:
 
-################
-README (English)
-################
+########################
+README Mirror (English)
+########################
 
-The full English README is maintained on GitHub:
+This page is the entry point for the README-to-Docs sync workflow.
 
-`README.md <https://github.com/miaohancheng/pysmatch/blob/main/README.md>`_
+- Source of truth: ``/README.md``
+- Generated mirror artifact: ``/docs/source/readme_en.md``
+- Sync command: ``python scripts/sync_readme_to_docs.py``
+- CI check command: ``python scripts/sync_readme_to_docs.py --check``
+
+For rendered docs content, use the generated pages:
+
+- :doc:`generated/installation_en`
+- :doc:`generated/quickstart_en`
+- :doc:`generated/workflow_en`
+- :doc:`generated/matching_en`
+- :doc:`generated/evaluation_en`
+- :doc:`generated/troubleshooting_en`
+- :doc:`generated/faq_en`

@@ -1,0 +1,201 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>常见问题 &mdash; pysmatch 0.0.post1+g3894662ba documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=812236d1"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="README Mirror (English)" href="../readme_en.html" />
+    <link rel="prev" title="故障排查" href="troubleshooting_zh.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            pysmatch
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Start Here</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation_en.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart_en.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="workflow_en.html">End-to-End Workflow</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Guides</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="matching_en.html">Matching Strategies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="evaluation_en.html">Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting_en.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq_en.html">FAQ</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Chinese Entry</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation_zh.html">安装</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart_zh.html">快速开始</a></li>
+<li class="toctree-l1"><a class="reference internal" href="workflow_zh.html">端到端流程</a></li>
+<li class="toctree-l1"><a class="reference internal" href="matching_zh.html">匹配策略</a></li>
+<li class="toctree-l1"><a class="reference internal" href="evaluation_zh.html">评估</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting_zh.html">故障排查</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">常见问题</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#lineartreeknn">何时用 <code class="docutils literal notranslate"><span class="pre">linear</span></code>、<code class="docutils literal notranslate"><span class="pre">tree</span></code>、<code class="docutils literal notranslate"><span class="pre">knn</span></code>？</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id2">模型准确率越高越好吗？</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id3">过采样还是欠采样怎么选？</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id4">如何保证可复现？</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id5">延伸阅读</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id6">贡献</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id7">许可证</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">README Mirrors</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../readme_en.html">README Mirror (English)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../readme_zh.html">README 镜像（中文）</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API &amp; Project</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Changelog</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Legacy Pages</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">Usage Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../example.html">Example Notebook</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">pysmatch</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">常见问题</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/generated/faq_zh.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <!-- AUTO-GENERATED: DO NOT EDIT. -->
+<!-- Source: ../../../README_CHINESE.md -->
+<section class="tex2jax_ignore mathjax_ignore" id="id1">
+<h1>常见问题<a class="headerlink" href="#id1" title="Link to this heading"></a></h1>
+<section id="lineartreeknn">
+<h2>何时用 <code class="docutils literal notranslate"><span class="pre">linear</span></code>、<code class="docutils literal notranslate"><span class="pre">tree</span></code>、<code class="docutils literal notranslate"><span class="pre">knn</span></code>？<a class="headerlink" href="#lineartreeknn" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">linear</span></code>：默认首选，解释性强，稳健。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tree</span></code>：适合非线性关系和复杂特征结构。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">knn</span></code>：适合做局部结构对照和敏感性比较。</p></li>
+</ul>
+</section>
+<section id="id2">
+<h2>模型准确率越高越好吗？<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<p>不一定。准确率过高有时意味着组间重叠不足，反而会降低可匹配性。平衡性指标比单纯准确率更关键。</p>
+</section>
+<section id="id3">
+<h2>过采样还是欠采样怎么选？<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">over</span></code>：通常保留更多多数类信息，建议先用。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">under</span></code>：训练更快，适合作为稳健性对照。</p></li>
+</ul>
+</section>
+<section id="id4">
+<h2>如何保证可复现？<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>固定随机种子（<code class="docutils literal notranslate"><span class="pre">np.random.seed(...)</span></code>）</p></li>
+<li><p>固定依赖版本</p></li>
+<li><p>记录完整的匹配参数与模型参数</p></li>
+</ul>
+</section>
+<section id="id5">
+<h2>延伸阅读<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Sekhon, J. S. (2011), <em>Multivariate and propensity score matching software with automated balance optimization: The Matching package for R</em>. Journal of Statistical Software, 42(7), 1-52. <a class="reference external" href="https://www.jstatsoft.org/article/view/v042i07">Link</a></p></li>
+<li><p>Rosenbaum, P. R., &amp; Rubin, D. B. (1983), <em>The central role of the propensity score in observational studies for causal effects</em>. Biometrika, 70(1), 41-55. <a class="reference external" href="https://stat.cmu.edu/~ryantibs/journalclub/rosenbaum_1983.pdf">Link</a></p></li>
+</ul>
+</section>
+<section id="id6">
+<h2>贡献<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
+<p>欢迎提交 issue 和 pull request。</p>
+</section>
+<section id="id7">
+<h2>许可证<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">pysmatch</span></code> 使用 MIT License。</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="troubleshooting_zh.html" class="btn btn-neutral float-left" title="故障排查" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../readme_en.html" class="btn btn-neutral float-right" title="README Mirror (English)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Miao Hancheng.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
