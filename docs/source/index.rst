@@ -6,7 +6,7 @@ index
 
 .. container:: button-container
 
-   .. button-link:: https://github.com/mhcone/pysmatch/
+   .. button-link:: https://github.com/miaohancheng/pysmatch/
       :class: btn btn-primary btn-lg
 
       Goto GitHub Repository
@@ -15,12 +15,12 @@ index
    :gutter: 2
 
    .. grid-item-card:: English README
-      :link: https://github.com/mhcone/pysmatch/blob/main/README.md
+      :link: https://github.com/miaohancheng/pysmatch/blob/main/README.md
 
       View project description and usage instructions on GitHub.
 
    .. grid-item-card:: 中文 README (Chinese README)
-      :link: https://github.com/mhcone/pysmatch/blob/main/README_CHINESE.md
+      :link: https://github.com/miaohancheng/pysmatch/blob/main/README_CHINESE.md
 
       在 GitHub 上查看项目的中文描述和使用说明.
 

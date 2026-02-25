@@ -12,11 +12,11 @@ setup(
     long_description_content_type="text/markdown",
     author="Miao HanCheng",
     author_email="hanchengmiao@gmail.com",
-    url="https://github.com/mhcone/pysmatch",
+    url="https://github.com/miaohancheng/pysmatch",
     include_package_data=True,
     install_requires=[
         "matplotlib>=3.7.1",
-        "numpy>=1.26.4,<2.0.0",
+        "numpy>=1.26.4",
         "pandas>=2.1.4",
         "scipy>=1.13.1",
         "seaborn>=0.12.2",

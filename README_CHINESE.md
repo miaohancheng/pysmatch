@@ -2,8 +2,8 @@
 
 [![PyPI version](https://badge.fury.io/py/pysmatch.svg?icon=si%3Apython&icon_color=%23ffffff)](https://badge.fury.io/py/pysmatch)
 [![Downloads](https://static.pepy.tech/badge/pysmatch)](https://pepy.tech/project/pysmatch)
-![GitHub License](https://img.shields.io/github/license/mhcone/pysmatch)
-[![codecov](https://codecov.io/github/mhcone/pysmatch/graph/badge.svg?token=TUYDEDRV45)](https://codecov.io/github/mhcone/pysmatch)
+![GitHub License](https://img.shields.io/github/license/miaohancheng/pysmatch)
+[![codecov](https://codecov.io/github/miaohancheng/pysmatch/graph/badge.svg?token=TUYDEDRV45)](https://codecov.io/github/miaohancheng/pysmatch)
 
 **PSM（Propensity Score Matching，倾向得分匹配）** 是一种统计方法，用于处理观察性研究中的选择偏差问题，尤其是在评估处理效果时。通过计算处理和未处理组每个观察单元的倾向得分——即在给定观察到的协变量条件下接受处理的条件概率，并基于这些得分来匹配处理组和控制组的个体，使得两组在协变量上更为相似。这种方法能够在非随机化的研究设计中模仿随机化实验的效果，以估计干预的因果效应。
 
@@ -11,7 +11,7 @@
 
 ## 多语言文档
 
-[English](https://github.com/mhcone/pysmatch/blob/main/README.md) | [中文](https://github.com/mhcone/pysmatch/blob/main/README_CHINESE.md)
+[English](https://github.com/miaohancheng/pysmatch/blob/main/README.md) | [中文](https://github.com/miaohancheng/pysmatch/blob/main/README_CHINESE.md)
 
 ### **此版本更新与主要特性**
 
@@ -40,12 +40,19 @@ pip install "pysmatch[tree]"  # 启用 CatBoost
 pip install "pysmatch[tune]"  # 启用 Optuna 调参
 ```
 
+如果遇到 `ValueError: numpy.dtype size changed`，通常是当前环境中的
+NumPy/Pandas 二进制包不兼容。请同时重装两者并重启内核或会话：
+
+```bash
+pip install --upgrade --force-reinstall "numpy>=1.26.4" "pandas>=2.1.4"
+```
+
 ## 快速开始
 
 了解 pysmatch 的最佳方式是通过一个示例。以下指南将引导您使用 pysmatch 对 [Lending Club 贷款数据](https://www.kaggle.com/wendykan/lending-club-loan-data) 进行倾向得分匹配。
 
 
-您可以跟随本文档，或者下载对应的 [Example.ipynb](https://github.com/mhcone/pysmatch/blob/main/Example.ipynb) 笔记本。
+您可以跟随本文档，或者下载对应的 [Example.ipynb](https://github.com/miaohancheng/pysmatch/blob/main/Example.ipynb) 笔记本。
 
 
 **下载数据集**

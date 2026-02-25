@@ -2,8 +2,8 @@
 
 [![PyPI version](https://badge.fury.io/py/pysmatch.svg?icon=si%3Apython&icon_color=%23ffffff)](https://badge.fury.io/py/pysmatch)
 [![Downloads](https://static.pepy.tech/badge/pysmatch)](https://pepy.tech/project/pysmatch)
-![GitHub License](https://img.shields.io/github/license/mhcone/pysmatch)
-[![codecov](https://codecov.io/github/mhcone/pysmatch/graph/badge.svg?token=TUYDEDRV45)](https://codecov.io/github/mhcone/pysmatch)
+![GitHub License](https://img.shields.io/github/license/miaohancheng/pysmatch)
+[![codecov](https://codecov.io/github/miaohancheng/pysmatch/graph/badge.svg?token=TUYDEDRV45)](https://codecov.io/github/miaohancheng/pysmatch)
 
 **Propensity Score Matching (PSM)** is a statistical technique used to address selection bias in observational studies, particularly in the assessment of treatment effects. It involves calculating the propensity score—the probability of receiving treatment given observed covariates—for each unit in both treatment and control groups. Units are then matched based on these scores, making the groups more comparable on the covariates. This method attempts to mimic the effects of a randomized experiment in non-randomized study designs, aiming to estimate the causal effects of an intervention.
 
@@ -11,7 +11,7 @@
 `pysmatch` is an improved and extended version of [`pymatch`](https://github.com/benmiroglio/pymatch), providing a robust tool for propensity score matching in Python. This package fixes known bugs from the original project and introduces new features such as parallel computing and model selection, enhancing performance and flexibility.
 
 ## Multilingual Readme
-[English](https://github.com/mhcone/pysmatch/blob/main/README.md) | [中文](https://github.com/mhcone/pysmatch/blob/main/README_CHINESE.md)
+[English](https://github.com/miaohancheng/pysmatch/blob/main/README.md) | [中文](https://github.com/miaohancheng/pysmatch/blob/main/README_CHINESE.md)
 
 ### **What’s New & Key Features**
 
@@ -39,6 +39,14 @@ Optional extras:
 ```bash
 pip install "pysmatch[tree]"  # CatBoost support
 pip install "pysmatch[tune]"  # Optuna tuning
+```
+
+If you see `ValueError: numpy.dtype size changed`, your environment likely has
+binary-incompatible NumPy/Pandas wheels. Reinstall both together and restart
+the kernel/session:
+
+```bash
+pip install --upgrade --force-reinstall "numpy>=1.26.4" "pandas>=2.1.4"
 ```
 
 #

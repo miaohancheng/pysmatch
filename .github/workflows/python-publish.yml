@@ -27,9 +27,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest-cov codecov
           pip install -e ".[all]"  # 安装本地包和可选依赖（tree+tune）
+          pip install pytest-cov codecov
 
       - name: Run tests with coverage
         run: |
@@ -64,6 +63,17 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install setuptools wheel build twine setuptools-scm
+
+      - name: Validate tag/version alignment
+        run: |
+          PACKAGE_VERSION=$(python -m setuptools_scm)
+          TAG_VERSION=${GITHUB_REF_NAME#v}
+          echo "Tag version: ${TAG_VERSION}"
+          echo "Computed package version: ${PACKAGE_VERSION}"
+          if [ "${PACKAGE_VERSION}" != "${TAG_VERSION}" ]; then
+            echo "Version mismatch: tag and package version are not aligned."
+            exit 1
+          fi
 
       - name: Build package using PEP 517
         run: |
