@@ -5,17 +5,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>pysmatch.visualization &mdash; pysmatch 1.6 documentation</title>
+  <title>pysmatch.visualization &mdash; pysmatch 0.0.post1+g7b572eb68 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=9d552775"></script>
-      <script src="../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/documentation_options.js?v=9d1dcd7d"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/design-tabs.js?v=f930bc37"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -44,8 +44,12 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">目录 (Contents):</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../readme_en.html">README (English)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../readme_zh.html">README (中文)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../usage.html">Usage Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../example.html">Example Notebook</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Changelog</a></li>
 </ul>
@@ -183,15 +187,8 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Compares continuous variables between groups before and after matching.</span>
 
-<span class="sd">    For each continuous covariate identified in the `matcher` object:</span>
-<span class="sd">    1. Calculates standardized median and mean differences before and after matching.</span>
-<span class="sd">    2. Performs permutation tests based on Chi-square distance before and after matching.</span>
-<span class="sd">    3. Performs bootstrap Kolmogorov-Smirnov (KS) tests before and after matching.</span>
-<span class="sd">    4. If `plot_result` is True, generates side-by-side Empirical Cumulative</span>
-<span class="sd">       Distribution Function (ECDF) plots comparing the distributions before and</span>
-<span class="sd">       after matching, annotated with the calculated statistics (KS p-value,</span>
-<span class="sd">       permutation p-value, standardized differences).</span>
-<span class="sd">    5. Collects these statistics into a DataFrame.</span>
+<span class="sd">    For each continuous covariate, this function computes summary balance</span>
+<span class="sd">    statistics before/after matching and can optionally render ECDF plots.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        matcher (Matcher): An instance of the `pysmatch.Matcher` class, which must</span>
@@ -285,15 +282,9 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Compares categorical variables between groups before and after matching.</span>
 
-<span class="sd">    For each categorical covariate identified in the `matcher` object:</span>
-<span class="sd">    1. Calculates the proportional difference (test % - control %) for each category</span>
-<span class="sd">       level before and after matching.</span>
-<span class="sd">    2. Performs Chi-Square tests of independence between the variable and the group</span>
-<span class="sd">       indicator (`yvar`) before and after matching (using `matcher.prop_test`).</span>
-<span class="sd">    3. If `plot_result` is True, generates bar plots showing the proportional</span>
-<span class="sd">       differences for each category before and after matching, annotated with the</span>
-<span class="sd">       Chi-Square p-values.</span>
-<span class="sd">    4. Collects the Chi-Square test results into a DataFrame.</span>
+<span class="sd">    For each categorical covariate, this function computes proportional</span>
+<span class="sd">    differences and Chi-square p-values before/after matching, and can</span>
+<span class="sd">    optionally plot the proportional differences.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        matcher (Matcher): An instance of the `pysmatch.Matcher` class, containing</span>

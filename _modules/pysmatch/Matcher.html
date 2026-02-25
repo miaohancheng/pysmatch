@@ -5,17 +5,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>pysmatch.Matcher &mdash; pysmatch 1.6 documentation</title>
+  <title>pysmatch.Matcher &mdash; pysmatch 0.0.post1+g7b572eb68 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=9d552775"></script>
-      <script src="../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/documentation_options.js?v=9d1dcd7d"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/design-tabs.js?v=f930bc37"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -44,8 +44,12 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">目录 (Contents):</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../readme_en.html">README (English)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../readme_zh.html">README (中文)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../usage.html">Usage Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../example.html">Example Notebook</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Changelog</a></li>
 </ul>
@@ -232,7 +236,8 @@
 <div class="viewcode-block" id="Matcher.fit_model">
 <a class="viewcode-back" href="../../api/matcher.html#pysmatch.Matcher.Matcher.fit_model">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">fit_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">X</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span> <span class="n">model_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-                  <span class="n">balance</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+                  <span class="n">balance</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+                  <span class="n">balance_strategy</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;over&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Fits a single propensity score model.</span>
 
@@ -244,10 +249,19 @@
 <span class="sd">            model_type (str): The type of model to fit (e.g., &#39;linear&#39;, &#39;rf&#39;, &#39;gb&#39;).</span>
 <span class="sd">            balance (bool): Whether the fitting process should aim to balance covariates.</span>
 <span class="sd">            max_iter (int, optional): Maximum iterations for iterative solvers. Defaults to 100.</span>
+<span class="sd">            balance_strategy (str, optional): Class-balancing strategy, &quot;over&quot; or &quot;under&quot;.</span>
 <span class="sd">        Returns:</span>
 <span class="sd">            Dict[str, Any]: A dictionary containing the fitted model and its accuracy.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">modeling</span><span class="o">.</span><span class="n">fit_model</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">model_type</span><span class="p">,</span> <span class="n">balance</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">modeling</span><span class="o">.</span><span class="n">fit_model</span><span class="p">(</span>
+            <span class="n">index</span><span class="p">,</span>
+            <span class="n">X</span><span class="p">,</span>
+            <span class="n">y</span><span class="p">,</span>
+            <span class="n">model_type</span><span class="p">,</span>
+            <span class="n">balance</span><span class="p">,</span>
+            <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span>
+            <span class="n">balance_strategy</span><span class="o">=</span><span class="n">balance_strategy</span><span class="p">,</span>
+        <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Matcher.fit_scores">
@@ -255,7 +269,7 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">fit_scores</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">balance</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">nmodels</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                    <span class="n">n_jobs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">model_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;linear&#39;</span><span class="p">,</span>
                    <span class="n">max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">use_optuna</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-                   <span class="n">n_trials</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+                   <span class="n">n_trials</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span> <span class="n">balance_strategy</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;over&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Fits propensity score model(s) to estimate scores.</span>
 
@@ -267,12 +281,18 @@
 <span class="sd">            max_iter (int, optional): Max iterations for solver. Defaults to 100.</span>
 <span class="sd">            use_optuna (bool, optional): If True, use Optuna for hyperparameter tuning. Defaults to False.</span>
 <span class="sd">            n_trials (int, optional): Number of Optuna trials if use_optuna is True. Defaults to 10.</span>
+<span class="sd">            balance_strategy (str, optional): Balancing strategy when balance=True.</span>
+<span class="sd">                                              Options: &quot;over&quot; or &quot;under&quot;. Defaults to &quot;over&quot;.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">multiprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">cpu_count</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">multiprocessing.pool</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThreadPool</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_accuracy</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">model_type</span> <span class="o">=</span> <span class="n">model_type</span>
+        <span class="k">if</span> <span class="n">balance_strategy</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;over&quot;</span><span class="p">,</span> <span class="s2">&quot;under&quot;</span><span class="p">}:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Invalid balance_strategy=&#39;</span><span class="si">{</span><span class="n">balance_strategy</span><span class="si">}</span><span class="s2">&#39;. Expected &#39;over&#39; or &#39;under&#39;.&quot;</span>
+            <span class="p">)</span>
         <span class="n">num_cores</span> <span class="o">=</span> <span class="n">cpu_count</span><span class="p">()</span>
         <span class="n">n_jobs</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">num_cores</span><span class="p">,</span> <span class="n">n_jobs</span> <span class="k">if</span> <span class="n">n_jobs</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">num_cores</span><span class="p">)</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;This computer has: </span><span class="si">{</span><span class="n">num_cores</span><span class="si">}</span><span class="s2"> cores, using </span><span class="si">{</span><span class="n">n_jobs</span><span class="si">}</span><span class="s2"> workers for fitting scores.&quot;</span><span class="p">)</span>
@@ -284,7 +304,8 @@
         <span class="k">if</span> <span class="n">use_optuna</span><span class="p">:</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Using Optuna for hyperparameter tuning with </span><span class="si">{</span><span class="n">n_trials</span><span class="si">}</span><span class="s2"> trials for model_type=&#39;</span><span class="si">{</span><span class="n">model_type</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">)</span>
             <span class="n">result</span> <span class="o">=</span> <span class="n">modeling</span><span class="o">.</span><span class="n">optuna_tuner</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">model_type</span><span class="o">=</span><span class="n">model_type</span><span class="p">,</span>
-                                           <span class="n">n_trials</span><span class="o">=</span><span class="n">n_trials</span><span class="p">,</span> <span class="n">balance</span><span class="o">=</span><span class="n">balance</span><span class="p">)</span>
+                                           <span class="n">n_trials</span><span class="o">=</span><span class="n">n_trials</span><span class="p">,</span> <span class="n">balance</span><span class="o">=</span><span class="n">balance</span><span class="p">,</span>
+                                           <span class="n">balance_strategy</span><span class="o">=</span><span class="n">balance_strategy</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;model&#39;</span><span class="p">])</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">model_accuracy</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;accuracy&#39;</span><span class="p">])</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Optuna] Best Accuracy: </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;accuracy&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2%</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -316,14 +337,22 @@
                     <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">treatment_col</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">majority</span><span class="p">])</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cannot perform balanced ensemble fitting as one class has no samples. Fitting a single model instead.&quot;</span><span class="p">)</span>
                 <span class="c1"># Fallback to fitting a single model</span>
-                <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fit_model</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">model_type</span><span class="p">,</span> <span class="n">balance</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">)</span> <span class="c1"># balance=False if one class is empty</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fit_model</span><span class="p">(</span>
+                    <span class="mi">0</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">,</span>
+                    <span class="n">model_type</span><span class="p">,</span>
+                    <span class="n">balance</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span>
+                    <span class="n">balance_strategy</span><span class="o">=</span><span class="n">balance_strategy</span><span class="p">,</span>
+                <span class="p">)</span> <span class="c1"># balance=False if one class is empty</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;model&#39;</span><span class="p">])</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">model_accuracy</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;accuracy&#39;</span><span class="p">])</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">nmodels</span> <span class="o">=</span> <span class="mi">1</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">with</span> <span class="n">ThreadPool</span><span class="p">(</span><span class="n">n_jobs</span><span class="p">)</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
                     <span class="n">tasks</span> <span class="o">=</span> <span class="p">[</span>
-                        <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">model_type</span><span class="p">,</span> <span class="n">balance</span><span class="p">,</span> <span class="n">max_iter</span><span class="p">)</span>
+                        <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">model_type</span><span class="p">,</span> <span class="n">balance</span><span class="p">,</span> <span class="n">max_iter</span><span class="p">,</span> <span class="n">balance_strategy</span><span class="p">)</span>
                         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nmodels</span><span class="p">)</span>
                     <span class="p">]</span>
                     <span class="n">results</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">starmap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fit_model</span><span class="p">,</span> <span class="n">tasks</span><span class="p">)</span>
@@ -331,7 +360,15 @@
                     <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s1">&#39;model&#39;</span><span class="p">])</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">model_accuracy</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s1">&#39;accuracy&#39;</span><span class="p">])</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fit_model</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">model_type</span><span class="p">,</span> <span class="n">balance</span><span class="p">,</span> <span class="n">max_iter</span><span class="p">)</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fit_model</span><span class="p">(</span>
+                <span class="mi">0</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">,</span>
+                <span class="n">model_type</span><span class="p">,</span>
+                <span class="n">balance</span><span class="p">,</span>
+                <span class="n">max_iter</span><span class="p">,</span>
+                <span class="n">balance_strategy</span><span class="p">,</span>
+            <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;model&#39;</span><span class="p">])</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">model_accuracy</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;accuracy&#39;</span><span class="p">])</span>
 
@@ -452,7 +489,9 @@
                 <span class="n">temp_controls_df</span> <span class="o">=</span> <span class="n">current_control_df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
                 <span class="n">temp_controls_df</span><span class="p">[</span><span class="s1">&#39;prop_score_diff&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">temp_controls_df</span><span class="p">[</span><span class="s1">&#39;scores&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">case_prop_score</span><span class="p">)</span>
 
-                <span class="n">eligible_controls_for_case</span> <span class="o">=</span> <span class="n">temp_controls_df</span><span class="p">[</span><span class="n">temp_controls_df</span><span class="p">[</span><span class="s1">&#39;prop_score_diff&#39;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">threshold</span><span class="p">]</span>
+                <span class="n">eligible_controls_for_case</span> <span class="o">=</span> <span class="n">temp_controls_df</span><span class="p">[</span>
+                    <span class="n">temp_controls_df</span><span class="p">[</span><span class="s1">&#39;prop_score_diff&#39;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">threshold</span>
+                <span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 
                 <span class="k">if</span> <span class="n">eligible_controls_for_case</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
                     <span class="k">continue</span>
@@ -564,8 +603,8 @@
 <span class="sd">        Evaluates matching retention across a range of threshold values.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            method (str): Matching method (&#39;min&#39;, &#39;nn&#39;, &#39;radius&#39;) for evaluation.</span>
-<span class="sd">            nmatches (int, optional): Number of matches for &#39;nn&#39;/&#39;min&#39;. Defaults to 1.</span>
+<span class="sd">            method (str): Matching method (&#39;min&#39; or &#39;random&#39;) for evaluation.</span>
+<span class="sd">            nmatches (int, optional): Number of matches per treated sample. Defaults to 1.</span>
 <span class="sd">            rng (Optional[np.ndarray], optional): Threshold values to test. Defaults to np.arange(0, 0.001, 0.0001).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="s1">&#39;scores&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>

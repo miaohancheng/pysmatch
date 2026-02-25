@@ -29,12 +29,12 @@ index
    :caption: 目录 (Contents):
    :hidden:
 
-   readme_en          <-- 添加：链接到英文 README 页面
-   readme_zh          <-- 添加：链接到中文 README 页面
+   readme_en
+   readme_zh
    installation
    usage
-   example            <-- 添加：链接到 Example Notebook 页面
-   api                <-- 保持你现有的 API 页面链接
+   example
+   api
    contributing
    changelog
 
@@ -101,4 +101,3 @@ index
              border-radius: .3rem;
           }
        </style>
-

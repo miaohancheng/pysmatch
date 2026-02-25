@@ -1,10 +1,13 @@
 .. _example_notebook:
 
-##################
+################
 Example Notebook
-##################
+################
 
-.. nbsphinx:: ../../Example.ipynb
+The full notebook lives in the repository:
+`Example.ipynb <https://github.com/miaohancheng/pysmatch/blob/main/Example.ipynb>`_.
+
+A runnable script version is also available:
+
+.. literalinclude:: ../../Example.py
    :language: python
-   :execute: never  # 根据 conf.py 中的设置，或者在这里覆盖
-

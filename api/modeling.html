@@ -6,17 +6,17 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>pysmatch.modeling &mdash; pysmatch 1.6 documentation</title>
+  <title>pysmatch.modeling &mdash; pysmatch 0.0.post1+g7b572eb68 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=9d552775"></script>
-      <script src="../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/documentation_options.js?v=9d1dcd7d"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/design-tabs.js?v=f930bc37"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="../_static/js/theme.js"></script>
@@ -47,8 +47,12 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">目录 (Contents):</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../readme_en.html">README (English)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../readme_zh.html">README (中文)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../usage.html">Usage Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../example.html">Example Notebook</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../changelog.html">Changelog</a></li>
 </ul>
@@ -79,6 +83,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
       <li class="breadcrumb-item active">pysmatch.modeling</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/api/modeling.rst.txt" rel="nofollow"> View page source</a>
@@ -93,115 +98,15 @@
 <span id="pysmatch-modeling"></span><span id="api-modeling"></span><h1>pysmatch.modeling<a class="headerlink" href="#module-pysmatch.modeling" title="Link to this heading"></a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="pysmatch.modeling.fit_model">
-<span class="sig-prename descclassname"><span class="pre">pysmatch.modeling.</span></span><span class="sig-name descname"><span class="pre">fit_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Series</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">balance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_iter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">42</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/pysmatch/modeling.html#fit_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.modeling.fit_model" title="Link to this definition"></a></dt>
-<dd><p>Fits a single propensity score model with preprocessing.</p>
-<p>This function trains a specified classification model (Logistic Regression,</p>
-<p>CatBoost, or KNN) to predict the binary target variable <cite>y</cite> based on covariates <cite>X</cite>.</p>
-<p>It includes steps for:</p>
-<ol class="arabic simple">
-<li><p>Splitting data into training and a (currently unused) test set.</p></li>
-<li><p>Optionally balancing the training data using RandomOverSampler.</p></li>
-<li><p>Preprocessing features using StandardScaler for numerical and OneHotEncoder</p></li>
-</ol>
-<p>for categorical variables via a ColumnTransformer.</p>
-<ol class="arabic simple" start="4">
-<li><p>Training the specified model within a scikit-learn Pipeline that combines</p></li>
-</ol>
-<p>preprocessing and classification.</p>
-<ol class="arabic simple" start="5">
-<li><p>Calculating the accuracy of the fitted model on the (potentially resampled)</p></li>
-</ol>
-<p>training data.</p>
-<p>Args:</p>
-<p>index (int): An identifier for this model instance (e.g., used for setting</p>
-<p>random states in cross-validation or ensembles).</p>
-<p>X (pd.DataFrame): DataFrame containing the covariate features.</p>
-<p>y (pd.Series): Series containing the binary target variable (0 or 1).</p>
-<p>model_type (str): The type of classifier to use. Options: ‘linear’</p>
-<p>(Logistic Regression), ‘tree’ (CatBoostClassifier),</p>
-<p>‘knn’ (KNeighborsClassifier).</p>
-<p>balance (bool): If True, applies RandomOverSampler to the training data</p>
-<p>to balance the classes before fitting the model.</p>
-<p>max_iter (int, optional): Maximum number of iterations for solvers in</p>
-<p>iterative models (like Logistic Regression).</p>
-<p>Defaults to 100.</p>
-<p>random_state (Optional[int], optional): Seed for reproducibility in data splitting,</p>
-<p>resampling (if <cite>balance=True</cite>), and model initialization</p>
-<p>(where applicable, like LogisticRegression, CatBoost).</p>
-<p>Defaults to None. If None, randomness is not fixed.</p>
-<p><em>Note: Uses `index` for train_test_split and sampler seed.</em></p>
-<p>Returns:</p>
-<p>Dict[str, Any]: A dictionary containing:</p>
-<ul class="simple">
-<li><p>‘model’: The fitted scikit-learn Pipeline object (preprocessor + classifier).</p></li>
-<li><p>‘accuracy’: The accuracy score of the fitted model on the (potentially</p></li>
-</ul>
-<p>resampled) training data.</p>
-<p>Raises:</p>
-<p>ValueError: If an invalid <cite>model_type</cite> is provided (not ‘linear’, ‘tree’, or ‘knn’).</p>
-<p>ImportError: If required libraries (sklearn, imblearn, catboost) are not installed.</p>
+<span class="sig-prename descclassname"><span class="pre">pysmatch.modeling.</span></span><span class="sig-name descname"><span class="pre">fit_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Series</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">balance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_iter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">42</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">balance_strategy</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'over'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'under'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'over'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/pysmatch/modeling.html#fit_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.modeling.fit_model" title="Link to this definition"></a></dt>
+<dd><p>Fit a single propensity-score model and evaluate it on a held-out split.</p>
+<p>Returns a fitted pipeline and validation-set accuracy.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pysmatch.modeling.optuna_tuner">
-<span class="sig-prename descclassname"><span class="pre">pysmatch.modeling.</span></span><span class="sig-name descname"><span class="pre">optuna_tuner</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Series</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_trials</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">balance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">42</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/pysmatch/modeling.html#optuna_tuner"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.modeling.optuna_tuner" title="Link to this definition"></a></dt>
-<dd><p>Performs hyperparameter optimization using Optuna for a specified model type.</p>
-<p>This function uses Optuna to search for the best hyperparameters for a given</p>
-<p><cite>model_type</cite> (‘linear’, ‘tree’, ‘knn’). It involves:</p>
-<ol class="arabic simple">
-<li><p>Splitting data into training and validation sets.</p></li>
-<li><p>Optionally balancing the training set using RandomOverSampler.</p></li>
-<li><p>Defining an Optuna <cite>objective</cite> function that:</p></li>
-</ol>
-<ul class="simple">
-<li><p>Takes an Optuna <cite>trial</cite> object.</p></li>
-<li><p>Defines hyperparameter search spaces using <cite>trial.suggest_*</cite>.</p></li>
-<li><p>Creates a preprocessing pipeline (StandardScaler + OneHotEncoder).</p></li>
-<li><p>Initializes the specified model with suggested hyperparameters.</p></li>
-<li><p>Combines preprocessing and model into a scikit-learn Pipeline.</p></li>
-<li><p>Fits the pipeline on the (potentially resampled) training data.</p></li>
-<li><p>Evaluates the pipeline on the validation set and returns the accuracy score.</p></li>
-</ul>
-<ol class="arabic simple" start="4">
-<li><p>Running the Optuna study for <cite>n_trials</cite> to maximize the objective (accuracy).</p></li>
-<li><p>Retrieving the best hyperparameters found by the study.</p></li>
-<li><p>Training a final pipeline on the (potentially resampled) training data using the</p></li>
-</ol>
-<p>best hyperparameters found.</p>
-<ol class="arabic simple" start="7">
-<li><p>Returning the final fitted pipeline, its validation accuracy during the study,</p></li>
-</ol>
-<p>and the best parameters.</p>
-<p>Args:</p>
-<p>X (pd.DataFrame): DataFrame containing the covariate features.</p>
-<p>y (pd.Series): Series containing the binary target variable (0 or 1).</p>
-<p>model_type (str): The type of classifier to tune. Options: ‘linear’</p>
-<p>(Logistic Regression), ‘tree’ (CatBoostClassifier),</p>
-<p>‘knn’ (KNeighborsClassifier).</p>
-<p>n_trials (int, optional): The number of optimization trials Optuna should run.</p>
-<p>Defaults to 10.</p>
-<p>balance (bool, optional): If True, applies RandomOverSampler to the training</p>
-<p>data within each Optuna trial before fitting the model.</p>
-<p>Defaults to True.</p>
-<p>random_state (int, optional): Seed for reproducibility in data splitting,</p>
-<p>resampling, and model initialization (where applicable).</p>
-<p>Defaults to 42.</p>
-<p>Returns:</p>
-<p>Dict[str, Any]: A dictionary containing:</p>
-<ul class="simple">
-<li><p>‘model’: The final scikit-learn Pipeline object fitted with the best</p></li>
-</ul>
-<p>hyperparameters found by Optuna on the training data.</p>
-<ul class="simple">
-<li><p>‘accuracy’: The best accuracy score achieved on the validation set during</p></li>
-</ul>
-<p>the Optuna study.</p>
-<ul class="simple">
-<li><p>‘best_params’: A dictionary containing the best hyperparameters found.</p></li>
-</ul>
-<p>Raises:</p>
-<p>ValueError: If an invalid <cite>model_type</cite> is provided for tuning.</p>
-<p>ImportError: If required libraries (optuna, sklearn, imblearn, catboost) are not installed.</p>
+<span class="sig-prename descclassname"><span class="pre">pysmatch.modeling.</span></span><span class="sig-name descname"><span class="pre">optuna_tuner</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Series</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_trials</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">balance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">42</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">balance_strategy</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'over'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'under'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'over'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/pysmatch/modeling.html#optuna_tuner"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.modeling.optuna_tuner" title="Link to this definition"></a></dt>
+<dd><p>Run Optuna tuning and return the best fitted pipeline and score.</p>
 </dd></dl>
 
 </section>

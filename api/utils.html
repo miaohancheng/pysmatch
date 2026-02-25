@@ -6,22 +6,23 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>pysmatch.utils &mdash; pysmatch 1.6 documentation</title>
+  <title>pysmatch.utils &mdash; pysmatch 0.0.post1+g7b572eb68 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=9d552775"></script>
-      <script src="../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/documentation_options.js?v=9d1dcd7d"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/design-tabs.js?v=f930bc37"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Contributing" href="../contributing.html" />
     <link rel="prev" title="pysmatch.visualization" href="visualization.html" /> 
 </head>
 
@@ -46,8 +47,12 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">目录 (Contents):</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../readme_en.html">README (English)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../readme_zh.html">README (中文)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../usage.html">Usage Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../example.html">Example Notebook</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../changelog.html">Changelog</a></li>
 </ul>
@@ -83,6 +88,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
       <li class="breadcrumb-item active">pysmatch.utils</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/api/utils.rst.txt" rel="nofollow"> View page source</a>
@@ -157,23 +163,9 @@ If None, checks all columns in the DataFrame
 <dl class="py function">
 <dt class="sig sig-object py" id="pysmatch.utils.grouped_permutation_test">
 <span class="sig-prename descclassname"><span class="pre">pysmatch.utils.</span></span><span class="sig-name descname"><span class="pre">grouped_permutation_test</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1000</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span></span></span><a class="reference internal" href="../_modules/pysmatch/utils.html#grouped_permutation_test"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.utils.grouped_permutation_test" title="Link to this definition"></a></dt>
-<dd><p>Performs a permutation test for a given statistic function <cite>f</cite>.</p>
-<p>Evaluates the significance of an observed test statistic calculated by function <cite>f</cite>
-applied to samples <cite>t</cite> and <cite>c</cite>. It does this by:
-1. Calculating the observed statistic <cite>truth = f(t, c)</cite>.
-2. Repeatedly (<cite>n_samples</cite> times):</p>
-<blockquote>
-<div><ol class="loweralpha simple">
-<li><p>Combining <cite>t</cite> and <cite>c</cite>.</p></li>
-<li><p>Shuffling the combined data.</p></li>
-<li><p>Splitting the shuffled data back into two samples of the original sizes.</p></li>
-<li><p>Calculating the statistic <cite>f</cite> on the permuted samples.</p></li>
-<li><p>Counting how often the permuted statistic is greater than or equal to <cite>truth</cite>.</p></li>
-</ol>
-</div></blockquote>
-<ol class="arabic simple" start="3">
-<li><p>Calculating the p-value as the proportion of permuted statistics that met the condition in 2e.</p></li>
-</ol>
+<dd><p>Perform a permutation test for a user-defined statistic.</p>
+<p>The observed statistic is compared against statistics computed from shuffled
+splits of the pooled samples.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -187,18 +179,7 @@ Defaults to 1000.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><dl class="simple">
-<dt>A tuple containing:</dt><dd><ul class="simple">
-<li><p>p_value (float): The estimated p-value from the permutation test.</p></li>
-<li><dl class="simple">
-<dt>truth (float): The observed test statistic calculated on the original samples.</dt><dd><p>Returns (1.0, np.nan) or similar if inputs are invalid.</p>
-</dd>
-</dl>
-</li>
-</ul>
-</dd>
-</dl>
-</p>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">(p_value,</span> <span class="pre">truth)</span></code>, where <code class="docutils literal notranslate"><span class="pre">truth</span></code> is the observed statistic.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>tuple</p>
@@ -265,23 +246,19 @@ Defaults to 1000.</p></li>
 <dl class="py function">
 <dt class="sig sig-object py" id="pysmatch.utils.progress">
 <span class="sig-prename descclassname"><span class="pre">pysmatch.utils.</span></span><span class="sig-name descname"><span class="pre">progress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">i</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prestr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/pysmatch/utils.html#progress"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.utils.progress" title="Link to this definition"></a></dt>
-<dd><blockquote>
-<div><p>Displays a simple progress indicator in the console.</p>
-<p>Prints a progress string like “[prefix]: i/n” to standard output, overwriting
-the previous line using the carriage return character `</p>
-</div></blockquote>
-<p><a href="#id1"><span class="problematic" id="id2">`</span></a>.</p>
-<blockquote>
-<div><dl>
-<dt>Args:</dt><dd><p>i (int): The current step or item number (should be 1-based or adjusted).
-n (int): The total number of steps or items.
-prestr (str, optional): A prefix string to display before the progress count</p>
-<blockquote>
-<div><p>(e.g., “Processing file”). Defaults to ‘’.</p>
-</div></blockquote>
+<dd><p>Displays a simple progress indicator in the console.</p>
+<p>Prints a progress string like <code class="docutils literal notranslate"><span class="pre">[prefix]:</span> <span class="pre">i/n</span></code> and updates it in-place by
+writing a carriage return.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>i</strong> (<em>int</em>) – The current step or item number (should be 1-based or adjusted).</p></li>
+<li><p><strong>n</strong> (<em>int</em>) – The total number of steps or items.</p></li>
+<li><p><strong>prestr</strong> (<em>str</em><em>, </em><em>optional</em>) – A prefix string to display before the progress count
+(e.g., “Processing file”). Defaults to ‘’.</p></li>
+</ul>
 </dd>
 </dl>
-</div></blockquote>
 </dd></dl>
 
 <dl class="py function">
@@ -325,6 +302,7 @@ if inputs are empty.</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="visualization.html" class="btn btn-neutral float-left" title="pysmatch.visualization" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../contributing.html" class="btn btn-neutral float-right" title="Contributing" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

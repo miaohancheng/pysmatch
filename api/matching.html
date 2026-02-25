@@ -6,17 +6,17 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>pysmatch.matching &mdash; pysmatch 1.6 documentation</title>
+  <title>pysmatch.matching &mdash; pysmatch 0.0.post1+g7b572eb68 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=9d552775"></script>
-      <script src="../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/documentation_options.js?v=9d1dcd7d"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/design-tabs.js?v=f930bc37"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="../_static/js/theme.js"></script>
@@ -47,8 +47,12 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">目录 (Contents):</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../readme_en.html">README (English)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../readme_zh.html">README (中文)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../usage.html">Usage Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../example.html">Example Notebook</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../changelog.html">Changelog</a></li>
 </ul>
@@ -80,6 +84,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
       <li class="breadcrumb-item active">pysmatch.matching</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/api/matching.rst.txt" rel="nofollow"> View page source</a>
@@ -95,12 +100,10 @@
 <dl class="py function">
 <dt class="sig sig-object py" id="pysmatch.matching.perform_match">
 <span class="sig-prename descclassname"><span class="pre">pysmatch.matching.</span></span><span class="sig-name descname"><span class="pre">perform_match</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yvar</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nmatches</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'min'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">replacement</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="reference internal" href="../_modules/pysmatch/matching.html#perform_match"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.matching.perform_match" title="Link to this definition"></a></dt>
-<dd><p>Performs nearest neighbor matching based on propensity scores within a radius.</p>
-<p>Finds suitable match(es) from the control group for each record in the test
-(treatment) group based on propensity scores (‘scores’ column). It uses
-<cite>sklearn.neighbors.NearestNeighbors</cite> with <cite>radius=threshold</cite> to find potential
-neighbors and then applies selection logic based on the <cite>method</cite> parameter
-(‘min’ or ‘random’) to choose up to <cite>nmatches</cite>.</p>
+<dd><p>Perform nearest-neighbor matching using propensity scores.</p>
+<p>For each treated sample, this function searches control samples within
+<code class="docutils literal notranslate"><span class="pre">threshold</span></code> score distance and selects up to <code class="docutils literal notranslate"><span class="pre">nmatches</span></code> controls.
+Selection can be deterministic (<code class="docutils literal notranslate"><span class="pre">method=&quot;min&quot;</span></code>) or random.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -113,27 +116,16 @@ based on propensity score difference. Defaults to 0.001.</p></li>
 <li><p><strong>nmatches</strong> (<em>int</em><em>, </em><em>optional</em>) – The maximum number of control matches to find for
 each test unit within the specified radius/threshold.
 Defaults to 1.</p></li>
-<li><p><strong>method</strong> (<em>str</em><em>, </em><em>optional</em>) – <p>The method for selecting matches among neighbors found
-within the radius. Options:
-‘min’: Selects the <cite>nmatches</cite> neighbors with the smallest</p>
-<blockquote>
-<div><p>score difference.</p>
-</div></blockquote>
-<dl class="simple">
-<dt>’random’: Selects <cite>nmatches</cite> neighbors randomly from those</dt><dd><p>within the radius.</p>
-</dd>
-</dl>
-<p>Defaults to ‘min’.</p>
-</p></li>
+<li><p><strong>method</strong> (<em>str</em><em>, </em><em>optional</em>) – Match selection method. Use <code class="docutils literal notranslate"><span class="pre">&quot;min&quot;</span></code> for smallest
+score differences or <code class="docutils literal notranslate"><span class="pre">&quot;random&quot;</span></code> for random sampling.
+Defaults to <code class="docutils literal notranslate"><span class="pre">&quot;min&quot;</span></code>.</p></li>
 <li><p><strong>replacement</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether control units can be matched multiple times
 (used more than once as a match). Defaults to False.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><dl class="simple">
-<dt>A DataFrame containing the matched test and control units.</dt><dd><p>Includes original columns plus ‘match_id’ (linking matched pairs/groups)
-and ‘record_id’ (preserving the original index of the unit). Returns
-an empty DataFrame if no matches are found.</p>
+<dt>Matched treated/control rows with <code class="docutils literal notranslate"><span class="pre">match_id</span></code> and <code class="docutils literal notranslate"><span class="pre">record_id</span></code>.</dt><dd><p>Returns an empty DataFrame if no matches are found.</p>
 </dd>
 </dl>
 </p>

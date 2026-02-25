@@ -5,17 +5,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>pysmatch.matching &mdash; pysmatch 1.6 documentation</title>
+  <title>pysmatch.matching &mdash; pysmatch 0.0.post1+g7b572eb68 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=9d552775"></script>
-      <script src="../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/documentation_options.js?v=9d1dcd7d"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/design-tabs.js?v=f930bc37"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -44,8 +44,12 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">目录 (Contents):</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../readme_en.html">README (English)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../readme_zh.html">README (中文)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../usage.html">Usage Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../example.html">Example Notebook</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Changelog</a></li>
 </ul>
@@ -96,13 +100,11 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">perform_match</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">yvar</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span>
                   <span class="n">nmatches</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">replacement</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Performs nearest neighbor matching based on propensity scores within a radius.</span>
+<span class="sd">    Perform nearest-neighbor matching using propensity scores.</span>
 
-<span class="sd">    Finds suitable match(es) from the control group for each record in the test</span>
-<span class="sd">    (treatment) group based on propensity scores (&#39;scores&#39; column). It uses</span>
-<span class="sd">    `sklearn.neighbors.NearestNeighbors` with `radius=threshold` to find potential</span>
-<span class="sd">    neighbors and then applies selection logic based on the `method` parameter</span>
-<span class="sd">    (&#39;min&#39; or &#39;random&#39;) to choose up to `nmatches`.</span>
+<span class="sd">    For each treated sample, this function searches control samples within</span>
+<span class="sd">    ``threshold`` score distance and selects up to ``nmatches`` controls.</span>
+<span class="sd">    Selection can be deterministic (``method=&quot;min&quot;``) or random.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        data (pd.DataFrame): DataFrame containing both test and control groups,</span>
@@ -114,21 +116,15 @@
 <span class="sd">        nmatches (int, optional): The maximum number of control matches to find for</span>
 <span class="sd">                                  each test unit within the specified radius/threshold.</span>
 <span class="sd">                                  Defaults to 1.</span>
-<span class="sd">        method (str, optional): The method for selecting matches among neighbors found</span>
-<span class="sd">                                within the radius. Options:</span>
-<span class="sd">                                &#39;min&#39;: Selects the `nmatches` neighbors with the smallest</span>
-<span class="sd">                                       score difference.</span>
-<span class="sd">                                &#39;random&#39;: Selects `nmatches` neighbors randomly from those</span>
-<span class="sd">                                          within the radius.</span>
-<span class="sd">                                Defaults to &#39;min&#39;.</span>
+<span class="sd">        method (str, optional): Match selection method. Use ``&quot;min&quot;`` for smallest</span>
+<span class="sd">                                score differences or ``&quot;random&quot;`` for random sampling.</span>
+<span class="sd">                                Defaults to ``&quot;min&quot;``.</span>
 <span class="sd">        replacement (bool, optional): Whether control units can be matched multiple times</span>
 <span class="sd">                                      (used more than once as a match). Defaults to False.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        pd.DataFrame: A DataFrame containing the matched test and control units.</span>
-<span class="sd">                      Includes original columns plus &#39;match_id&#39; (linking matched pairs/groups)</span>
-<span class="sd">                      and &#39;record_id&#39; (preserving the original index of the unit). Returns</span>
-<span class="sd">                      an empty DataFrame if no matches are found.</span>
+<span class="sd">        pd.DataFrame: Matched treated/control rows with ``match_id`` and ``record_id``.</span>
+<span class="sd">                      Returns an empty DataFrame if no matches are found.</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: If the &#39;scores&#39; column is not found in the input `data`.</span>
@@ -282,9 +278,23 @@
 <span class="sd">               was empty.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">minority</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="p">(</span><span class="n">original_data</span><span class="p">[</span><span class="n">yvar</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">&lt;=</span> <span class="p">(</span><span class="n">original_data</span><span class="p">[</span><span class="n">yvar</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="k">else</span> <span class="mi">0</span>
-    <span class="n">denom</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">original_data</span><span class="p">[</span><span class="n">original_data</span><span class="p">[</span><span class="n">yvar</span><span class="p">]</span> <span class="o">==</span> <span class="n">minority</span><span class="p">])</span>
-    <span class="n">num</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">matched_data</span><span class="p">[</span><span class="n">matched_data</span><span class="p">[</span><span class="n">yvar</span><span class="p">]</span> <span class="o">==</span> <span class="n">minority</span><span class="p">])</span>
-    <span class="k">return</span> <span class="n">num</span> <span class="o">/</span> <span class="n">denom</span> <span class="k">if</span> <span class="n">denom</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">0</span></div>
+    <span class="n">original_minority</span> <span class="o">=</span> <span class="n">original_data</span><span class="p">[</span><span class="n">original_data</span><span class="p">[</span><span class="n">yvar</span><span class="p">]</span> <span class="o">==</span> <span class="n">minority</span><span class="p">]</span>
+    <span class="n">matched_minority</span> <span class="o">=</span> <span class="n">matched_data</span><span class="p">[</span><span class="n">matched_data</span><span class="p">[</span><span class="n">yvar</span><span class="p">]</span> <span class="o">==</span> <span class="n">minority</span><span class="p">]</span>
+
+    <span class="n">original_id_col</span> <span class="o">=</span> <span class="s2">&quot;record_id&quot;</span> <span class="k">if</span> <span class="s2">&quot;record_id&quot;</span> <span class="ow">in</span> <span class="n">original_minority</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="n">matched_id_col</span> <span class="o">=</span> <span class="s2">&quot;record_id&quot;</span> <span class="k">if</span> <span class="s2">&quot;record_id&quot;</span> <span class="ow">in</span> <span class="n">matched_minority</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="n">original_id_col</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">denom</span> <span class="o">=</span> <span class="n">original_minority</span><span class="p">[</span><span class="n">original_id_col</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">denom</span> <span class="o">=</span> <span class="n">original_minority</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">matched_id_col</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">num</span> <span class="o">=</span> <span class="n">matched_minority</span><span class="p">[</span><span class="n">matched_id_col</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">num</span> <span class="o">=</span> <span class="n">matched_minority</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">num</span> <span class="o">/</span> <span class="n">denom</span> <span class="k">if</span> <span class="n">denom</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.0</span></div>
 
 </pre></div>
 

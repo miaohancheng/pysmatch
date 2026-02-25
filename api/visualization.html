@@ -6,17 +6,17 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>pysmatch.visualization &mdash; pysmatch 1.6 documentation</title>
+  <title>pysmatch.visualization &mdash; pysmatch 0.0.post1+g7b572eb68 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=9d552775"></script>
-      <script src="../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/documentation_options.js?v=9d1dcd7d"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/design-tabs.js?v=f930bc37"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="../_static/js/theme.js"></script>
@@ -47,8 +47,12 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">目录 (Contents):</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../readme_en.html">README (English)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../readme_zh.html">README (中文)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../usage.html">Usage Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../example.html">Example Notebook</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../changelog.html">Changelog</a></li>
 </ul>
@@ -81,6 +85,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
       <li class="breadcrumb-item active">pysmatch.visualization</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/api/visualization.rst.txt" rel="nofollow"> View page source</a>
@@ -97,19 +102,9 @@
 <dt class="sig sig-object py" id="pysmatch.visualization.compare_categorical">
 <span class="sig-prename descclassname"><span class="pre">pysmatch.visualization.</span></span><span class="sig-name descname"><span class="pre">compare_categorical</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">matcher</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_table</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_result</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pysmatch/visualization.html#compare_categorical"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.visualization.compare_categorical" title="Link to this definition"></a></dt>
 <dd><p>Compares categorical variables between groups before and after matching.</p>
-<p>For each categorical covariate identified in the <cite>matcher</cite> object:
-1. Calculates the proportional difference (test % - control %) for each category</p>
-<blockquote>
-<div><p>level before and after matching.</p>
-</div></blockquote>
-<ol class="arabic simple" start="2">
-<li><p>Performs Chi-Square tests of independence between the variable and the group
-indicator (<cite>yvar</cite>) before and after matching (using <cite>matcher.prop_test</cite>).</p></li>
-<li><p>If <cite>plot_result</cite> is True, generates bar plots showing the proportional
-differences for each category before and after matching, annotated with the
-Chi-Square p-values.</p></li>
-<li><p>Collects the Chi-Square test results into a DataFrame.</p></li>
-</ol>
+<p>For each categorical covariate, this function computes proportional
+differences and Chi-square p-values before/after matching, and can
+optionally plot the proportional differences.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -142,19 +137,8 @@ if no categorical variables are found or if an error occurs.</p>
 <dt class="sig sig-object py" id="pysmatch.visualization.compare_continuous">
 <span class="sig-prename descclassname"><span class="pre">pysmatch.visualization.</span></span><span class="sig-name descname"><span class="pre">compare_continuous</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">matcher</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_table</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_result</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pysmatch/visualization.html#compare_continuous"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.visualization.compare_continuous" title="Link to this definition"></a></dt>
 <dd><p>Compares continuous variables between groups before and after matching.</p>
-<p>For each continuous covariate identified in the <cite>matcher</cite> object:
-1. Calculates standardized median and mean differences before and after matching.
-2. Performs permutation tests based on Chi-square distance before and after matching.
-3. Performs bootstrap Kolmogorov-Smirnov (KS) tests before and after matching.
-4. If <cite>plot_result</cite> is True, generates side-by-side Empirical Cumulative</p>
-<blockquote>
-<div><p>Distribution Function (ECDF) plots comparing the distributions before and
-after matching, annotated with the calculated statistics (KS p-value,
-permutation p-value, standardized differences).</p>
-</div></blockquote>
-<ol class="arabic simple" start="5">
-<li><p>Collects these statistics into a DataFrame.</p></li>
-</ol>
+<p>For each continuous covariate, this function computes summary balance
+statistics before/after matching and can optionally render ECDF plots.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
