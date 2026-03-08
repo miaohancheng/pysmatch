@@ -84,6 +84,67 @@ def test_matcher_initialization(sample_data_frames):
     assert matcher.controln == n_control_val
 
 
+def test_matcher_formula_limits_covariates(sample_data_frames):
+    test_df, control_df = sample_data_frames
+
+    matcher = Matcher(
+        test=test_df,
+        control=control_df,
+        yvar='treated',
+        formula='treated ~ age',
+    )
+
+    assert matcher.xvars == ['age']
+    assert list(matcher.X.columns) == ['age']
+
+
+def test_matcher_formula_rejects_wrong_outcome(sample_data_frames):
+    test_df, control_df = sample_data_frames
+
+    with pytest.raises(ValueError, match="must match yvar"):
+        Matcher(
+            test=test_df,
+            control=control_df,
+            yvar='treated',
+            formula='other ~ age',
+        )
+
+
+def test_matcher_preserves_input_record_ids():
+    test_df = pd.DataFrame({
+        'record_id': ['t-1', 't-2'],
+        'age': [30.0, 35.0],
+    })
+    control_df = pd.DataFrame({
+        'record_id': ['c-1', 'c-2'],
+        'age': [32.0, 36.0],
+    })
+
+    matcher = Matcher(test=test_df, control=control_df, yvar='treated')
+
+    assert matcher.record_id_source == 'input data'
+    assert matcher.data['record_id'].tolist() == ['t-1', 't-2', 'c-1', 'c-2']
+
+
+def test_matcher_logs_rows_dropped_for_missing_covariates(caplog):
+    test_df = pd.DataFrame({
+        'age': [30.0, np.nan, 42.0],
+        'income': [50000, 60000, 70000],
+    })
+    control_df = pd.DataFrame({
+        'age': [35.0, 41.0, np.nan],
+        'income': [45000, 47000, 49000],
+    })
+
+    with caplog.at_level(logging.WARNING):
+        matcher = Matcher(test=test_df, control=control_df, yvar='treated')
+
+    assert matcher.rows_dropped_due_to_na == 2
+    assert matcher.test_rows_dropped_due_to_na == 1
+    assert matcher.control_rows_dropped_due_to_na == 1
+    assert "Dropped 2 row(s) with missing covariates" in caplog.text
+
+
 def test_fit_scores_and_predict_scores(matcher_instance):
     """Test fitting scores and predicting them."""
     # Mock the actual model fitting to speed up tests and avoid dependency on ML libraries

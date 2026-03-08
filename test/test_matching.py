@@ -2,7 +2,12 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pysmatch.matching import perform_match, tune_threshold, prop_retained
+from pysmatch.matching import (
+    perform_exhaustive_match,
+    perform_match,
+    tune_threshold,
+    prop_retained,
+)
 
 
 @pytest.fixture
@@ -32,10 +37,73 @@ def test_perform_match_returns_expected_columns(sample_match_data):
     assert set(matched["treated"].unique()) == {0, 1}
 
 
+def test_perform_match_preserves_existing_record_ids():
+    data = pd.DataFrame(
+        {
+            "record_id": [100, 101, 200, 201],
+            "treated": [1, 1, 0, 0],
+            "scores": [0.10, 0.80, 0.11, 0.81],
+        },
+        index=[10, 11, 20, 21],
+    )
+
+    matched = perform_match(
+        data=data,
+        yvar="treated",
+        threshold=0.02,
+        nmatches=1,
+        method="min",
+        replacement=False,
+    )
+
+    assert set(matched["record_id"]) == {100, 101, 200, 201}
+
+
+def test_perform_match_accepts_nearest_alias(sample_match_data):
+    matched = perform_match(
+        data=sample_match_data,
+        yvar="treated",
+        threshold=0.03,
+        nmatches=1,
+        method="nearest",
+        replacement=False,
+    )
+
+    assert not matched.empty
+    assert matched["match_id"].nunique() == 2
+
+
 def test_perform_match_requires_scores_column():
     data = pd.DataFrame({"treated": [1, 0], "x": [1, 2]})
     with pytest.raises(ValueError, match="Scores column not found"):
         perform_match(data=data, yvar="treated")
+
+
+def test_perform_match_requires_positive_nmatches(sample_match_data):
+    with pytest.raises(ValueError, match="nmatches must be at least 1"):
+        perform_match(data=sample_match_data, yvar="treated", nmatches=0)
+
+
+def test_perform_exhaustive_match_prioritizes_unused_controls():
+    data = pd.DataFrame(
+        {
+            "record_id": ["t1", "t2", "c1", "c2"],
+            "treated": [1, 1, 0, 0],
+            "scores": [0.10000, 0.10010, 0.10005, 0.10009],
+        }
+    )
+
+    matched = perform_exhaustive_match(
+        data=data,
+        yvar="treated",
+        threshold=0.001,
+        nmatches=1,
+        show_progress=False,
+    )
+
+    control_ids = matched.loc[matched["matched_as"] == "control", "record_id"].tolist()
+    assert control_ids == ["c1", "c2"]
+    assert matched["match_id"].nunique() == 2
 
 
 def test_tune_threshold_outputs_probabilities(sample_match_data):

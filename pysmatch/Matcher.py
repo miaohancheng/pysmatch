@@ -5,8 +5,6 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from typing import List, Optional, Dict, Any
-from collections import defaultdict
-from tqdm import tqdm
 
 from pysmatch import utils as uf
 from pysmatch import modeling
@@ -75,8 +73,15 @@ class Matcher:
         c_df = c_df.dropna(axis=1, how="all")
 
         self.data = pd.concat([t_df.reset_index(drop=True), c_df.reset_index(drop=True)], ignore_index=True)
-
-        self.data['record_id'] = self.data.index
+        if 'record_id' in self.data.columns and self.data['record_id'].notna().all() and self.data['record_id'].is_unique:
+            self.record_id_source = "input data"
+        else:
+            if 'record_id' in self.data.columns:
+                logging.warning(
+                    "Input record_id column has missing or duplicate values. Falling back to generated row-based record_id values."
+                )
+            self.data['record_id'] = self.data.index
+            self.record_id_source = "generated index"
 
         self.control_color = "#1F77B4"
         self.test_color = "#FF7F0E"
@@ -95,23 +100,34 @@ class Matcher:
 
         self.data[self.treatment_col] = self.data[self.treatment_col].astype(int)
 
-        potential_xvars = [col for col in self.data.columns if col not in self.exclude and col not in aux_match_cols]
-        self.xvars = []
-        for col in potential_xvars:
-            if self.data[col].nunique(dropna=False) > 1:
-                self.xvars.append(col)
+        raw_row_count = len(self.data)
+        raw_test_count = int((self.data[self.treatment_col] == 1).sum())
+        raw_control_count = int((self.data[self.treatment_col] == 0).sum())
 
+        self.xvars, self.data, design_matrix = self._prepare_design_data(
+            data=self.data,
+            aux_match_cols=aux_match_cols,
+        )
         self.original_xvars = self.xvars.copy()
+        self.rows_dropped_due_to_na = raw_row_count - len(self.data)
+        self.test_rows_dropped_due_to_na = raw_test_count - int((self.data[self.treatment_col] == 1).sum())
+        self.control_rows_dropped_due_to_na = raw_control_count - int((self.data[self.treatment_col] == 0).sum())
 
-        if self.xvars:
-            self.data = self.data.dropna(subset=self.xvars)
+        if self.rows_dropped_due_to_na > 0:
+            logging.warning(
+                "Dropped %s row(s) with missing covariates%s. Test rows dropped: %s. Control rows dropped: %s.",
+                self.rows_dropped_due_to_na,
+                f" using formula '{self.formula}'" if self.formula else "",
+                self.test_rows_dropped_due_to_na,
+                self.control_rows_dropped_due_to_na,
+            )
 
         if self.data.empty:
             logging.warning("DataFrame is empty after dropping NA values in covariates. Covariates may have too many NAs or data is too small.")
             self.X = pd.DataFrame(columns=self.xvars)
             self.y = pd.Series(dtype=int)
         else:
-            self.X = self.data[self.xvars]
+            self.X = design_matrix
             self.y = self.data[self.treatment_col]
 
         self.matched_data = pd.DataFrame()
@@ -134,12 +150,73 @@ class Matcher:
             self.minority, self.majority = 0, 1
 
         logging.info(f'Treatment column: {self.treatment_col}')
+        if self.formula:
+            logging.info(f'Formula: {self.formula}')
         logging.info(f'Covariates (xvars): {self.xvars}')
+        logging.info(f"Record ID source: {self.record_id_source}")
         if self.minority != -1:
             logging.info(f'N majority group (treatment={self.majority}): {len(self.data[self.data[self.treatment_col] == self.majority])}')
             logging.info(f'N minority group (treatment={self.minority}): {len(self.data[self.data[self.treatment_col] == self.minority])}')
         else:
             logging.info("Could not determine majority/minority due to empty or one-sided test/control groups.")
+
+    def _prepare_design_data(
+        self,
+        data: pd.DataFrame,
+        aux_match_cols: List[str],
+    ) -> tuple[List[str], pd.DataFrame, pd.DataFrame]:
+        """Build the covariate matrix and align rows kept for modeling."""
+        if self.formula:
+            return self._prepare_formula_design_data(data)
+
+        potential_xvars = [col for col in data.columns if col not in self.exclude and col not in aux_match_cols]
+        xvars = []
+        for col in potential_xvars:
+            if data[col].nunique(dropna=False) > 1:
+                xvars.append(col)
+
+        filtered_data = data.dropna(subset=xvars).copy() if xvars else data.copy()
+        design_matrix = filtered_data[xvars].copy() if xvars else pd.DataFrame(index=filtered_data.index)
+        return xvars, filtered_data, design_matrix
+
+    def _prepare_formula_design_data(self, data: pd.DataFrame) -> tuple[List[str], pd.DataFrame, pd.DataFrame]:
+        """Build the design matrix from a Patsy-style formula."""
+        from patsy import PatsyError, dmatrices, dmatrix
+
+        try:
+            if "~" in self.formula:
+                lhs = self.formula.split("~", 1)[0].strip()
+                if lhs and lhs != self.treatment_col:
+                    raise ValueError(
+                        f"Formula outcome '{lhs}' must match yvar '{self.treatment_col}'."
+                    )
+                _, design_matrix = dmatrices(
+                    self.formula,
+                    data,
+                    return_type="dataframe",
+                    NA_action="drop",
+                )
+            else:
+                design_matrix = dmatrix(
+                    self.formula,
+                    data,
+                    return_type="dataframe",
+                    NA_action="drop",
+                )
+        except PatsyError as exc:
+            raise ValueError(f"Invalid formula '{self.formula}': {exc}") from exc
+
+        design_matrix = design_matrix.drop(columns=["Intercept"], errors="ignore")
+        if not design_matrix.empty:
+            design_matrix = design_matrix.loc[:, design_matrix.nunique(dropna=False) > 1]
+
+        if design_matrix.empty:
+            raise ValueError(
+                f"Formula '{self.formula}' did not produce any non-constant covariates."
+            )
+
+        filtered_data = data.loc[design_matrix.index].copy()
+        return design_matrix.columns.tolist(), filtered_data, design_matrix.copy()
 
 
     def fit_model(self, index: int, X: pd.DataFrame, y: pd.Series, model_type: str,
@@ -372,84 +449,22 @@ class Matcher:
 
         if exhaustive_matching:
             logging.info(f"Performing exhaustive matching: nmatches={nmatches}, threshold={threshold}")
-            control_usage_counts = defaultdict(int)
-            matched_pairs_info = []
-
             if 'record_id' not in current_test_df.columns or 'record_id' not in current_control_df.columns:
                 logging.error("Record IDs missing from test_df or control_df used in exhaustive matching.")
                 self.matched_data = pd.DataFrame()
                 return
 
-            for _, case_row in tqdm(current_test_df.iterrows(), total=len(current_test_df), desc="Exhaustive Matching"):
-                case_prop_score = case_row['scores']
-                case_record_id = case_row['record_id']
+            self.matched_data = matching.perform_exhaustive_match(
+                self.data,
+                self.treatment_col,
+                threshold=threshold,
+                nmatches=nmatches,
+                show_progress=True,
+            )
 
-                temp_controls_df = current_control_df.copy()
-                temp_controls_df['prop_score_diff'] = np.abs(temp_controls_df['scores'] - case_prop_score)
-
-                eligible_controls_for_case = temp_controls_df[
-                    temp_controls_df['prop_score_diff'] <= threshold
-                ].copy()
-
-                if eligible_controls_for_case.empty:
-                    continue
-
-                eligible_controls_for_case['is_used'] = eligible_controls_for_case['record_id'].map(
-                    lambda rid: control_usage_counts[rid] > 0
-                )
-                eligible_controls_for_case['usage_count'] = eligible_controls_for_case['record_id'].map(
-                    lambda rid: control_usage_counts[rid]
-                )
-
-                eligible_controls_for_case = eligible_controls_for_case.sort_values(
-                    by=['is_used', 'usage_count', 'prop_score_diff']
-                )
-
-                selected_controls_for_case = eligible_controls_for_case.head(nmatches)
-
-                for _, control_row_selected in selected_controls_for_case.iterrows():
-                    control_record_id = control_row_selected['record_id']
-                    matched_pairs_info.append({
-                        'case_record_id': case_record_id,
-                        'control_record_id': control_record_id,
-                        'score_diff': control_row_selected['prop_score_diff']
-                    })
-                    control_usage_counts[control_record_id] += 1
-
-            if not matched_pairs_info:
-                self.matched_data = pd.DataFrame()
+            if self.matched_data.empty:
                 logging.info("No matches found with exhaustive matching.")
                 return
-
-            final_matched_rows_list = []
-            current_match_id = 0
-            for pair in matched_pairs_info:
-                case_data_original_row = self.data[self.data['record_id'] == pair['case_record_id']]
-                control_data_original_row = self.data[self.data['record_id'] == pair['control_record_id']]
-
-                if case_data_original_row.empty or control_data_original_row.empty:
-                    logging.warning(f"Could not find original data for pair: case_id {pair['case_record_id']}, control_id {pair['control_record_id']}. Skipping this pair.")
-                    continue
-
-                case_data_matched = case_data_original_row.iloc[0].copy()
-                control_data_matched = control_data_original_row.iloc[0].copy()
-
-                case_data_matched['match_id'] = current_match_id
-                case_data_matched['matched_as'] = 'case'
-                case_data_matched['pair_score_diff'] = pair['score_diff']
-
-                control_data_matched['match_id'] = current_match_id
-                control_data_matched['matched_as'] = 'control'
-                control_data_matched['pair_score_diff'] = pair['score_diff']
-
-                final_matched_rows_list.append(case_data_matched)
-                final_matched_rows_list.append(control_data_matched)
-                current_match_id += 1
-
-            if final_matched_rows_list:
-                self.matched_data = pd.DataFrame(final_matched_rows_list).reset_index(drop=True)
-            else:
-                self.matched_data = pd.DataFrame()
             logging.info(f"Exhaustive matching complete. {self.matched_data['match_id'].nunique() if not self.matched_data.empty else 0} pairs formed.")
 
         else:
