@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>pysmatch.matching &mdash; pysmatch 0.0.post1+g3894662ba documentation</title>
+  <title>pysmatch.matching &mdash; pysmatch 0.0.post1+gafed05ce8 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
@@ -13,7 +13,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=812236d1"></script>
+      <script src="../../_static/documentation_options.js?v=654a4f85"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/design-tabs.js?v=f930bc37"></script>
@@ -116,6 +116,25 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.neighbors</span><span class="w"> </span><span class="kn">import</span> <span class="n">NearestNeighbors</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Union</span>
 
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_match_output_columns</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">extra_columns</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build the output schema while preserving original column order.&quot;&quot;&quot;</span>
+    <span class="n">columns</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">extra_columns</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">columns</span><span class="p">:</span>
+            <span class="n">columns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">col</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">columns</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_ensure_record_id</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Attach a stable record identifier when the caller did not provide one.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="s1">&#39;record_id&#39;</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">data</span>
+
+    <span class="n">data_with_ids</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">data_with_ids</span><span class="p">[</span><span class="s1">&#39;record_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data_with_ids</span><span class="o">.</span><span class="n">index</span>
+    <span class="k">return</span> <span class="n">data_with_ids</span>
+
 <div class="viewcode-block" id="perform_match">
 <a class="viewcode-back" href="../../api/matching.html#pysmatch.matching.perform_match">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">perform_match</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">yvar</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span>
@@ -137,8 +156,9 @@
 <span class="sd">        nmatches (int, optional): The maximum number of control matches to find for</span>
 <span class="sd">                                  each test unit within the specified radius/threshold.</span>
 <span class="sd">                                  Defaults to 1.</span>
-<span class="sd">        method (str, optional): Match selection method. Use ``&quot;min&quot;`` for smallest</span>
-<span class="sd">                                score differences or ``&quot;random&quot;`` for random sampling.</span>
+<span class="sd">        method (str, optional): Match selection method. Use ``&quot;min&quot;`` (or the</span>
+<span class="sd">                                backward-compatible alias ``&quot;nearest&quot;``) for smallest</span>
+<span class="sd">                                score differences, or ``&quot;random&quot;`` for random sampling.</span>
 <span class="sd">                                Defaults to ``&quot;min&quot;``.</span>
 <span class="sd">        replacement (bool, optional): Whether control units can be matched multiple times</span>
 <span class="sd">                                      (used more than once as a match). Defaults to False.</span>
@@ -151,9 +171,13 @@
 <span class="sd">        ValueError: If the &#39;scores&#39; column is not found in the input `data`.</span>
 <span class="sd">        ValueError: If an invalid `method` parameter is provided (not &#39;min&#39; or &#39;random&#39;).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">_ensure_record_id</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="s1">&#39;scores&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;No &#39;scores&#39; column found. Please run predict_scores() first.&quot;</span><span class="p">)</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Scores column not found in data.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">nmatches</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;nmatches must be at least 1.&quot;</span><span class="p">)</span>
 
     <span class="c1"># 对测试组和对照组按倾向分数排序</span>
     <span class="n">test_df</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">yvar</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
@@ -167,7 +191,15 @@
     <span class="n">ctrl_indices</span> <span class="o">=</span> <span class="n">ctrl_scores</span><span class="p">[</span><span class="s1">&#39;index&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
     <span class="n">ctrl_scores_values</span> <span class="o">=</span> <span class="n">ctrl_scores</span><span class="p">[</span><span class="s1">&#39;scores&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 
-    <span class="n">nbrs</span> <span class="o">=</span> <span class="n">NearestNeighbors</span><span class="p">(</span><span class="n">n_neighbors</span><span class="o">=</span><span class="n">nmatches</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span> <span class="n">algorithm</span><span class="o">=</span><span class="s1">&#39;ball_tree&#39;</span><span class="p">)</span>
+    <span class="n">output_columns</span> <span class="o">=</span> <span class="n">_match_output_columns</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;match_id&#39;</span><span class="p">,</span> <span class="s1">&#39;record_id&#39;</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_scores_values</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">ctrl_scores_values</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">output_columns</span><span class="p">)</span>
+
+    <span class="n">effective_n_neighbors</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">nmatches</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">ctrl_scores_values</span><span class="p">))</span>
+    <span class="n">normalized_method</span> <span class="o">=</span> <span class="s1">&#39;min&#39;</span> <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;nearest&#39;</span> <span class="k">else</span> <span class="n">method</span>
+
+    <span class="n">nbrs</span> <span class="o">=</span> <span class="n">NearestNeighbors</span><span class="p">(</span><span class="n">n_neighbors</span><span class="o">=</span><span class="n">effective_n_neighbors</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span> <span class="n">algorithm</span><span class="o">=</span><span class="s1">&#39;ball_tree&#39;</span><span class="p">)</span>
     <span class="n">nbrs</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">ctrl_scores_values</span><span class="p">)</span>
     <span class="n">distances</span><span class="p">,</span> <span class="n">indices</span> <span class="o">=</span> <span class="n">nbrs</span><span class="o">.</span><span class="n">radius_neighbors</span><span class="p">(</span><span class="n">test_scores_values</span><span class="p">)</span>
 
@@ -178,7 +210,7 @@
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">dists</span><span class="p">,</span> <span class="n">neighbors</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">distances</span><span class="p">,</span> <span class="n">indices</span><span class="p">)):</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">neighbors</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">continue</span>
-        <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;min&#39;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">normalized_method</span> <span class="o">==</span> <span class="s1">&#39;min&#39;</span><span class="p">:</span>
             <span class="n">sorted_order</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">dists</span><span class="p">)</span>
             <span class="n">selected</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">sorted_order</span><span class="p">:</span>
@@ -198,7 +230,7 @@
                         <span class="s1">&#39;match_id&#39;</span><span class="p">:</span> <span class="n">current_match_id</span>
                     <span class="p">})</span>
                 <span class="n">current_match_id</span> <span class="o">+=</span> <span class="mi">1</span>
-        <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;random&#39;</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="n">normalized_method</span> <span class="o">==</span> <span class="s1">&#39;random&#39;</span><span class="p">:</span>
             <span class="n">possible</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">neighbors</span><span class="p">)</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">replacement</span><span class="p">:</span>
                 <span class="n">possible</span> <span class="o">=</span> <span class="p">[</span><span class="n">n</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">possible</span> <span class="k">if</span> <span class="n">ctrl_indices</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">used_ctrl_indices</span><span class="p">]</span>
@@ -225,14 +257,117 @@
 
         <span class="n">matched_test</span><span class="p">[</span><span class="s1">&#39;match_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">matched_df</span><span class="p">[</span><span class="s1">&#39;match_id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
         <span class="n">matched_ctrl</span><span class="p">[</span><span class="s1">&#39;match_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">matched_df</span><span class="p">[</span><span class="s1">&#39;match_id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
-        <span class="n">matched_test</span><span class="p">[</span><span class="s1">&#39;record_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">matched_test</span><span class="o">.</span><span class="n">index</span>
-        <span class="n">matched_ctrl</span><span class="p">[</span><span class="s1">&#39;record_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">matched_ctrl</span><span class="o">.</span><span class="n">index</span>
+        <span class="k">if</span> <span class="s1">&#39;record_id&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">matched_test</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">matched_test</span><span class="p">[</span><span class="s1">&#39;record_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">matched_test</span><span class="o">.</span><span class="n">index</span>
+        <span class="k">if</span> <span class="s1">&#39;record_id&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">matched_ctrl</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">matched_ctrl</span><span class="p">[</span><span class="s1">&#39;record_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">matched_ctrl</span><span class="o">.</span><span class="n">index</span>
 
         <span class="n">output_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">matched_test</span><span class="p">,</span> <span class="n">matched_ctrl</span><span class="p">],</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">output_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="s1">&#39;match_id&#39;</span><span class="p">,</span> <span class="s1">&#39;record_id&#39;</span><span class="p">])</span>
+        <span class="n">output_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">output_columns</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">output_df</span></div>
+
+
+
+<div class="viewcode-block" id="perform_exhaustive_match">
+<a class="viewcode-back" href="../../api/matching.html#pysmatch.matching.perform_exhaustive_match">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">perform_exhaustive_match</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+    <span class="n">yvar</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span>
+    <span class="n">nmatches</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">show_progress</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Perform exhaustive matching while prioritizing unused controls first.</span>
+
+<span class="sd">    Controls are pre-sorted by propensity score once, then candidate windows are</span>
+<span class="sd">    found by binary search for each treated row. Within each window, selection is</span>
+<span class="sd">    ordered by:</span>
+<span class="sd">    1. whether the control has been used before,</span>
+<span class="sd">    2. current usage count,</span>
+<span class="sd">    3. absolute score distance.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">_ensure_record_id</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="s1">&#39;scores&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;No &#39;scores&#39; column found. Please run predict_scores() first.&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Scores column not found in data.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">nmatches</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;nmatches must be at least 1.&quot;</span><span class="p">)</span>
+
+    <span class="n">output_columns</span> <span class="o">=</span> <span class="n">_match_output_columns</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;match_id&#39;</span><span class="p">,</span> <span class="s1">&#39;matched_as&#39;</span><span class="p">,</span> <span class="s1">&#39;pair_score_diff&#39;</span><span class="p">])</span>
+    <span class="n">test_df</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">yvar</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">control_df</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">yvar</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">test_df</span><span class="o">.</span><span class="n">empty</span> <span class="ow">or</span> <span class="n">control_df</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">output_columns</span><span class="p">)</span>
+
+    <span class="n">control_df</span> <span class="o">=</span> <span class="n">control_df</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s1">&#39;scores&#39;</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;mergesort&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">control_scores</span> <span class="o">=</span> <span class="n">control_df</span><span class="p">[</span><span class="s1">&#39;scores&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
+    <span class="n">control_record_ids</span> <span class="o">=</span> <span class="n">control_df</span><span class="p">[</span><span class="s1">&#39;record_id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
+    <span class="n">control_usage_counts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">control_df</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+
+    <span class="n">pairs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">iterator</span> <span class="o">=</span> <span class="n">test_df</span><span class="p">[[</span><span class="s1">&#39;record_id&#39;</span><span class="p">,</span> <span class="s1">&#39;scores&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">itertuples</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">show_progress</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tqdm</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
+
+        <span class="n">iterator</span> <span class="o">=</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">iterator</span><span class="p">,</span> <span class="n">total</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">test_df</span><span class="p">),</span> <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Exhaustive Matching&quot;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">case_record_id</span><span class="p">,</span> <span class="n">case_score</span> <span class="ow">in</span> <span class="n">iterator</span><span class="p">:</span>
+        <span class="n">left</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">control_scores</span><span class="p">,</span> <span class="n">case_score</span> <span class="o">-</span> <span class="n">threshold</span><span class="p">,</span> <span class="n">side</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">)</span>
+        <span class="n">right</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">control_scores</span><span class="p">,</span> <span class="n">case_score</span> <span class="o">+</span> <span class="n">threshold</span><span class="p">,</span> <span class="n">side</span><span class="o">=</span><span class="s1">&#39;right&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">left</span> <span class="o">==</span> <span class="n">right</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="n">candidate_positions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">)</span>
+        <span class="n">candidate_usage</span> <span class="o">=</span> <span class="n">control_usage_counts</span><span class="p">[</span><span class="n">candidate_positions</span><span class="p">]</span>
+        <span class="n">candidate_diffs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">control_scores</span><span class="p">[</span><span class="n">candidate_positions</span><span class="p">]</span> <span class="o">-</span> <span class="n">case_score</span><span class="p">)</span>
+        <span class="n">candidate_is_used</span> <span class="o">=</span> <span class="n">candidate_usage</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="n">order</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">lexsort</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">candidate_positions</span><span class="p">,</span> <span class="n">candidate_diffs</span><span class="p">,</span> <span class="n">candidate_usage</span><span class="p">,</span> <span class="n">candidate_is_used</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">selected_positions</span> <span class="o">=</span> <span class="n">candidate_positions</span><span class="p">[</span><span class="n">order</span><span class="p">[:</span><span class="n">nmatches</span><span class="p">]]</span>
+
+        <span class="k">for</span> <span class="n">pos</span> <span class="ow">in</span> <span class="n">selected_positions</span><span class="p">:</span>
+            <span class="n">pairs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s1">&#39;case_record_id&#39;</span><span class="p">:</span> <span class="n">case_record_id</span><span class="p">,</span>
+                    <span class="s1">&#39;control_record_id&#39;</span><span class="p">:</span> <span class="n">control_record_ids</span><span class="p">[</span><span class="n">pos</span><span class="p">],</span>
+                    <span class="s1">&#39;pair_score_diff&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">control_scores</span><span class="p">[</span><span class="n">pos</span><span class="p">]</span> <span class="o">-</span> <span class="n">case_score</span><span class="p">)),</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+        <span class="n">control_usage_counts</span><span class="p">[</span><span class="n">selected_positions</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">pairs</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">output_columns</span><span class="p">)</span>
+
+    <span class="n">pairs_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">pairs</span><span class="p">)</span>
+    <span class="n">pairs_df</span><span class="p">[</span><span class="s1">&#39;match_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">pairs_df</span><span class="p">))</span>
+
+    <span class="n">case_rows</span> <span class="o">=</span> <span class="n">pairs_df</span><span class="p">[[</span><span class="s1">&#39;case_record_id&#39;</span><span class="p">,</span> <span class="s1">&#39;match_id&#39;</span><span class="p">,</span> <span class="s1">&#39;pair_score_diff&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span>
+        <span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;case_record_id&#39;</span><span class="p">:</span> <span class="s1">&#39;record_id&#39;</span><span class="p">}</span>
+    <span class="p">)</span>
+    <span class="n">case_rows</span><span class="p">[</span><span class="s1">&#39;matched_as&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;case&#39;</span>
+    <span class="n">case_rows</span><span class="p">[</span><span class="s1">&#39;_pair_order&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pairs_df</span><span class="p">[</span><span class="s1">&#39;match_id&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="mi">2</span>
+
+    <span class="n">control_rows</span> <span class="o">=</span> <span class="n">pairs_df</span><span class="p">[[</span><span class="s1">&#39;control_record_id&#39;</span><span class="p">,</span> <span class="s1">&#39;match_id&#39;</span><span class="p">,</span> <span class="s1">&#39;pair_score_diff&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span>
+        <span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;control_record_id&#39;</span><span class="p">:</span> <span class="s1">&#39;record_id&#39;</span><span class="p">}</span>
+    <span class="p">)</span>
+    <span class="n">control_rows</span><span class="p">[</span><span class="s1">&#39;matched_as&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;control&#39;</span>
+    <span class="n">control_rows</span><span class="p">[</span><span class="s1">&#39;_pair_order&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pairs_df</span><span class="p">[</span><span class="s1">&#39;match_id&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span>
+
+    <span class="n">annotation</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">case_rows</span><span class="p">,</span> <span class="n">control_rows</span><span class="p">],</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">annotation</span> <span class="o">=</span> <span class="n">annotation</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s1">&#39;_pair_order&#39;</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;mergesort&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;_pair_order&#39;</span><span class="p">])</span>
+
+    <span class="n">row_lookup</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="s1">&#39;record_id&#39;</span><span class="p">,</span> <span class="n">keep</span><span class="o">=</span><span class="s1">&#39;first&#39;</span><span class="p">)</span>
+    <span class="n">matched_data</span> <span class="o">=</span> <span class="n">annotation</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">row_lookup</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s1">&#39;record_id&#39;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">matched_data</span> <span class="o">=</span> <span class="n">matched_data</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="s1">&#39;match_id&#39;</span><span class="p">,</span> <span class="s1">&#39;matched_as&#39;</span><span class="p">,</span> <span class="s1">&#39;pair_score_diff&#39;</span><span class="p">]]</span>
+
+    <span class="k">return</span> <span class="n">matched_data</span></div>
 
 
 

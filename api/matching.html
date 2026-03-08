@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>pysmatch.matching &mdash; pysmatch 0.0.post1+g3894662ba documentation</title>
+  <title>pysmatch.matching &mdash; pysmatch 0.0.post1+gafed05ce8 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
@@ -14,7 +14,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=812236d1"></script>
+      <script src="../_static/documentation_options.js?v=654a4f85"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/design-tabs.js?v=f930bc37"></script>
@@ -79,6 +79,7 @@
 <li class="toctree-l2"><a class="reference internal" href="matcher.html">pysmatch.Matcher</a></li>
 <li class="toctree-l2"><a class="reference internal" href="modeling.html">pysmatch.modeling</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">pysmatch.matching</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pysmatch.matching.perform_exhaustive_match"><code class="docutils literal notranslate"><span class="pre">perform_exhaustive_match()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#pysmatch.matching.perform_match"><code class="docutils literal notranslate"><span class="pre">perform_match()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#pysmatch.matching.prop_retained"><code class="docutils literal notranslate"><span class="pre">prop_retained()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#pysmatch.matching.tune_threshold"><code class="docutils literal notranslate"><span class="pre">tune_threshold()</span></code></a></li>
@@ -126,6 +127,18 @@
   <section id="module-pysmatch.matching">
 <span id="pysmatch-matching"></span><span id="api-matching"></span><h1>pysmatch.matching<a class="headerlink" href="#module-pysmatch.matching" title="Link to this heading"></a></h1>
 <dl class="py function">
+<dt class="sig sig-object py" id="pysmatch.matching.perform_exhaustive_match">
+<span class="sig-prename descclassname"><span class="pre">pysmatch.matching.</span></span><span class="sig-name descname"><span class="pre">perform_exhaustive_match</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yvar</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nmatches</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="reference internal" href="../_modules/pysmatch/matching.html#perform_exhaustive_match"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.matching.perform_exhaustive_match" title="Link to this definition"></a></dt>
+<dd><p>Perform exhaustive matching while prioritizing unused controls first.</p>
+<p>Controls are pre-sorted by propensity score once, then candidate windows are
+found by binary search for each treated row. Within each window, selection is
+ordered by:
+1. whether the control has been used before,
+2. current usage count,
+3. absolute score distance.</p>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="pysmatch.matching.perform_match">
 <span class="sig-prename descclassname"><span class="pre">pysmatch.matching.</span></span><span class="sig-name descname"><span class="pre">perform_match</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yvar</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nmatches</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'min'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">replacement</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="reference internal" href="../_modules/pysmatch/matching.html#perform_match"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pysmatch.matching.perform_match" title="Link to this definition"></a></dt>
 <dd><p>Perform nearest-neighbor matching using propensity scores.</p>
@@ -144,8 +157,9 @@ based on propensity score difference. Defaults to 0.001.</p></li>
 <li><p><strong>nmatches</strong> (<em>int</em><em>, </em><em>optional</em>) – The maximum number of control matches to find for
 each test unit within the specified radius/threshold.
 Defaults to 1.</p></li>
-<li><p><strong>method</strong> (<em>str</em><em>, </em><em>optional</em>) – Match selection method. Use <code class="docutils literal notranslate"><span class="pre">&quot;min&quot;</span></code> for smallest
-score differences or <code class="docutils literal notranslate"><span class="pre">&quot;random&quot;</span></code> for random sampling.
+<li><p><strong>method</strong> (<em>str</em><em>, </em><em>optional</em>) – Match selection method. Use <code class="docutils literal notranslate"><span class="pre">&quot;min&quot;</span></code> (or the
+backward-compatible alias <code class="docutils literal notranslate"><span class="pre">&quot;nearest&quot;</span></code>) for smallest
+score differences, or <code class="docutils literal notranslate"><span class="pre">&quot;random&quot;</span></code> for random sampling.
 Defaults to <code class="docutils literal notranslate"><span class="pre">&quot;min&quot;</span></code>.</p></li>
 <li><p><strong>replacement</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether control units can be matched multiple times
 (used more than once as a match). Defaults to False.</p></li>
