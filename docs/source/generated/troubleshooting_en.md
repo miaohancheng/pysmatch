@@ -25,10 +25,11 @@ matcher.match(...)
 
 ## `FileNotFoundError` for dataset path
 
-Use a repo-relative path:
+The built-in demo is available without a repository checkout:
 
 ```python
-pd.read_csv("misc/loan.csv")
+from pysmatch import load_demo
+data = load_demo()
 ```
 
 ## No matches found

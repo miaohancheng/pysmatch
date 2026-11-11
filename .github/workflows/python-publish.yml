@@ -12,23 +12,28 @@ jobs:
   build-and-test:
     name: Build and test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0  # 🚨 为 setuptools_scm 获取完整 tag 历史
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[all]"  # 安装本地包和可选依赖（tree+tune）
-          pip install pytest-cov codecov
+          pip install -e ".[all,dev]"
 
       - name: Check README/docs sync
         run: |
@@ -38,28 +43,43 @@ jobs:
         run: |
           MPLBACKEND=Agg python -m pytest --cov=pysmatch --cov-report xml --cov-report term
 
+      - name: Build and smoke-test wheel
+        if: matrix.python-version == '3.11'
+        run: |
+          python -m build
+          twine check dist/*
+          python -m pip install --target "$RUNNER_TEMP/pysmatch-wheel" --no-deps dist/*.whl
+          PYTHONPATH="$RUNNER_TEMP/pysmatch-wheel" python - <<'PY'
+          from pysmatch import load_demo
+          assert load_demo().shape == (500, 9)
+          print("wheel smoke test passed")
+          PY
+
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        if: matrix.python-version == '3.11'
+        uses: codecov/codecov-action@v4
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml
           flags: unittests
           name: codecov-coverage
+          fail_ci_if_error: false
 
   build-and-publish:
     name: Build and publish to PyPI and create GitHub release
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     needs: [ build-and-test ]
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0  # 🚨 否则 setuptools_scm 无法识别版本
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
@@ -88,17 +108,17 @@ jobs:
           twine check dist/*
 
       - name: Publish package to PyPI
-        uses: pypa/gh-action-pypi-publish@v1.4.2
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
           repository_url: https://upload.pypi.org/legacy/
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           release_name: "Release ${{ github.ref_name }}"
-          body: "🎉 发布版本 ${{ github.ref_name }} 到 PyPI"
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

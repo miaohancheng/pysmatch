@@ -1,16 +1,14 @@
 # Example.py
-import pandas as pd
 import numpy as np
-from pysmatch.Matcher import Matcher # Assuming Matcher.py is in pysmatch directory
+from pysmatch import Matcher, load_demo
 import warnings
 
 # --- 0. Suppress Warnings (Optional) ---
 warnings.filterwarnings('ignore')
 
 # --- 1. Load and Prepare Data ---
-# Load loan.csv data as per user's request
-path = "misc/loan.csv" # Ensure this path is correct or the file is in the same directory
-data = pd.read_csv(path)
+# Load the compact demo dataset shipped with the package.
+data = load_demo()
 
 test_data_full = data[data.loan_status == "Default"].copy() # Use .copy() to avoid SettingWithCopyWarning
 control_data_full = data[data.loan_status == "Fully Paid"].copy()
@@ -33,7 +31,8 @@ exclude_cols = ['loan_status']
 matcher_instance = Matcher(test=test_data_full,
                            control=control_data_full,
                            yvar=treatment_var, # Matcher will create 'is_default' column internally
-                           exclude=exclude_cols)
+                           exclude=exclude_cols,
+                           random_state=42)
 
 print(f"\n--- Matcher Initialized ---")
 print(f"Treatment Column: {matcher_instance.treatment_col}")
@@ -46,7 +45,7 @@ print(f"Test group size in Matcher: {matcher_instance.testn}, Control group size
 # nmodels is recommended to be adjusted based on the sample size of the minority class.
 # Using n_jobs > 1 for parallel processing if your machine has multiple cores.
 if matcher_instance.testn > 0 and matcher_instance.controln > 0:
-    matcher_instance.fit_scores(balance=True, nmodels=10, model_type='tree', n_jobs=2)
+    matcher_instance.fit_scores(balance=True, nmodels=10, model_type='linear', n_jobs=2)
     # Example with another model type:
     # matcher_instance.fit_scores(balance=True, nmodels=5, model_type='tree', n_jobs=2) # Using CatBoost
     # Example with Optuna for hyperparameter tuning:

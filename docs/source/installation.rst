@@ -31,12 +31,20 @@ Core dependencies:
 * pandas
 * numpy
 * scipy
-* statsmodels
 * scikit-learn
-* matplotlib
 * imbalanced-learn
-* seaborn
 
 Optional dependencies:
+* ``pip install "pysmatch[viz]"`` for plotting and balance visualizations
 * ``pip install "pysmatch[tree]"`` for CatBoost models
 * ``pip install "pysmatch[tune]"`` for Optuna tuning
+
+Development dependencies:
+* ``pip install "pysmatch[dev]"`` for tests, linting, and package checks
+
+The documentation demo data is included in the wheel and can be loaded with:
+
+.. code-block:: python
+
+   from pysmatch import load_demo
+   data = load_demo()

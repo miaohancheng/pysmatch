@@ -20,7 +20,7 @@ Not necessarily. Very high separability may indicate weak overlap, which can red
 
 ## How do I make runs reproducible?
 
-- set `np.random.seed(...)`
+- pass a fixed `random_state` to `Matcher` and matching functions
 - keep fixed package versions
 - record model/matching parameters in experiment logs
 
@@ -32,6 +32,11 @@ Not necessarily. Very high separability may indicate weak overlap, which can red
 ## Contributing
 
 Contributions are welcome. Please open an issue or pull request in this repository.
+
+## Cite
+
+See `CITATION.cff` in the repository for citation metadata. Please also cite the
+methodological references below when you publish results.
 
 ## License
 

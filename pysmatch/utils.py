@@ -35,7 +35,8 @@ def drop_static_cols(df: pd.DataFrame, yvar: str, cols: Optional[List[str]] = No
         sys.stdout.flush()
     return df
 
-def ks_boot(tr: np.ndarray, co: np.ndarray, nboots: int = 1000) -> float:
+def ks_boot(tr: np.ndarray, co: np.ndarray, nboots: int = 1000,
+            random_state: Optional[int] = None) -> float:
     """
     Performs a bootstrap Kolmogorov-Smirnov (KS) test to estimate the p-value.
 
@@ -49,19 +50,24 @@ def ks_boot(tr: np.ndarray, co: np.ndarray, nboots: int = 1000) -> float:
         co (np.ndarray): Array containing data for the second sample (e.g., control group).
         nboots (int, optional): The number of bootstrap iterations to perform.
                                 Defaults to 1000.
+        random_state (Optional[int], optional): Seed for reproducible resampling.
+                                                Defaults to ``None``.
 
     Returns:
         float: The estimated p-value, calculated as the proportion of bootstrap KS statistics
                that are greater than or equal to the observed KS statistic.
     """
+    if nboots < 1:
+        raise ValueError("nboots must be at least 1.")
     nx = len(tr)
     combined = np.concatenate((tr, co))
     obs = len(combined)
     fs_ks, _ = stats.ks_2samp(tr, co)
 
     bbcount = 0
+    rng = np.random.default_rng(random_state)
     for _ in range(nboots):
-        sample = np.random.choice(combined, obs, replace=True)
+        sample = rng.choice(combined, obs, replace=True)
         x1 = sample[:nx]
         x2 = sample[nx:]
         s_ks, _ = stats.ks_2samp(x1, x2)
@@ -93,7 +99,8 @@ def chi2_distance(t: np.ndarray, c: np.ndarray, bins: Union[int, str] = 'auto') 
     epsilon = 1e-10
     return 0.5 * np.sum(((t_hist - c_hist) ** 2) / (t_hist + c_hist + epsilon))
 
-def grouped_permutation_test(f, t: np.ndarray, c: np.ndarray, n_samples: int = 1000) -> tuple:
+def grouped_permutation_test(f, t: np.ndarray, c: np.ndarray, n_samples: int = 1000,
+                             random_state: Optional[int] = None) -> tuple:
     """
     Perform a permutation test for a user-defined statistic.
 
@@ -108,16 +115,21 @@ def grouped_permutation_test(f, t: np.ndarray, c: np.ndarray, n_samples: int = 1
         c (np.ndarray): Array containing data for the second group.
         n_samples (int, optional): The number of permutation iterations to perform.
                                    Defaults to 1000.
+        random_state (Optional[int], optional): Seed for reproducible permutations.
+                                                Defaults to ``None``.
 
     Returns:
         tuple: ``(p_value, truth)``, where ``truth`` is the observed statistic.
     """
+    if n_samples < 1:
+        raise ValueError("n_samples must be at least 1.")
     truth = f(t, c)
     combined = np.concatenate((t, c))
     tn = len(t)
     count = 0
+    rng = np.random.default_rng(random_state)
     for _ in range(n_samples):
-        np.random.shuffle(combined)
+        rng.shuffle(combined)
         tt = combined[:tn]
         cc = combined[tn:]
         sample_truth = f(tt, cc)
@@ -144,6 +156,8 @@ def std_diff(a: np.ndarray, b: np.ndarray) -> tuple:
                                 Returns (0.0, 0.0) if the combined standard deviation is zero or
                                 if inputs are empty.
     """
+    if len(a) == 0 or len(b) == 0:
+        return 0, 0
     combined = np.concatenate([a, b])
     sd = np.std(combined, ddof=1)
     if sd == 0:

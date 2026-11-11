@@ -1,0 +1,32 @@
+name: Documentation check
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    env:
+      MPLCONFIGDIR: ${{ runner.temp }}/matplotlib
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install documentation dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r docs/requirements.txt
+          pip install .
+      - name: Check generated pages
+        run: python scripts/sync_readme_to_docs.py --check
+      - name: Build documentation
+        run: sphinx-build -W -b html docs/source "$RUNNER_TEMP/docs"

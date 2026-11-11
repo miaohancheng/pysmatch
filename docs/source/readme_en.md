@@ -5,16 +5,24 @@
 
 [![PyPI version](https://badge.fury.io/py/pysmatch.svg?icon=si%3Apython&icon_color=%23ffffff)](https://badge.fury.io/py/pysmatch)
 [![Downloads](https://static.pepy.tech/badge/pysmatch)](https://pepy.tech/project/pysmatch)
-![GitHub License](https://img.shields.io/github/license/miaohancheng/pysmatch)
+[![CI](https://github.com/miaohancheng/pysmatch/actions/workflows/python-publish.yml/badge.svg)](https://github.com/miaohancheng/pysmatch/actions/workflows/python-publish.yml)
+[![Documentation](https://img.shields.io/badge/docs-online-4c8)](https://miaohancheng.com/pysmatch/)
+[![GitHub License](https://img.shields.io/github/license/miaohancheng/pysmatch)](LICENSE)
 [![codecov](https://codecov.io/github/miaohancheng/pysmatch/graph/badge.svg?token=TUYDEDRV45)](https://codecov.io/github/miaohancheng/pysmatch)
 
-**Propensity Score Matching (PSM)** helps reduce selection bias in observational studies by matching treatment and control units with similar propensity scores.
+**Propensity Score Matching (PSM) in Python for reproducible observational studies.**
+
+Estimate propensity scores, match treatment and control units, and inspect covariate balance in a single workflow. The package supports logistic regression, KNN, CatBoost, caliper matching, exhaustive matching, and balance diagnostics.
 
 `pysmatch` is an improved and extended version of [`pymatch`](https://github.com/benmiroglio/pymatch), with modernized modeling, modularized matching utilities, and better support for reproducible workflows.
 
 ### Multilingual
 
 [English](https://github.com/miaohancheng/pysmatch/blob/main/README.md) | [中文](https://github.com/miaohancheng/pysmatch/blob/main/README_CHINESE.md)
+
+[Documentation](https://miaohancheng.com/pysmatch/) · [API reference](https://miaohancheng.com/pysmatch/api.html) · [Issues](https://github.com/miaohancheng/pysmatch/issues) · [Citation](CITATION.cff)
+
+![Before and after covariate balance from the packaged demo](docs/source/_static/demo_balance.svg)
 
 ### Highlights
 
@@ -37,7 +45,9 @@ Install optional extras:
 ```bash
 pip install "pysmatch[tree]"   # CatBoost support
 pip install "pysmatch[tune]"   # Optuna support
+pip install "pysmatch[viz]"    # plotting and balance visualizations
 pip install "pysmatch[all]"    # all optional dependencies
+pip install "pysmatch[dev]"    # test, lint, and package tooling
 ```
 
 Install from source:
@@ -50,18 +60,17 @@ pip install -e ".[all]"
 
 ## Quickstart
 
-This minimal example runs the full core path with the built-in demo dataset (`misc/loan.csv`).
+This minimal example runs the full core path with the demo dataset shipped in the package.
 
 ```python
 import warnings
 warnings.filterwarnings("ignore")
 
 import numpy as np
-import pandas as pd
-from pysmatch.Matcher import Matcher
+from pysmatch import Matcher, load_demo
 
 np.random.seed(42)
-data = pd.read_csv("misc/loan.csv")
+data = load_demo()
 
 test = data[data.loan_status == "Default"].copy()
 control = data[data.loan_status == "Fully Paid"].copy()
@@ -71,6 +80,7 @@ matcher = Matcher(
     control=control,
     yvar="is_default",
     exclude=["loan_status"],
+    random_state=42,
 )
 
 matcher.fit_scores(
@@ -84,9 +94,10 @@ matcher.predict_scores()
 matcher.match(method="min", nmatches=1, threshold=0.001, replacement=False)
 
 print(matcher.matched_data.head())
+print(matcher.balance_report())
 ```
 
-If this works, continue to the full workflow below.
+The demo data is shipped with the package, so this example also works after a clean `pip install pysmatch`.
 
 ## End-to-End Workflow
 
@@ -117,7 +128,7 @@ control = raw[raw.loan_status == "Fully Paid"].copy()
 ### Initialize Matcher
 
 ```python
-from pysmatch.Matcher import Matcher
+from pysmatch import Matcher
 
 matcher = Matcher(
     test=test,
@@ -241,9 +252,16 @@ print(matcher.matched_data[["record_id", "match_id", "weight"]].head())
 - If balance is weak after matching, tighten threshold or change model/balance strategy.
 - For severe class imbalance, test `balance_strategy="under"` as sensitivity analysis.
 
+To compare matching performance across releases, run the separate benchmark
+harness: `python benchmarks/benchmark_matching.py --rows 10000`.
+
 ## Evaluation
 
 After matching, evaluate covariate balance before causal analysis.
+
+The table-based `balance_report()` works with the core install. Plotting
+helpers such as `compare_continuous()` and `plot_scores()` require
+`pip install "pysmatch[viz]"`.
 
 ### Categorical Covariates
 
@@ -268,6 +286,17 @@ Interpretation:
 
 - compare KS statistics and grouped permutation test p-values
 - monitor standardized mean/median differences pre vs post matching
+
+For a compact report that uses standardized mean differences (SMD) and
+category-proportion differences as the primary balance measures:
+
+```python
+balance = matcher.balance_report()
+print(balance[["variable", "abs_smd_before", "abs_smd_after"]])
+```
+
+As a rule of thumb, inspect absolute SMD values together with retention and
+the research design; statistical significance alone is not a balance target.
 
 ### Single Variable Proportion Test
 
@@ -299,10 +328,11 @@ matcher.match(...)
 
 ### `FileNotFoundError` for dataset path
 
-Use a repo-relative path:
+The built-in demo is available without a repository checkout:
 
 ```python
-pd.read_csv("misc/loan.csv")
+from pysmatch import load_demo
+data = load_demo()
 ```
 
 ### No matches found
@@ -336,7 +366,7 @@ Not necessarily. Very high separability may indicate weak overlap, which can red
 
 ### How do I make runs reproducible?
 
-- set `np.random.seed(...)`
+- pass a fixed `random_state` to `Matcher` and matching functions
 - keep fixed package versions
 - record model/matching parameters in experiment logs
 
@@ -348,6 +378,11 @@ Not necessarily. Very high separability may indicate weak overlap, which can red
 ### Contributing
 
 Contributions are welcome. Please open an issue or pull request in this repository.
+
+### Cite
+
+See `CITATION.cff` in the repository for citation metadata. Please also cite the
+methodological references below when you publish results.
 
 ### License
 

@@ -21,3 +21,6 @@
 - 若保留率太低，逐步放宽 `threshold`。
 - 若匹配后仍不平衡，适当收紧阈值或更换模型。
 - 类别极度不平衡时，可将 `balance_strategy="under"` 作为稳健性对照。
+
+如需比较不同版本的匹配性能，可运行独立 benchmark：
+`python benchmarks/benchmark_matching.py --rows 10000`。

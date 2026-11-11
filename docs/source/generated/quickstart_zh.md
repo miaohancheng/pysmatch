@@ -3,18 +3,17 @@
 
 # 快速开始
 
-下面是可直接运行的最小示例（使用仓库内置 `misc/loan.csv`）：
+下面是可直接运行的最小示例（demo 数据随包发布）：
 
 ```python
 import warnings
 warnings.filterwarnings("ignore")
 
 import numpy as np
-import pandas as pd
-from pysmatch.Matcher import Matcher
+from pysmatch import Matcher, load_demo
 
 np.random.seed(42)
-data = pd.read_csv("misc/loan.csv")
+data = load_demo()
 
 test = data[data.loan_status == "Default"].copy()
 control = data[data.loan_status == "Fully Paid"].copy()
@@ -24,6 +23,7 @@ matcher = Matcher(
     control=control,
     yvar="is_default",
     exclude=["loan_status"],
+    random_state=42,
 )
 
 matcher.fit_scores(
@@ -37,6 +37,7 @@ matcher.predict_scores()
 matcher.match(method="min", nmatches=1, threshold=0.001, replacement=False)
 
 print(matcher.matched_data.head())
+print(matcher.balance_report())
 ```
 
-跑通后建议继续阅读完整流程。
+即使只执行干净的 `pip install pysmatch`，上面的示例也可以直接运行。

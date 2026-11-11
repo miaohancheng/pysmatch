@@ -25,10 +25,11 @@ matcher.match(...)
 
 ## 读取数据报 `FileNotFoundError`
 
-优先使用仓库相对路径：
+内置 demo 数据无需仓库路径即可读取：
 
 ```python
-pd.read_csv("misc/loan.csv")
+from pysmatch import load_demo
+data = load_demo()
 ```
 
 ## 匹配结果为空

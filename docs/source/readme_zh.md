@@ -5,16 +5,24 @@
 
 [![PyPI version](https://badge.fury.io/py/pysmatch.svg?icon=si%3Apython&icon_color=%23ffffff)](https://badge.fury.io/py/pysmatch)
 [![Downloads](https://static.pepy.tech/badge/pysmatch)](https://pepy.tech/project/pysmatch)
-![GitHub License](https://img.shields.io/github/license/miaohancheng/pysmatch)
+[![CI](https://github.com/miaohancheng/pysmatch/actions/workflows/python-publish.yml/badge.svg)](https://github.com/miaohancheng/pysmatch/actions/workflows/python-publish.yml)
+[![Documentation](https://img.shields.io/badge/docs-online-4c8)](https://miaohancheng.com/pysmatch/)
+[![GitHub License](https://img.shields.io/github/license/miaohancheng/pysmatch)](LICENSE)
 [![codecov](https://codecov.io/github/miaohancheng/pysmatch/graph/badge.svg?token=TUYDEDRV45)](https://codecov.io/github/miaohancheng/pysmatch)
 
-**PSM（倾向得分匹配）** 用于在观察性研究中缓解选择偏差：先估计每个样本接受处理的概率，再在处理组与对照组之间按得分进行匹配。
+**面向可复现观察性研究的 Python 倾向得分匹配工具。**
+
+`pysmatch` 将倾向得分估计、处理组/对照组匹配和协变量平衡性检查串成一个流程，支持 Logistic Regression、KNN、CatBoost、卡尺匹配、详尽匹配和诊断报告。
 
 `pysmatch` 是 [`pymatch`](https://github.com/benmiroglio/pymatch) 的改进版本，提供更清晰的模块化结构、更灵活的匹配策略以及更完整的评估工具。
 
 ### 多语言
 
 [English](https://github.com/miaohancheng/pysmatch/blob/main/README.md) | [中文](https://github.com/miaohancheng/pysmatch/blob/main/README_CHINESE.md)
+
+[在线文档](https://miaohancheng.com/pysmatch/) · [API 文档](https://miaohancheng.com/pysmatch/api.html) · [Issues](https://github.com/miaohancheng/pysmatch/issues) · [引用信息](CITATION.cff)
+
+![内置 demo 数据的匹配前后协变量平衡](docs/source/_static/demo_balance.svg)
 
 ### 核心特性
 
@@ -37,7 +45,9 @@ pip install pysmatch
 ```bash
 pip install "pysmatch[tree]"   # 启用 CatBoost
 pip install "pysmatch[tune]"   # 启用 Optuna
+pip install "pysmatch[viz]"    # 绘图和平衡性可视化
 pip install "pysmatch[all]"    # 启用全部可选依赖
+pip install "pysmatch[dev]"    # 测试、检查和打包工具
 ```
 
 从源码安装：
@@ -50,18 +60,17 @@ pip install -e ".[all]"
 
 ## 快速开始
 
-下面是可直接运行的最小示例（使用仓库内置 `misc/loan.csv`）：
+下面是可直接运行的最小示例（demo 数据随包发布）：
 
 ```python
 import warnings
 warnings.filterwarnings("ignore")
 
 import numpy as np
-import pandas as pd
-from pysmatch.Matcher import Matcher
+from pysmatch import Matcher, load_demo
 
 np.random.seed(42)
-data = pd.read_csv("misc/loan.csv")
+data = load_demo()
 
 test = data[data.loan_status == "Default"].copy()
 control = data[data.loan_status == "Fully Paid"].copy()
@@ -71,6 +80,7 @@ matcher = Matcher(
     control=control,
     yvar="is_default",
     exclude=["loan_status"],
+    random_state=42,
 )
 
 matcher.fit_scores(
@@ -84,9 +94,10 @@ matcher.predict_scores()
 matcher.match(method="min", nmatches=1, threshold=0.001, replacement=False)
 
 print(matcher.matched_data.head())
+print(matcher.balance_report())
 ```
 
-跑通后建议继续阅读完整流程。
+即使只执行干净的 `pip install pysmatch`，上面的示例也可以直接运行。
 
 ## 端到端流程
 
@@ -117,7 +128,7 @@ control = raw[raw.loan_status == "Fully Paid"].copy()
 ### 初始化 Matcher
 
 ```python
-from pysmatch.Matcher import Matcher
+from pysmatch import Matcher
 
 matcher = Matcher(
     test=test,
@@ -241,9 +252,15 @@ print(matcher.matched_data[["record_id", "match_id", "weight"]].head())
 - 若匹配后仍不平衡，适当收紧阈值或更换模型。
 - 类别极度不平衡时，可将 `balance_strategy="under"` 作为稳健性对照。
 
+如需比较不同版本的匹配性能，可运行独立 benchmark：
+`python benchmarks/benchmark_matching.py --rows 10000`。
+
 ## 评估
 
 匹配完成后，应先做平衡性评估，再做后续因果分析。
+
+表格形式的 `balance_report()` 只需要核心安装；`compare_continuous()`、
+`plot_scores()` 等绘图函数需要额外安装 `pip install "pysmatch[viz]"`。
 
 ### 分类变量平衡
 
@@ -268,6 +285,15 @@ print(cont_table)
 
 - KS 与 grouped permutation 检验结果
 - 标准化均值差/中位数差在匹配后是否下降
+
+也可以使用统一的平衡性报告，把标准化差异作为主要指标：
+
+```python
+balance = matcher.balance_report()
+print(balance[["variable", "abs_smd_before", "abs_smd_after"]])
+```
+
+绝对 SMD 应结合保留率和研究设计一起解释，不能只看显著性检验。
 
 ### 单变量比例检验
 
@@ -299,10 +325,11 @@ matcher.match(...)
 
 ### 读取数据报 `FileNotFoundError`
 
-优先使用仓库相对路径：
+内置 demo 数据无需仓库路径即可读取：
 
 ```python
-pd.read_csv("misc/loan.csv")
+from pysmatch import load_demo
+data = load_demo()
 ```
 
 ### 匹配结果为空
@@ -336,7 +363,7 @@ pd.read_csv("misc/loan.csv")
 
 ### 如何保证可复现？
 
-- 固定随机种子（`np.random.seed(...)`）
+- 给 `Matcher` 和匹配函数传入固定的 `random_state`
 - 固定依赖版本
 - 记录完整的匹配参数与模型参数
 
@@ -348,6 +375,10 @@ pd.read_csv("misc/loan.csv")
 ### 贡献
 
 欢迎提交 issue 和 pull request。
+
+### 引用
+
+请参阅仓库中的 `CITATION.cff` 获取引用信息；发表结果时也请引用下方的方法学文献。
 
 ### 许可证
 

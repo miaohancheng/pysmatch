@@ -130,10 +130,18 @@ def compare_continuous(matcher, return_table: bool = False, plot_result: bool = 
 
             std_diff_med_before, std_diff_mean_before = uf.std_diff(trb.values, cob.values)
             std_diff_med_after, std_diff_mean_after = uf.std_diff(tra.values, coa.values)
-            pb, _ = uf.grouped_permutation_test(uf.chi2_distance, trb.values, cob.values)
-            pa, _ = uf.grouped_permutation_test(uf.chi2_distance, tra.values, coa.values)
-            ksb = round(uf.ks_boot(trb.values, cob.values, nboots=1000), 6)
-            ksa = round(uf.ks_boot(tra.values, coa.values, nboots=1000), 6)
+            random_state = getattr(matcher, "random_state", None)
+            column_seed = None if random_state is None else random_state + len(test_results)
+            pb, _ = uf.grouped_permutation_test(
+                uf.chi2_distance, trb.values, cob.values, random_state=column_seed
+            )
+            pa, _ = uf.grouped_permutation_test(
+                uf.chi2_distance, tra.values, coa.values, random_state=column_seed + 1
+                if column_seed is not None else None
+            )
+            ksb = round(uf.ks_boot(trb.values, cob.values, nboots=1000, random_state=column_seed), 6)
+            ksa = round(uf.ks_boot(tra.values, coa.values, nboots=1000, random_state=column_seed + 1
+                                   if column_seed is not None else None), 6)
 
             if plot_result:
                 fig, (ax1, ax2) = plt.subplots(1, 2, sharey=True, sharex=True, figsize=(12, 5))

@@ -3,19 +3,25 @@
 import logging
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from typing import List, Optional, Dict, Any
 
 from pysmatch import utils as uf
 from pysmatch import modeling
 from pysmatch import matching
-from pysmatch import visualization
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
+
+def _visualization_module():
+    """Import optional plotting dependencies with an actionable message."""
+
+    try:
+        from pysmatch import visualization
+    except ModuleNotFoundError as exc:
+        raise ImportError(
+            "Plotting and balance visualizations require optional dependencies; "
+            "install them with `pip install 'pysmatch[viz]'`."
+        ) from exc
+    return visualization
+
 
 class Matcher:
     """
@@ -39,7 +45,8 @@ class Matcher:
     """
     def __init__(self, test: pd.DataFrame, control: pd.DataFrame, yvar: str,
                  formula: Optional[str] = None, exclude: Optional[List[str]] = None,
-                 exhaustive_matching_default: bool = False):
+                 exhaustive_matching_default: bool = False,
+                 random_state: int = 42):
         """
         Initializes the Matcher object.
 
@@ -54,13 +61,18 @@ class Matcher:
                                            covariates. `yvar` is automatically excluded.
             exhaustive_matching_default (bool, optional): Default setting for whether to use
                                                           exhaustive matching. Defaults to False.
+            random_state (int, optional): Base seed used by model fitting, threshold tuning,
+                                         and random matching. Defaults to 42.
         Raises:
             ValueError: If input data types are incorrect or required columns are missing.
         """
         if exclude is None:
             exclude = []
+        if random_state is None:
+            random_state = 42
+        if not isinstance(random_state, (int, np.integer)):
+            raise TypeError("random_state must be an integer or None.")
 
-        plt.rcParams["figure.figsize"] = (10, 5)
         aux_match_cols = ['scores', 'match_id', 'weight', 'record_id', 'pair_score_diff', 'matched_as']
 
         t_df = test.copy()
@@ -97,6 +109,7 @@ class Matcher:
         self.errors = 0
 
         self.exhaustive_matching_default = exhaustive_matching_default
+        self.random_state = random_state
 
         self.data[self.treatment_col] = self.data[self.treatment_col].astype(int)
 
@@ -221,7 +234,8 @@ class Matcher:
 
     def fit_model(self, index: int, X: pd.DataFrame, y: pd.Series, model_type: str,
                   balance: bool, max_iter: int = 100,
-                  balance_strategy: str = "over") -> Dict[str, Any]:
+                  balance_strategy: str = "over",
+                  random_state: Optional[int] = None) -> Dict[str, Any]:
         """
         Fits a single propensity score model.
 
@@ -230,10 +244,12 @@ class Matcher:
             index (int): An identifier for the model.
             X (pd.DataFrame): The feature matrix (covariates).
             y (pd.Series): The target variable (treatment indicator).
-            model_type (str): The type of model to fit (e.g., 'linear', 'rf', 'gb').
+            model_type (str): The type of model to fit ('linear', 'knn', or 'tree').
             balance (bool): Whether the fitting process should aim to balance covariates.
             max_iter (int, optional): Maximum iterations for iterative solvers. Defaults to 100.
             balance_strategy (str, optional): Class-balancing strategy, "over" or "under".
+            random_state (int, optional): Base seed for this model; defaults to the matcher's seed.
+
         Returns:
             Dict[str, Any]: A dictionary containing the fitted model and its accuracy.
         """
@@ -244,13 +260,15 @@ class Matcher:
             model_type,
             balance,
             max_iter=max_iter,
+            random_state=self.random_state if random_state is None else random_state,
             balance_strategy=balance_strategy,
         )
 
     def fit_scores(self, balance: bool = True, nmodels: Optional[int] = None,
                    n_jobs: int = 1, model_type: str = 'linear',
                    max_iter: int = 100, use_optuna: bool = False,
-                   n_trials: int = 10, balance_strategy: str = "over") -> None:
+                   n_trials: int = 10, balance_strategy: str = "over",
+                   random_state: Optional[int] = None) -> "Matcher":
         """
         Fits propensity score model(s) to estimate scores.
 
@@ -258,18 +276,31 @@ class Matcher:
             balance (bool, optional): If True, attempts to create balanced models. Defaults to True.
             nmodels (Optional[int], optional): Number of models for ensemble. Auto-estimated if None and balance=True.
             n_jobs (int, optional): Number of parallel jobs for ensemble fitting. Defaults to 1.
-            model_type (str, optional): Type of model ('linear', 'rf', 'gb', 'knn', 'tree' for catboost). Defaults to 'linear'.
+            model_type (str, optional): Type of model ('linear', 'knn', or 'tree' for CatBoost). Defaults to 'linear'.
             max_iter (int, optional): Max iterations for solver. Defaults to 100.
             use_optuna (bool, optional): If True, use Optuna for hyperparameter tuning. Defaults to False.
             n_trials (int, optional): Number of Optuna trials if use_optuna is True. Defaults to 10.
             balance_strategy (str, optional): Balancing strategy when balance=True.
                                               Options: "over" or "under". Defaults to "over".
+            random_state (int, optional): Seed used for train/validation splits and model
+                                         fitting. Defaults to the value supplied at init.
+
+        Returns:
+            Matcher: The current matcher, allowing fluent workflows.
         """
         from multiprocessing import cpu_count
         from multiprocessing.pool import ThreadPool
 
         self.models, self.model_accuracy = [], []
+        if random_state is not None:
+            self.random_state = random_state
         self.model_type = model_type
+        if model_type not in {"linear", "knn", "tree"}:
+            raise ValueError("Invalid model_type. Expected one of: 'linear', 'knn', 'tree'.")
+        if n_trials < 1:
+            raise ValueError("n_trials must be at least 1.")
+        if nmodels is not None and nmodels < 1:
+            raise ValueError("nmodels must be at least 1.")
         if balance_strategy not in {"over", "under"}:
             raise ValueError(
                 f"Invalid balance_strategy='{balance_strategy}'. Expected 'over' or 'under'."
@@ -279,19 +310,24 @@ class Matcher:
         logging.info(f"This computer has: {num_cores} cores, using {n_jobs} workers for fitting scores.")
 
         if self.X.empty or self.y.empty:
-            logging.error("Feature matrix (X) or target vector (y) is empty (possibly due to NA dropping or small input). Cannot fit scores.")
-            return
+            raise ValueError(
+                "Feature matrix (X) or target vector (y) is empty; "
+                "provide at least one non-constant covariate and both groups."
+            )
+        if self.y.nunique(dropna=True) < 2:
+            raise ValueError("Both treatment groups must be present to fit propensity scores.")
 
         if use_optuna:
             logging.info(f"Using Optuna for hyperparameter tuning with {n_trials} trials for model_type='{model_type}'.")
             result = modeling.optuna_tuner(self.X, self.y, model_type=model_type,
                                            n_trials=n_trials, balance=balance,
+                                           random_state=self.random_state,
                                            balance_strategy=balance_strategy)
             self.models.append(result['model'])
             self.model_accuracy.append(result['accuracy'])
             logging.info(f"[Optuna] Best Accuracy: {result['accuracy']:.2%}")
             self.nmodels = 1
-            return
+            return self
 
         current_nmodels = nmodels
         if balance and current_nmodels is None:
@@ -326,6 +362,7 @@ class Matcher:
                     balance=False,
                     max_iter=max_iter,
                     balance_strategy=balance_strategy,
+                    random_state=self.random_state,
                 ) # balance=False if one class is empty
                 self.models.append(result['model'])
                 self.model_accuracy.append(result['accuracy'])
@@ -333,7 +370,8 @@ class Matcher:
             else:
                 with ThreadPool(n_jobs) as pool:
                     tasks = [
-                        (i, self.X, self.y, model_type, balance, max_iter, balance_strategy)
+                        (i, self.X, self.y, model_type, balance, max_iter,
+                         balance_strategy, self.random_state)
                         for i in range(self.nmodels)
                     ]
                     results = pool.starmap(self.fit_model, tasks)
@@ -349,6 +387,7 @@ class Matcher:
                 balance,
                 max_iter,
                 balance_strategy,
+                self.random_state,
             )
             self.models.append(result['model'])
             self.model_accuracy.append(result['accuracy'])
@@ -362,18 +401,21 @@ class Matcher:
         else:
             logging.warning("No model accuracies recorded.")
 
+        return self
 
-    def predict_scores(self) -> None:
+
+    def predict_scores(self) -> "Matcher":
         """
         Predicts propensity scores using the fitted model(s).
         Scores are stored in `self.data['scores']`.
+
+        Returns:
+            Matcher: The current matcher, allowing fluent workflows.
         """
         if not self.models:
-            logging.warning("No trained models found. Please call fit_scores() first.")
-            return
+            raise RuntimeError("No trained models found; call fit_scores() before predict_scores().")
         if self.X.empty:
-            logging.error("Feature matrix (X) is empty. Cannot predict scores.")
-            return
+            raise ValueError("Feature matrix (X) is empty; cannot predict propensity scores.")
 
         try:
             X_pred = self.X.copy()
@@ -382,9 +424,13 @@ class Matcher:
                     try:
                         X_pred[col] = pd.to_numeric(X_pred[col], errors='raise')
                     except ValueError:
-                        # If conversion fails, log warning. Model might handle it or fail.
-                        logging.warning(f"Column '{col}' is non-numeric and could not be auto-converted. "
-                                        f"Model '{self.model_type}' might require numeric inputs or specific categorical handling.")
+                        # Keep genuine categorical values for the fitted
+                        # preprocessing pipeline (OneHotEncoder/CatBoost).
+                        logging.debug(
+                            "Keeping non-numeric categorical column '%s' for model '%s'.",
+                            col,
+                            self.model_type,
+                        )
 
             model_preds = [model.predict_proba(X_pred)[:, 1] for model in self.models]
             scores = np.mean(model_preds, axis=0)
@@ -395,13 +441,17 @@ class Matcher:
             self.test = self.test_df.copy()
             self.control = self.control_df.copy()
             logging.info("Propensity scores predicted and added to 'scores' column in self.data, self.test_df, self.control_df.")
+            return self
         except Exception as e:
-            logging.error(f"Error during propensity score prediction: {e}")
-            logging.error(f"Ensure covariates in self.X are numeric or appropriately preprocessed for model_type='{self.model_type}'.")
+            raise RuntimeError(
+                "Could not predict propensity scores. Check that the covariates have the "
+                f"same schema used during fitting (model_type='{self.model_type}')."
+            ) from e
 
 
     def match(self, threshold: float = 0.001, nmatches: int = 1, method: str = 'min',
-              replacement: bool = False, exhaustive_matching: Optional[bool] = None) -> None:
+              replacement: bool = False, exhaustive_matching: Optional[bool] = None,
+              random_state: Optional[int] = None) -> pd.DataFrame:
         """
         Performs matching based on estimated propensity scores.
 
@@ -417,15 +467,19 @@ class Matcher:
                                                             by prioritizing unused or less-used controls.
                                                             If None, uses the instance's default
                                                             `self.exhaustive_matching_default`. Defaults to None.
+            random_state (int, optional): Seed used when ``method="random"``. Defaults to
+                                         the matcher's configured seed.
+
+        Returns:
+            pandas.DataFrame: The matched rows. An empty frame means that no pair met
+                              the requested threshold.
         """
         if exhaustive_matching is None:
             exhaustive_matching = self.exhaustive_matching_default
 
         if 'scores' not in self.data.columns:
-            logging.error("Propensity scores ('scores' column) not found in self.data. "
-                          "Please run predict_scores() first.")
             self.matched_data = pd.DataFrame()
-            return
+            raise RuntimeError("Propensity scores are missing; call predict_scores() before match().")
 
         if 'record_id' not in self.data.columns:
             logging.error("'record_id' column not found in self.data. This is unexpected.")
@@ -437,22 +491,19 @@ class Matcher:
 
 
         if current_test_df.empty or current_control_df.empty:
-            logging.warning("No test (treated) or control samples available for matching (self.test or self.control is empty).")
             self.matched_data = pd.DataFrame()
-            return
+            raise ValueError("Both treated and control groups must contain at least one row.")
 
         if 'scores' not in current_test_df.columns or 'scores' not in current_control_df.columns:
-            logging.error("Propensity scores missing from internal test/control DataFrames. Ensure predict_scores() was effective.")
             self.matched_data = pd.DataFrame()
-            return
+            raise RuntimeError("Propensity scores are missing from one of the groups; rerun predict_scores().")
 
 
         if exhaustive_matching:
             logging.info(f"Performing exhaustive matching: nmatches={nmatches}, threshold={threshold}")
             if 'record_id' not in current_test_df.columns or 'record_id' not in current_control_df.columns:
-                logging.error("Record IDs missing from test_df or control_df used in exhaustive matching.")
                 self.matched_data = pd.DataFrame()
-                return
+                raise RuntimeError("Record IDs are missing from the processed groups.")
 
             self.matched_data = matching.perform_exhaustive_match(
                 self.data,
@@ -464,15 +515,14 @@ class Matcher:
 
             if self.matched_data.empty:
                 logging.info("No matches found with exhaustive matching.")
-                return
+                return self.matched_data
             logging.info(f"Exhaustive matching complete. {self.matched_data['match_id'].nunique() if not self.matched_data.empty else 0} pairs formed.")
 
         else:
             logging.info(f"Performing matching using pysmatch.matching.perform_match: method='{method}', replacement={replacement}, threshold={threshold}, nmatches={nmatches}")
             if 'scores' not in self.data.columns or 'record_id' not in self.data.columns or self.treatment_col not in self.data.columns:
-                logging.error("self.data is missing required columns for standard matching. Aborting.")
                 self.matched_data = pd.DataFrame()
-                return
+                raise RuntimeError("Processed data is missing a required matching column.")
 
             self.matched_data = matching.perform_match(
                 self.data,
@@ -480,7 +530,8 @@ class Matcher:
                 threshold=threshold,
                 nmatches=nmatches,
                 method=method,
-                replacement=replacement
+                replacement=replacement,
+                random_state=self.random_state if random_state is None else random_state,
             )
             if self.matched_data.empty:
                 logging.info("No matches found using pysmatch.matching.perform_match.")
@@ -491,6 +542,8 @@ class Matcher:
                 if 'match_id' not in self.matched_data.columns:
                     logging.warning("'match_id' not found in matched_data from matching.perform_match. Record frequency might be affected.")
 
+        return self.matched_data
+
 
     def plot_scores(self) -> None:
         """
@@ -500,12 +553,14 @@ class Matcher:
         if 'scores' not in self.data.columns:
             logging.warning("Scores not available in self.data. Cannot plot scores. Run predict_scores() first.")
             return
+        visualization = _visualization_module()
         visualization.plot_scores(self.data, self.treatment_col,
                                   control_color=self.control_color,
                                   test_color=self.test_color)
 
     def tune_threshold(self, method: str, nmatches: int = 1,
-                       rng: Optional[np.ndarray] = None) -> None:
+                       rng: Optional[np.ndarray] = None,
+                       random_state: Optional[int] = None) -> tuple[np.ndarray, list[float]]:
         """
         Evaluates matching retention across a range of threshold values.
 
@@ -513,15 +568,28 @@ class Matcher:
             method (str): Matching method ('min' or 'random') for evaluation.
             nmatches (int, optional): Number of matches per treated sample. Defaults to 1.
             rng (Optional[np.ndarray], optional): Threshold values to test. Defaults to np.arange(0, 0.001, 0.0001).
+            random_state (int, optional): Seed used for random matching during evaluation.
+                                         Defaults to the matcher's configured seed.
+
+        Returns:
+            tuple: The tested thresholds and retained proportions.
         """
         if 'scores' not in self.data.columns:
-            logging.warning("Scores not available. Cannot tune threshold. Run predict_scores() first.")
-            return
+            raise RuntimeError("Propensity scores are missing; call predict_scores() before tune_threshold().")
         if rng is None:
             rng = np.arange(0, 0.0011, 0.0001)
 
+        try:
+            import matplotlib.pyplot as plt
+        except ModuleNotFoundError as exc:
+            raise ImportError(
+                "Threshold plots require the optional visualization dependencies; "
+                "install them with `pip install 'pysmatch[viz]'`."
+            ) from exc
+
         thresholds, retained = matching.tune_threshold(self.data, self.treatment_col,
-                                                       method=method, nmatches=nmatches, rng=rng)
+                                                       method=method, nmatches=nmatches, rng=rng,
+                                                       random_state=self.random_state if random_state is None else random_state)
         plt.figure(figsize=(10,6))
         plt.plot(thresholds, retained, marker='o')
         plt.title("Proportion of Minority Group Retained for Threshold Grid")
@@ -531,6 +599,7 @@ class Matcher:
         plt.grid(True, linestyle='--', alpha=0.7)
         plt.tight_layout()
         plt.show()
+        return thresholds, retained
 
     def record_frequency(self) -> pd.DataFrame:
         """
@@ -551,14 +620,15 @@ class Matcher:
             freqs = control_records_in_matched['record_id'].value_counts().reset_index()
             freqs.columns = ['record_id', 'n_occurrences_as_control']
             return freqs
-        elif 'match_id' in self.matched_data.columns:
-            logging.warning("Calculating frequency based on 'match_id' as 'matched_as' column is not present.")
-            freqs = self.matched_data['match_id'].value_counts().reset_index()
-            freqs.columns = ['match_id', 'n_records_in_pair_id']
+        elif 'match_id' in self.matched_data.columns and self.treatment_col in self.matched_data.columns:
+            control_records = self.matched_data[self.matched_data[self.treatment_col] == 0]
+            if control_records.empty:
+                return pd.DataFrame(columns=['record_id', 'n_occurrences_as_control'])
+            freqs = control_records['record_id'].value_counts().rename_axis('record_id').reset_index(name='n_occurrences_as_control')
             return freqs
         else:
             logging.warning("Could not determine record frequency due to missing 'matched_as' or 'match_id' in matched_data.")
-            return pd.DataFrame(columns=['id', 'frequency'])
+            return pd.DataFrame(columns=['record_id', 'n_occurrences_as_control'])
 
 
     def assign_weight_vector(self) -> None:
@@ -666,6 +736,74 @@ class Matcher:
             logging.error(f"Error preparing contingency table for '{var}': {e}")
             return None
 
+    def balance_report(self) -> pd.DataFrame:
+        """Return a compact covariate-balance report before and after matching.
+
+        Numeric covariates use the standardized mean difference (SMD). For
+        categorical covariates, ``smd_*`` is the largest absolute difference
+        in category proportions. Values near zero indicate better balance;
+        the report deliberately avoids treating p-values as a balance target.
+        """
+
+        before = self.data
+        after = self.matched_data
+        rows: list[dict[str, Any]] = []
+
+        def numeric_smd(treated: pd.Series, control: pd.Series) -> float:
+            t = pd.to_numeric(treated, errors="coerce").dropna().to_numpy()
+            c = pd.to_numeric(control, errors="coerce").dropna().to_numpy()
+            if len(t) == 0 or len(c) == 0:
+                return float("nan")
+            pooled_var = (np.var(t, ddof=1) + np.var(c, ddof=1)) / 2
+            if pooled_var == 0:
+                return 0.0 if np.mean(t) == np.mean(c) else float("inf")
+            return float((np.mean(t) - np.mean(c)) / np.sqrt(pooled_var))
+
+        def categorical_smd(treated: pd.Series, control: pd.Series) -> float:
+            t_props = treated.dropna().value_counts(normalize=True)
+            c_props = control.dropna().value_counts(normalize=True)
+            if t_props.empty or c_props.empty:
+                return float("nan")
+            levels = t_props.index.union(c_props.index)
+            return float((t_props.reindex(levels, fill_value=0)
+                          - c_props.reindex(levels, fill_value=0)).abs().max())
+
+        for col in self.xvars:
+            if col not in before.columns:
+                # Formula design matrices may contain generated columns rather
+                # than a same-named source column.
+                continue
+            before_t = before.loc[before[self.treatment_col] == 1, col]
+            before_c = before.loc[before[self.treatment_col] == 0, col]
+            if after.empty or self.treatment_col not in after.columns or col not in after.columns:
+                after_t = pd.Series(dtype=before[col].dtype)
+                after_c = pd.Series(dtype=before[col].dtype)
+            else:
+                after_t = after.loc[after[self.treatment_col] == 1, col]
+                after_c = after.loc[after[self.treatment_col] == 0, col]
+
+            is_numeric = pd.api.types.is_numeric_dtype(before[col])
+            smd_before = numeric_smd(before_t, before_c) if is_numeric else categorical_smd(before_t, before_c)
+            smd_after = numeric_smd(after_t, after_c) if is_numeric else categorical_smd(after_t, after_c)
+            rows.append({
+                "variable": col,
+                "type": "numeric" if is_numeric else "categorical",
+                "smd_before": smd_before,
+                "smd_after": smd_after,
+                "abs_smd_before": abs(smd_before) if not np.isnan(smd_before) else np.nan,
+                "abs_smd_after": abs(smd_after) if not np.isnan(smd_after) else np.nan,
+                "treated_before": int(before_t.notna().sum()),
+                "control_before": int(before_c.notna().sum()),
+                "treated_after": int(after_t.notna().sum()),
+                "control_after": int(after_c.notna().sum()),
+            })
+
+        return pd.DataFrame(rows, columns=[
+            "variable", "type", "smd_before", "smd_after",
+            "abs_smd_before", "abs_smd_after", "treated_before",
+            "control_before", "treated_after", "control_after",
+        ])
+
 
     def compare_continuous(self, save: bool = False, return_table: bool = False, plot_result: bool = True):
         """
@@ -673,6 +811,7 @@ class Matcher:
         Delegates to `visualization.compare_continuous`.
         The `visualization` module is expected to use `self.yvar` (which is `self.treatment_col`).
         """
+        visualization = _visualization_module()
         if not hasattr(visualization, 'compare_continuous'):
             logging.error("visualization.compare_continuous function not found.")
             return None if return_table else None
@@ -684,6 +823,7 @@ class Matcher:
         Delegates to `visualization.compare_categorical`.
         The `visualization` module is expected to use `self.yvar` (which is `self.treatment_col`).
         """
+        visualization = _visualization_module()
         if not hasattr(visualization, 'compare_categorical'):
             logging.error("visualization.compare_categorical function not found.")
             return None if return_table else None
@@ -704,6 +844,7 @@ class Matcher:
             logging.warning(f"Treatment column '{self.treatment_col}' not in self.matched_data. Cannot plot matched scores.")
             return
 
+        visualization = _visualization_module()
         visualization.plot_matched_scores(
             self.matched_data,
             self.treatment_col,

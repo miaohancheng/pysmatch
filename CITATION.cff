@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+title: "pysmatch: Propensity Score Matching in Python"
+message: "If pysmatch supports your research, please cite this repository and the upstream methodological references listed in the documentation."
+type: software
+authors:
+  - family-names: HanCheng
+    given-names: Miao
+    email: hanchengmiao@gmail.com
+repository-code: "https://github.com/miaohancheng/pysmatch"
+url: "https://miaohancheng.com/pysmatch/"
+license: MIT
+keywords:
+  - propensity score matching
+  - causal inference
+  - observational studies
+  - Python

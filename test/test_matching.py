@@ -137,3 +137,22 @@ def test_prop_retained_uses_unique_ids():
     )
     retained = prop_retained(original, matched, "treated")
     assert retained == 1.0
+
+
+def test_random_matching_is_reproducible(sample_match_data):
+    first = perform_match(
+        sample_match_data, "treated", threshold=0.03, method="random",
+        replacement=False, random_state=7,
+    )
+    second = perform_match(
+        sample_match_data, "treated", threshold=0.03, method="random",
+        replacement=False, random_state=7,
+    )
+    pd.testing.assert_frame_equal(first, second)
+
+
+def test_matching_rejects_invalid_threshold_and_method(sample_match_data):
+    with pytest.raises(ValueError, match="threshold must be non-negative"):
+        perform_match(sample_match_data, "treated", threshold=-0.1)
+    with pytest.raises(ValueError, match="Invalid method"):
+        perform_match(sample_match_data, "treated", method="unknown")

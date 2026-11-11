@@ -20,7 +20,7 @@ except ImportError:
 # 设置 project release
 release = version
 project = 'pysmatch'
-copyright = '2025, Miao Hancheng'
+copyright = '2026, Miao Hancheng'
 author = 'Miao Hancheng'
 
 # -- General configuration ---------------------------------------------------

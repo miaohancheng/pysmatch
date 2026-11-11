@@ -5,6 +5,10 @@
 
 After matching, evaluate covariate balance before causal analysis.
 
+The table-based `balance_report()` works with the core install. Plotting
+helpers such as `compare_continuous()` and `plot_scores()` require
+`pip install "pysmatch[viz]"`.
+
 ## Categorical Covariates
 
 ```python
@@ -28,6 +32,17 @@ Interpretation:
 
 - compare KS statistics and grouped permutation test p-values
 - monitor standardized mean/median differences pre vs post matching
+
+For a compact report that uses standardized mean differences (SMD) and
+category-proportion differences as the primary balance measures:
+
+```python
+balance = matcher.balance_report()
+print(balance[["variable", "abs_smd_before", "abs_smd_after"]])
+```
+
+As a rule of thumb, inspect absolute SMD values together with retention and
+the research design; statistical significance alone is not a balance target.
 
 ## Single Variable Proportion Test
 

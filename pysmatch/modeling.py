@@ -111,7 +111,7 @@ def fit_model(index: int, X: pd.DataFrame, y: pd.Series, model_type: str,
             learning_rate=0.02,
             loss_function='Logloss',
             logging_level='Silent',
-            random_seed=random_state, # CatBoost uses random_seed
+            random_seed=seed, # CatBoost uses random_seed
             cat_features=cat_feature_indices_for_cb
         )
         pipeline = Pipeline(steps=[('preprocessor', catboost_preprocessor), ('classifier', model)])
@@ -236,7 +236,8 @@ def optuna_tuner(X: pd.DataFrame, y: pd.Series, model_type: str, n_trials: int =
         score = pipeline_obj.score(X_val, y_val) # y_val is a Series, fine for score
         return score
 
-    study = optuna.create_study(direction="maximize")
+    sampler = optuna.samplers.TPESampler(seed=random_state)
+    study = optuna.create_study(direction="maximize", sampler=sampler)
     study.optimize(objective, n_trials=n_trials)
     best_params = study.best_params
     best_score = study.best_value

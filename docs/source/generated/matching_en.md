@@ -21,3 +21,6 @@
 - If retention is too low, loosen `threshold` gradually.
 - If balance is weak after matching, tighten threshold or change model/balance strategy.
 - For severe class imbalance, test `balance_strategy="under"` as sensitivity analysis.
+
+To compare matching performance across releases, run the separate benchmark
+harness: `python benchmarks/benchmark_matching.py --rows 10000`.

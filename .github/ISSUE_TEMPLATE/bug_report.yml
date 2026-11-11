@@ -1,0 +1,43 @@
+name: Bug report
+description: Report a reproducible problem in pysmatch
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please include a minimal reproducible example and the installed version.
+  - type: input
+    id: version
+    attributes:
+      label: pysmatch version
+      placeholder: "2.1.2"
+    validations:
+      required: true
+  - type: input
+    id: python
+    attributes:
+      label: Python version
+      placeholder: "3.12"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: A minimal script or notebook cell that reproduces the issue.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior and traceback
+    render: shell
+    validations:
+      required: true

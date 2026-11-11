@@ -11,6 +11,7 @@ This section provides the auto-generated API reference documentation based on th
    :caption: Modules:
 
    api/matcher
+   api/datasets
    api/modeling
    api/matching
    api/visualization

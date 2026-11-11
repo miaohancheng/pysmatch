@@ -4,7 +4,7 @@ import logging
 import numpy as np
 import pandas as pd
 from sklearn.neighbors import NearestNeighbors
-from typing import Union
+from typing import Optional, Union
 
 
 def _match_output_columns(data: pd.DataFrame, extra_columns: list[str]) -> list[str]:
@@ -26,7 +26,8 @@ def _ensure_record_id(data: pd.DataFrame) -> pd.DataFrame:
     return data_with_ids
 
 def perform_match(data: pd.DataFrame, yvar: str, threshold: float = 0.001,
-                  nmatches: int = 1, method: str = 'min', replacement: bool = False) -> pd.DataFrame:
+                  nmatches: int = 1, method: str = 'min', replacement: bool = False,
+                  random_state: Optional[int] = None) -> pd.DataFrame:
     """
     Perform nearest-neighbor matching using propensity scores.
 
@@ -50,6 +51,8 @@ def perform_match(data: pd.DataFrame, yvar: str, threshold: float = 0.001,
                                 Defaults to ``"min"``.
         replacement (bool, optional): Whether control units can be matched multiple times
                                       (used more than once as a match). Defaults to False.
+        random_state (Optional[int], optional): Seed used by ``method="random"``.
+                                                Defaults to ``None``.
 
     Returns:
         pd.DataFrame: Matched treated/control rows with ``match_id`` and ``record_id``.
@@ -61,6 +64,10 @@ def perform_match(data: pd.DataFrame, yvar: str, threshold: float = 0.001,
     """
     data = _ensure_record_id(data)
 
+    if yvar not in data.columns:
+        raise ValueError(f"Treatment column '{yvar}' not found in data.")
+    if not 0 <= threshold:
+        raise ValueError("threshold must be non-negative.")
     if 'scores' not in data.columns:
         logging.error("No 'scores' column found. Please run predict_scores() first.")
         raise ValueError("Scores column not found in data.")
@@ -86,6 +93,9 @@ def perform_match(data: pd.DataFrame, yvar: str, threshold: float = 0.001,
 
     effective_n_neighbors = min(max(1, nmatches), len(ctrl_scores_values))
     normalized_method = 'min' if method == 'nearest' else method
+    if normalized_method not in {'min', 'random'}:
+        raise ValueError("Invalid method parameter, use ('random', 'min')")
+    rng = np.random.default_rng(random_state)
 
     nbrs = NearestNeighbors(n_neighbors=effective_n_neighbors, radius=threshold, algorithm='ball_tree')
     nbrs.fit(ctrl_scores_values)
@@ -124,7 +134,7 @@ def perform_match(data: pd.DataFrame, yvar: str, threshold: float = 0.001,
                 possible = [n for n in possible if ctrl_indices[n] not in used_ctrl_indices]
             if len(possible) == 0:
                 continue
-            selected = np.random.choice(possible, size=min(nmatches, len(possible)), replace=False)
+            selected = rng.choice(possible, size=min(nmatches, len(possible)), replace=False)
             for n in selected:
                 ctrl_idx = ctrl_indices[n]
                 matched_records.append({
@@ -135,9 +145,6 @@ def perform_match(data: pd.DataFrame, yvar: str, threshold: float = 0.001,
                 if not replacement:
                     used_ctrl_indices.add(ctrl_idx)
             current_match_id += 1
-        else:
-            raise ValueError("Invalid method parameter, use ('random', 'min')")
-
     if matched_records:
         matched_df = pd.DataFrame(matched_records)
         matched_test = data.loc[matched_df['test_index']].copy()
@@ -176,6 +183,10 @@ def perform_exhaustive_match(
     """
     data = _ensure_record_id(data)
 
+    if yvar not in data.columns:
+        raise ValueError(f"Treatment column '{yvar}' not found in data.")
+    if not 0 <= threshold:
+        raise ValueError("threshold must be non-negative.")
     if 'scores' not in data.columns:
         logging.error("No 'scores' column found. Please run predict_scores() first.")
         raise ValueError("Scores column not found in data.")
@@ -256,7 +267,8 @@ def perform_exhaustive_match(
 
 
 def tune_threshold(data: pd.DataFrame, yvar: str, method: str = 'min',
-                   nmatches: int = 1, rng: Union[np.ndarray, None] = None) -> tuple:
+                   nmatches: int = 1, rng: Union[np.ndarray, None] = None,
+                   random_state: Optional[int] = None) -> tuple:
     """
     Evaluates matching retention across a range of threshold values.
 
@@ -274,6 +286,8 @@ def tune_threshold(data: pd.DataFrame, yvar: str, method: str = 'min',
         rng (Optional[np.ndarray], optional): A NumPy array of threshold values to test.
                                               If None, defaults to `np.arange(0, 0.001, 0.0001)`.
                                               Defaults to None.
+        random_state (Optional[int], optional): Seed used when ``method="random"``.
+                                                Defaults to ``None``.
 
     Returns:
         Tuple[np.ndarray, list]: A tuple containing:
@@ -287,7 +301,8 @@ def tune_threshold(data: pd.DataFrame, yvar: str, method: str = 'min',
     retained = []
     for threshold in rng:
         matched_data = perform_match(data, yvar, threshold=threshold,
-                                     nmatches=nmatches, method=method, replacement=False)
+                                     nmatches=nmatches, method=method, replacement=False,
+                                     random_state=random_state)
         prop = prop_retained(data, matched_data, yvar)
         thresholds.append(threshold)
         retained.append(prop)

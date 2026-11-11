@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import logging # Added: Import the logging module
 from pysmatch.Matcher import Matcher
+from pysmatch import load_demo
 # Mocking external dependencies if they are complex or have side effects (e.g., plotting)
 from unittest import mock
 
@@ -82,6 +83,16 @@ def test_matcher_initialization(sample_data_frames):
     # For this test, assume no rows are dropped from the fixture data by __init__.
     assert matcher.testn == n_test_val
     assert matcher.controln == n_control_val
+
+
+def test_demo_dataset_is_packaged_and_balanced():
+    demo = load_demo()
+    assert len(demo) == 500
+    assert set(demo["loan_status"]) == {"Default", "Fully Paid"}
+    assert demo["loan_status"].value_counts().to_dict() == {
+        "Default": 250,
+        "Fully Paid": 250,
+    }
 
 
 def test_matcher_formula_limits_covariates(sample_data_frames):
@@ -173,6 +184,34 @@ def test_fit_scores_and_predict_scores(matcher_instance):
         assert matcher_instance.data['scores'].max() <= 1
     else:
         logging.info("Skipping score prediction assertions as X was empty.")
+
+
+def test_matcher_balance_report(matcher_instance_fitted):
+    matcher = matcher_instance_fitted
+    matcher.match(threshold=0.1, nmatches=1, exhaustive_matching=True)
+    report = matcher.balance_report()
+    assert set(["variable", "smd_before", "smd_after"]).issubset(report.columns)
+    assert {"age", "income", "feature1"}.issubset(set(report["variable"]))
+
+
+def test_balance_report_handles_categorical_covariates():
+    demo = load_demo()
+    matcher = Matcher(
+        demo[demo.loan_status == "Default"],
+        demo[demo.loan_status == "Fully Paid"],
+        yvar="treated",
+        exclude=["loan_status"],
+    )
+    report = matcher.balance_report()
+    assert "categorical" in set(report["type"])
+
+
+def test_matcher_state_errors_are_actionable(matcher_instance):
+    matcher = matcher_instance
+    with pytest.raises(RuntimeError, match="fit_scores"):
+        matcher.predict_scores()
+    with pytest.raises(RuntimeError, match="predict_scores"):
+        matcher.match()
 
 
 def test_match_standard_delegation(matcher_instance_fitted):
@@ -300,6 +339,13 @@ def test_assign_weight_vector(matcher_instance_fitted):
         # Test that assign_weight_vector doesn't crash if matched_data is empty
         matcher.assign_weight_vector()
         assert 'weight' not in matcher.matched_data.columns or matcher.matched_data['weight'].empty
+
+
+def test_record_frequency_uses_control_records_for_standard_match(matcher_instance_fitted):
+    matcher = matcher_instance_fitted
+    matcher.match(threshold=0.1, nmatches=1, replacement=True)
+    frequencies = matcher.record_frequency()
+    assert list(frequencies.columns) == ["record_id", "n_occurrences_as_control"]
 
 
 @mock.patch('pysmatch.visualization.plot_scores')

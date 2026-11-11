@@ -30,7 +30,7 @@ control = raw[raw.loan_status == "Fully Paid"].copy()
 ## 初始化 Matcher
 
 ```python
-from pysmatch.Matcher import Matcher
+from pysmatch import Matcher
 
 matcher = Matcher(
     test=test,

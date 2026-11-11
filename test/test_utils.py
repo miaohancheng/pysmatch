@@ -34,3 +34,7 @@ def test_std_diff():
     # 只要能跑到就行, 具体断言可以更细化
     assert isinstance(med_diff, float)
     assert isinstance(mean_diff, float)
+
+
+def test_std_diff_empty_inputs():
+    assert std_diff(np.array([]), np.array([1.0])) == (0, 0)
