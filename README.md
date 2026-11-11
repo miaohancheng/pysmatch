@@ -240,7 +240,11 @@ print(matcher.matched_data[["record_id", "match_id", "weight"]].head())
 - `threshold`: max allowed score distance
 - `nmatches`: controls per treated unit
 - `replacement`: whether a control can be reused
-- `method`: `"min"` (closest) or `"random"` (random within threshold)
+- `method`: `"min"` (closest), `"random"` (random within threshold), or
+  `"optimal"` (minimum-cost one-to-one assignment)
+- `distance`: `"probability"` or `"logit"` propensity distance; the latter is
+  the usual logit-scale caliper
+- `exact`: columns that must have identical values within each matched pair
 
 ### Practical Guidance
 
@@ -251,6 +255,19 @@ print(matcher.matched_data[["record_id", "match_id", "weight"]].head())
 
 To compare matching performance across releases, run the separate benchmark
 harness: `python benchmarks/benchmark_matching.py --rows 10000`.
+
+Examples:
+
+```python
+# Logit propensity caliper
+matcher.match(threshold=0.2, distance="logit")
+
+# Exact matching within site, then nearest propensity score
+matcher.match(threshold=0.05, exact=["site"])
+
+# Minimum-cost one-to-one assignment (moderate data sizes)
+matcher.match(method="optimal", threshold=0.05)
+```
 
 ## Evaluation
 
@@ -294,6 +311,43 @@ print(balance[["variable", "abs_smd_before", "abs_smd_after"]])
 
 As a rule of thumb, inspect absolute SMD values together with retention and
 the research design; statistical significance alone is not a balance target.
+
+Check common support before interpreting an effect:
+
+```python
+print(matcher.overlap_report())
+```
+
+The other structured diagnostics are available without parsing plots:
+
+```python
+print(matcher.positivity_report())
+print(matcher.effective_sample_size())
+print(matcher.score_report())       # accuracy, AUC, and Brier score
+print(matcher.calibration_report())
+matcher.plot_love(threshold=0.1)
+matcher.plot_overlap(scope="after")
+matcher.plot_calibration()
+```
+
+### Estimate a Matched Effect
+
+After checking overlap and balance, estimate a descriptive matched-sample
+contrast with a reproducible bootstrap interval:
+
+```python
+effect = matcher.estimate_effect(
+    outcome="outcome",
+    estimand="ATT",       # "ATT", "ATC", or "ATE"
+    bootstrap=1000,
+    random_state=42,
+)
+print(effect["estimate"], effect["ci_lower"], effect["ci_upper"])
+```
+
+This estimate still relies on the study's identification assumptions and does
+not remove unmeasured confounding. Report the estimand, retention, balance, and
+sample definition together.
 
 ### Single Variable Proportion Test
 

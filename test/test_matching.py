@@ -5,6 +5,7 @@ import pytest
 from pysmatch.matching import (
     perform_exhaustive_match,
     perform_match,
+    perform_optimal_match,
     tune_threshold,
     prop_retained,
 )
@@ -156,3 +157,24 @@ def test_matching_rejects_invalid_threshold_and_method(sample_match_data):
         perform_match(sample_match_data, "treated", threshold=-0.1)
     with pytest.raises(ValueError, match="Invalid method"):
         perform_match(sample_match_data, "treated", method="unknown")
+
+
+def test_logit_distance_exact_matching_and_optimal_assignment():
+    data = pd.DataFrame(
+        {
+            "record_id": ["t1", "t2", "c1", "c2"],
+            "treated": [1, 1, 0, 0],
+            "scores": [0.10, 0.80, 0.11, 0.79],
+            "site": ["A", "B", "B", "A"],
+        }
+    )
+    logit = perform_match(data, "treated", threshold=0.2, distance="logit")
+    assert len(logit) == 4
+
+    exact = perform_match(data, "treated", threshold=0.8, exact=["site"])
+    for _, group in exact.groupby("match_id"):
+        assert len(group["site"].unique()) == 1
+
+    optimal = perform_optimal_match(data, "treated", threshold=0.8, exact=["site"])
+    assert optimal["match_id"].nunique() == 2
+    assert optimal["pair_score_diff"].max() <= 0.8

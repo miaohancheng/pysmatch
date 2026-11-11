@@ -4,7 +4,7 @@ import logging
 import numpy as np
 import pandas as pd
 from sklearn.neighbors import NearestNeighbors
-from typing import Optional, Union
+from typing import Optional, Sequence, Union
 
 
 def _match_output_columns(data: pd.DataFrame, extra_columns: list[str]) -> list[str]:
@@ -25,9 +25,43 @@ def _ensure_record_id(data: pd.DataFrame) -> pd.DataFrame:
     data_with_ids['record_id'] = data_with_ids.index
     return data_with_ids
 
+
+def _transformed_scores(values: pd.Series, distance: str) -> np.ndarray:
+    """Convert propensity scores to the requested matching distance scale."""
+
+    if distance not in {"probability", "logit"}:
+        raise ValueError("distance must be 'probability' or 'logit'.")
+    scores = pd.to_numeric(values, errors="coerce").to_numpy(dtype=float)
+    if not np.isfinite(scores).all() or ((scores < 0) | (scores > 1)).any():
+        raise ValueError("scores must be finite probabilities between 0 and 1.")
+    if distance == "logit":
+        scores = np.clip(scores, 1e-8, 1 - 1e-8)
+        scores = np.log(scores / (1 - scores))
+    return scores
+
+
+def _row_key(row: pd.Series, columns: Sequence[str]) -> tuple:
+    """Build a hashable exact-matching key with stable missing-value handling."""
+
+    key = []
+    for column in columns:
+        value = row[column]
+        key.append("__nan__" if pd.isna(value) else value)
+    return tuple(key)
+
+
+def _validate_exact_columns(data: pd.DataFrame, exact: Optional[Sequence[str]]) -> list[str]:
+    columns = list(exact or [])
+    missing = [column for column in columns if column not in data.columns]
+    if missing:
+        raise ValueError(f"Exact-matching columns not found in data: {missing}")
+    return columns
+
 def perform_match(data: pd.DataFrame, yvar: str, threshold: float = 0.001,
                   nmatches: int = 1, method: str = 'min', replacement: bool = False,
-                  random_state: Optional[int] = None) -> pd.DataFrame:
+                  random_state: Optional[int] = None,
+                  distance: str = "probability",
+                  exact: Optional[Sequence[str]] = None) -> pd.DataFrame:
     """
     Perform nearest-neighbor matching using propensity scores.
 
@@ -53,6 +87,12 @@ def perform_match(data: pd.DataFrame, yvar: str, threshold: float = 0.001,
                                       (used more than once as a match). Defaults to False.
         random_state (Optional[int], optional): Seed used by ``method="random"``.
                                                 Defaults to ``None``.
+        distance (str, optional): ``"probability"`` for raw score differences or
+                                 ``"logit"`` for logit-propensity calipers.
+                                 Defaults to ``"probability"``.
+        exact (Optional[Sequence[str]], optional): Covariate columns that must
+                                                   have equal values in each pair.
+                                                   Defaults to ``None``.
 
     Returns:
         pd.DataFrame: Matched treated/control rows with ``match_id`` and ``record_id``.
@@ -74,17 +114,36 @@ def perform_match(data: pd.DataFrame, yvar: str, threshold: float = 0.001,
     if nmatches < 1:
         raise ValueError("nmatches must be at least 1.")
 
+    exact_columns = _validate_exact_columns(data, exact)
+    normalized_method = 'min' if method == 'nearest' else method
+    if normalized_method == "optimal":
+        if nmatches != 1 or replacement:
+            raise ValueError("Optimal matching supports nmatches=1 and replacement=False only.")
+        return perform_optimal_match(
+            data,
+            yvar,
+            threshold=threshold,
+            distance=distance,
+            exact=exact_columns,
+        )
+    if normalized_method not in {'min', 'random'}:
+        raise ValueError("Invalid method parameter, use ('random', 'min', 'optimal')")
+
     # 对测试组和对照组按倾向分数排序
     test_df = data[data[yvar] == 1].copy().reset_index()
     ctrl_df = data[data[yvar] == 0].copy().reset_index()
 
-    test_scores = test_df[['index', 'scores']].sort_values('scores').reset_index(drop=True)
-    ctrl_scores = ctrl_df[['index', 'scores']].sort_values('scores').reset_index(drop=True)
+    test_df = test_df.assign(_distance_score=_transformed_scores(test_df['scores'], distance))
+    ctrl_df = ctrl_df.assign(_distance_score=_transformed_scores(ctrl_df['scores'], distance))
+    test_df = test_df.sort_values('_distance_score').reset_index(drop=True)
+    ctrl_df = ctrl_df.sort_values('_distance_score').reset_index(drop=True)
+    test_scores = test_df[['index', 'scores']]
+    ctrl_scores = ctrl_df[['index', 'scores']]
 
     test_indices = test_scores['index'].values
-    test_scores_values = test_scores['scores'].values.reshape(-1, 1)
+    test_scores_values = _transformed_scores(test_scores['scores'], distance).reshape(-1, 1)
     ctrl_indices = ctrl_scores['index'].values
-    ctrl_scores_values = ctrl_scores['scores'].values.reshape(-1, 1)
+    ctrl_scores_values = _transformed_scores(ctrl_scores['scores'], distance).reshape(-1, 1)
 
     output_columns = _match_output_columns(data, ['match_id', 'record_id'])
 
@@ -92,20 +151,31 @@ def perform_match(data: pd.DataFrame, yvar: str, threshold: float = 0.001,
         return pd.DataFrame(columns=output_columns)
 
     effective_n_neighbors = min(max(1, nmatches), len(ctrl_scores_values))
-    normalized_method = 'min' if method == 'nearest' else method
-    if normalized_method not in {'min', 'random'}:
-        raise ValueError("Invalid method parameter, use ('random', 'min')")
     rng = np.random.default_rng(random_state)
-
-    nbrs = NearestNeighbors(n_neighbors=effective_n_neighbors, radius=threshold, algorithm='ball_tree')
-    nbrs.fit(ctrl_scores_values)
-    distances, indices = nbrs.radius_neighbors(test_scores_values)
+    if exact_columns:
+        control_positions = {}
+        for position, (_, row) in enumerate(ctrl_df.iterrows()):
+            control_positions.setdefault(_row_key(row, exact_columns), []).append(position)
+        test_keys = [_row_key(row, exact_columns) for _, row in test_df.iterrows()]
+        distances = indices = None
+    else:
+        nbrs = NearestNeighbors(n_neighbors=effective_n_neighbors, radius=threshold, algorithm='ball_tree')
+        nbrs.fit(ctrl_scores_values)
+        distances, indices = nbrs.radius_neighbors(test_scores_values)
 
     matched_records = []
     current_match_id = 0
     used_ctrl_indices = set() if not replacement else None
 
-    for i, (dists, neighbors) in enumerate(zip(distances, indices)):
+    for i in range(len(test_scores_values)):
+        if exact_columns:
+            neighbors = np.asarray(control_positions.get(test_keys[i], []), dtype=int)
+            dists = np.abs(ctrl_scores_values[neighbors, 0] - test_scores_values[i, 0])
+            within = dists <= threshold
+            neighbors = neighbors[within]
+            dists = dists[within]
+        else:
+            dists, neighbors = distances[i], indices[i]
         if len(neighbors) == 0:
             continue
         if normalized_method == 'min':
@@ -164,12 +234,91 @@ def perform_match(data: pd.DataFrame, yvar: str, threshold: float = 0.001,
     return output_df
 
 
+def perform_optimal_match(
+    data: pd.DataFrame,
+    yvar: str,
+    threshold: float = 0.001,
+    distance: str = "probability",
+    exact: Optional[Sequence[str]] = None,
+    max_matrix_size: int = 5_000_000,
+) -> pd.DataFrame:
+    """Perform one-to-one minimum-cost matching with optional calipers.
+
+    The assignment minimizes the total propensity-score distance. Controls
+    cannot be reused, ``nmatches`` is implicitly one, and pairs outside the
+    caliper are discarded after assignment. This method is intended for
+    moderate data sizes because the cost matrix is quadratic.
+    """
+
+    data = _ensure_record_id(data)
+    if yvar not in data.columns:
+        raise ValueError(f"Treatment column '{yvar}' not found in data.")
+    if 'scores' not in data.columns:
+        raise ValueError("Scores column not found in data.")
+    if not 0 <= threshold:
+        raise ValueError("threshold must be non-negative.")
+    exact_columns = _validate_exact_columns(data, exact)
+    test_df = data[data[yvar] == 1].copy()
+    control_df = data[data[yvar] == 0].copy()
+    output_columns = _match_output_columns(data, ['match_id', 'pair_score_diff'])
+    if test_df.empty or control_df.empty:
+        return pd.DataFrame(columns=output_columns)
+    if len(test_df) * len(control_df) > max_matrix_size:
+        raise ValueError(
+            "Optimal matching cost matrix is too large; use standard/exhaustive matching "
+            "or increase max_matrix_size explicitly."
+        )
+
+    from scipy.optimize import linear_sum_assignment
+
+    test_scores = _transformed_scores(test_df['scores'], distance)
+    control_scores = _transformed_scores(control_df['scores'], distance)
+    costs = np.abs(test_scores[:, None] - control_scores[None, :])
+    if exact_columns:
+        test_keys = [_row_key(row, exact_columns) for _, row in test_df.iterrows()]
+        control_keys = [_row_key(row, exact_columns) for _, row in control_df.iterrows()]
+        exact_mask = np.asarray(
+            [[test_key == control_key for control_key in control_keys] for test_key in test_keys],
+            dtype=bool,
+        )
+        costs = np.where(exact_mask, costs, np.inf)
+
+    finite_costs = costs[np.isfinite(costs)]
+    if finite_costs.size == 0:
+        return pd.DataFrame(columns=output_columns)
+    large_cost = max(float(finite_costs.max()), float(threshold), 1.0) * 10
+    assignment_costs = np.where(np.isfinite(costs), costs, large_cost)
+    row_indices, control_indices = linear_sum_assignment(assignment_costs)
+    selected = [
+        (row, control, float(costs[row, control]))
+        for row, control in zip(row_indices, control_indices)
+        if np.isfinite(costs[row, control]) and costs[row, control] <= threshold
+    ]
+    if not selected:
+        return pd.DataFrame(columns=output_columns)
+
+    matched_tests = []
+    matched_controls = []
+    for match_id, (test_position, control_position, pair_distance) in enumerate(selected):
+        test_row = test_df.iloc[test_position].drop(labels=['_distance_score'], errors='ignore').copy()
+        control_row = control_df.iloc[control_position].drop(labels=['_distance_score'], errors='ignore').copy()
+        test_row['match_id'] = match_id
+        control_row['match_id'] = match_id
+        test_row['pair_score_diff'] = pair_distance
+        control_row['pair_score_diff'] = pair_distance
+        matched_tests.append(test_row)
+        matched_controls.append(control_row)
+    return pd.concat(matched_tests + matched_controls, axis=1).T.reset_index(drop=True)
+
+
 def perform_exhaustive_match(
     data: pd.DataFrame,
     yvar: str,
     threshold: float = 0.001,
     nmatches: int = 1,
     show_progress: bool = False,
+    distance: str = "probability",
+    exact: Optional[Sequence[str]] = None,
 ) -> pd.DataFrame:
     """
     Perform exhaustive matching while prioritizing unused controls first.
@@ -193,6 +342,7 @@ def perform_exhaustive_match(
     if nmatches < 1:
         raise ValueError("nmatches must be at least 1.")
 
+    exact_columns = _validate_exact_columns(data, exact)
     output_columns = _match_output_columns(data, ['match_id', 'matched_as', 'pair_score_diff'])
     test_df = data[data[yvar] == 1].copy()
     control_df = data[data[yvar] == 0].copy()
@@ -201,7 +351,7 @@ def perform_exhaustive_match(
         return pd.DataFrame(columns=output_columns)
 
     control_df = control_df.sort_values('scores', kind='mergesort').reset_index(drop=True)
-    control_scores = control_df['scores'].to_numpy()
+    control_scores = _transformed_scores(control_df['scores'], distance)
     control_record_ids = control_df['record_id'].to_numpy()
     control_usage_counts = np.zeros(len(control_df), dtype=int)
 
@@ -212,14 +362,28 @@ def perform_exhaustive_match(
 
         iterator = tqdm(iterator, total=len(test_df), desc="Exhaustive Matching")
 
-    for case_record_id, case_score in iterator:
-        left = np.searchsorted(control_scores, case_score - threshold, side='left')
-        right = np.searchsorted(control_scores, case_score + threshold, side='right')
+    exact_positions = {}
+    if exact_columns:
+        for position, (_, row) in enumerate(control_df.iterrows()):
+            exact_positions.setdefault(_row_key(row, exact_columns), []).append(position)
 
-        if left == right:
+    for case_record_id, case_score in iterator:
+        case_score = _transformed_scores(pd.Series([case_score]), distance)[0]
+        if exact_columns:
+            case_row = test_df.loc[test_df['record_id'] == case_record_id].iloc[0]
+            positions = np.asarray(exact_positions.get(_row_key(case_row, exact_columns), []), dtype=int)
+            candidate_scores = control_scores[positions]
+            left = np.searchsorted(candidate_scores, case_score - threshold, side='left')
+            right = np.searchsorted(candidate_scores, case_score + threshold, side='right')
+            candidate_positions = positions[left:right]
+        else:
+            left = np.searchsorted(control_scores, case_score - threshold, side='left')
+            right = np.searchsorted(control_scores, case_score + threshold, side='right')
+            candidate_positions = np.arange(left, right)
+
+        if len(candidate_positions) == 0:
             continue
 
-        candidate_positions = np.arange(left, right)
         candidate_usage = control_usage_counts[candidate_positions]
         candidate_diffs = np.abs(control_scores[candidate_positions] - case_score)
         candidate_is_used = candidate_usage > 0
@@ -268,7 +432,9 @@ def perform_exhaustive_match(
 
 def tune_threshold(data: pd.DataFrame, yvar: str, method: str = 'min',
                    nmatches: int = 1, rng: Union[np.ndarray, None] = None,
-                   random_state: Optional[int] = None) -> tuple:
+                   random_state: Optional[int] = None,
+                   distance: str = "probability",
+                   exact: Optional[Sequence[str]] = None) -> tuple:
     """
     Evaluates matching retention across a range of threshold values.
 
@@ -288,6 +454,9 @@ def tune_threshold(data: pd.DataFrame, yvar: str, method: str = 'min',
                                               Defaults to None.
         random_state (Optional[int], optional): Seed used when ``method="random"``.
                                                 Defaults to ``None``.
+        distance (str, optional): Matching distance scale, ``"probability"`` or
+                                 ``"logit"``. Defaults to ``"probability"``.
+        exact (Optional[Sequence[str]], optional): Exact-matching columns.
 
     Returns:
         Tuple[np.ndarray, list]: A tuple containing:
@@ -302,7 +471,7 @@ def tune_threshold(data: pd.DataFrame, yvar: str, method: str = 'min',
     for threshold in rng:
         matched_data = perform_match(data, yvar, threshold=threshold,
                                      nmatches=nmatches, method=method, replacement=False,
-                                     random_state=random_state)
+                                     random_state=random_state, distance=distance, exact=exact)
         prop = prop_retained(data, matched_data, yvar)
         thresholds.append(threshold)
         retained.append(prop)

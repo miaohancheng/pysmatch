@@ -13,7 +13,10 @@
 - `threshold`：可接受的最大得分差
 - `nmatches`：每个处理样本匹配的控制样本数量
 - `replacement`：控制样本是否可重复使用
-- `method`：`"min"`（最近）或 `"random"`（阈值内随机）
+- `method`：`"min"`（最近）、`"random"`（阈值内随机）或
+  `"optimal"`（最小成本的一对一分配）
+- `distance`：`"probability"` 或 `"logit"` 倾向得分距离，后者是常见的 logit caliper
+- `exact`：要求匹配对中取值完全相同的列
 
 ## 实践建议
 
@@ -24,3 +27,16 @@
 
 如需比较不同版本的匹配性能，可运行独立 benchmark：
 `python benchmarks/benchmark_matching.py --rows 10000`。
+
+示例：
+
+```python
+# logit 倾向得分 caliper
+matcher.match(threshold=0.2, distance="logit")
+
+# 在 site 内做 exact matching，再按倾向得分最近匹配
+matcher.match(threshold=0.05, exact=["site"])
+
+# 中等规模数据上的最小成本一对一匹配
+matcher.match(method="optimal", threshold=0.05)
+```

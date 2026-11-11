@@ -8,6 +8,22 @@ from typing import Dict, Any, Literal, Tuple
 BalanceStrategy = Literal["over", "under"]
 
 
+def _classification_metrics(y_true: pd.Series, probabilities: np.ndarray) -> Dict[str, float]:
+    """Return validation metrics that assess discrimination and calibration."""
+
+    from sklearn.metrics import accuracy_score, brier_score_loss, roc_auc_score
+
+    predictions = (probabilities >= 0.5).astype(int)
+    metrics = {
+        "accuracy": float(accuracy_score(y_true, predictions)),
+        "brier": float(brier_score_loss(y_true, probabilities)),
+        "auc": float("nan"),
+    }
+    if pd.Series(y_true).nunique(dropna=True) == 2:
+        metrics["auc"] = float(roc_auc_score(y_true, probabilities))
+    return metrics
+
+
 def _rebalance_training_data(
     X_train: pd.DataFrame,
     y_train: pd.Series,
@@ -138,12 +154,20 @@ def fit_model(index: int, X: pd.DataFrame, y: pd.Series, model_type: str,
         raise ValueError(f"Invalid model_type provided: {model_type}. Expected 'tree', 'knn', or 'linear'.")
 
     pipeline.fit(X_resampled, y_resampled)
-    accuracy = pipeline.score(X_val, y_val)
+    validation_scores = pipeline.predict_proba(X_val)[:, 1]
+    metrics = _classification_metrics(y_val, validation_scores)
+    accuracy = metrics["accuracy"]
 
     logging.info(
         f"Model {index + 1} ({model_type}) trained. Validation accuracy: {accuracy:.2%}"
     )
-    return {'model': pipeline, 'accuracy': accuracy}
+    return {
+        'model': pipeline,
+        'accuracy': accuracy,
+        'metrics': metrics,
+        'validation_y': np.asarray(y_val),
+        'validation_scores': validation_scores,
+    }
 
 
 def optuna_tuner(X: pd.DataFrame, y: pd.Series, model_type: str, n_trials: int = 10,
@@ -293,7 +317,16 @@ def optuna_tuner(X: pd.DataFrame, y: pd.Series, model_type: str, n_trials: int =
 
     final_pipeline = Pipeline(steps=[('preprocessor', final_preprocessor), ('classifier', final_model_instance)])
     final_pipeline.fit(X_resampled, y_resampled)
+    validation_scores = final_pipeline.predict_proba(X_val)[:, 1]
+    metrics = _classification_metrics(y_val, validation_scores)
 
     logging.info(f"[Optuna] Best params for {model_type}: {best_params}, best score: {best_score:.2%}")
 
-    return {'model': final_pipeline, 'accuracy': best_score, 'best_params': best_params}
+    return {
+        'model': final_pipeline,
+        'accuracy': best_score,
+        'best_params': best_params,
+        'metrics': metrics,
+        'validation_y': np.asarray(y_val),
+        'validation_scores': validation_scores,
+    }

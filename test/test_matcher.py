@@ -50,7 +50,18 @@ def matcher_instance_fitted(matcher_instance):
         mock_model_object.predict_proba.return_value = np.array([]).reshape(0,2)
 
 
-    with mock.patch('pysmatch.modeling.fit_model', return_value={'model': mock_model_object, 'accuracy': 0.85}):
+    validation_y = matcher_instance.y.to_numpy()[: max(1, len(matcher_instance.y) // 3)]
+    validation_scores = np.full(len(validation_y), 0.5)
+    with mock.patch(
+        'pysmatch.modeling.fit_model',
+        return_value={
+            'model': mock_model_object,
+            'accuracy': 0.85,
+            'metrics': {'accuracy': 0.85, 'auc': 0.5, 'brier': 0.25},
+            'validation_y': validation_y,
+            'validation_scores': validation_scores,
+        },
+    ):
         matcher_instance.fit_scores(balance=False, nmodels=1) # Fit a single, simple model
     matcher_instance.predict_scores()
     return matcher_instance
@@ -204,6 +215,88 @@ def test_balance_report_handles_categorical_covariates():
     )
     report = matcher.balance_report()
     assert "categorical" in set(report["type"])
+
+
+def test_estimate_effect_returns_att_atc_and_bootstrap_ci():
+    matcher = Matcher(
+        pd.DataFrame({"x": [1, 2]}),
+        pd.DataFrame({"x": [1, 2]}),
+        yvar="treated",
+    )
+    matcher.matched_data = pd.DataFrame(
+        {
+            "record_id": [0, 2, 1, 3],
+            "treated": [1, 0, 1, 0],
+            "match_id": [0, 0, 1, 1],
+            "outcome": [5.0, 2.0, 8.0, 3.0],
+        }
+    )
+
+    att = matcher.estimate_effect("outcome", estimand="ATT", bootstrap=200, random_state=7)
+    atc = matcher.estimate_effect("outcome", estimand="ATC", bootstrap=0)
+    ate = matcher.estimate_effect("outcome", estimand="ATE", bootstrap=0)
+
+    assert att["estimate"] == pytest.approx(4.0)
+    assert atc["estimate"] == pytest.approx(4.0)
+    assert ate["estimate"] == pytest.approx(4.0)
+    assert att["ci_lower"] <= att["estimate"] <= att["ci_upper"]
+    assert att["n_pairs"] == 2
+
+
+def test_estimate_effect_validates_state_and_inputs(matcher_instance):
+    with pytest.raises(RuntimeError, match=r"match\(\)"):
+        matcher_instance.estimate_effect("outcome")
+
+    matcher_instance.matched_data = pd.DataFrame(
+        {
+            "record_id": [0, 1],
+            "treated": [1, 0],
+            "match_id": [0, 0],
+            "outcome": [1.0, 0.0],
+        }
+    )
+    with pytest.raises(ValueError, match="estimand"):
+        matcher_instance.estimate_effect("outcome", estimand="ATE2")
+    matcher_instance.matched_data["outcome"] = ["bad", "ok"]
+    with pytest.raises(ValueError, match="numeric"):
+        matcher_instance.estimate_effect("outcome")
+
+
+def test_overlap_report_requires_scores_and_reports_common_support(matcher_instance_fitted):
+    matcher = matcher_instance_fitted
+    before = matcher.overlap_report()
+    assert list(before["scope"]) == ["before"]
+    assert {"common_lower", "common_upper", "treated_in_common"}.issubset(before.columns)
+    matcher.match(threshold=0.1, exhaustive_matching=True)
+    after = matcher.overlap_report()
+    assert list(after["scope"]) == ["before", "after"]
+
+
+def test_diagnostic_reports_include_calibration_ess_and_positivity(matcher_instance_fitted):
+    matcher = matcher_instance_fitted
+    score_report = matcher.score_report()
+    calibration = matcher.calibration_report(n_bins=5)
+    summary = matcher.balance_summary()
+    matcher.match(threshold=0.1, exhaustive_matching=True)
+    ess = matcher.effective_sample_size()
+    positivity = matcher.positivity_report()
+    assert {"auc", "brier"}.issubset(score_report.columns)
+    assert {"mean_predicted", "observed_rate"}.issubset(calibration.columns)
+    assert "max_abs_smd_after" in summary
+    assert {"treated", "control"}.issubset(set(ess["group"]))
+    assert {"treated_retention", "control_retention"}.issubset(positivity.columns)
+
+
+def test_diagnostic_plots_render(matcher_instance_fitted):
+    import matplotlib.pyplot as plt
+
+    matcher = matcher_instance_fitted
+    matcher.match(threshold=0.1, exhaustive_matching=True)
+    matcher.plot_love()
+    matcher.plot_overlap("before")
+    matcher.plot_calibration()
+    matcher.plot_overlap("after")
+    plt.close("all")
 
 
 def test_matcher_state_errors_are_actionable(matcher_instance):

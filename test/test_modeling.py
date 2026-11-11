@@ -26,6 +26,8 @@ def test_fit_model_multi_type(sample_xy, model_type):
     accuracy = result['accuracy']
     assert model is not None, f"{model_type} 应该返回训练后的模型"
     assert 0 <= accuracy <= 1
+    assert {"accuracy", "auc", "brier"}.issubset(result["metrics"])
+    assert len(result["validation_y"]) == len(result["validation_scores"])
 
 @pytest.mark.parametrize("model_type", ["linear", "tree", "knn"])
 def test_optuna_tuner_multi_type(sample_xy, model_type):

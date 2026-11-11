@@ -106,6 +106,9 @@ class Matcher:
         self.models: List[Any] = []
         self.swdata = None
         self.model_accuracy: List[float] = []
+        self.model_metrics: List[Dict[str, float]] = []
+        self.validation_y: Optional[np.ndarray] = None
+        self.validation_scores: Optional[np.ndarray] = None
         self.errors = 0
 
         self.exhaustive_matching_default = exhaustive_matching_default
@@ -292,6 +295,9 @@ class Matcher:
         from multiprocessing.pool import ThreadPool
 
         self.models, self.model_accuracy = [], []
+        self.model_metrics = []
+        self.validation_y = None
+        self.validation_scores = None
         if random_state is not None:
             self.random_state = random_state
         self.model_type = model_type
@@ -325,6 +331,9 @@ class Matcher:
                                            balance_strategy=balance_strategy)
             self.models.append(result['model'])
             self.model_accuracy.append(result['accuracy'])
+            self.model_metrics.append(result.get('metrics', {"accuracy": result['accuracy']}))
+            self.validation_y = np.asarray(result.get('validation_y', []))
+            self.validation_scores = np.asarray(result.get('validation_scores', []))
             logging.info(f"[Optuna] Best Accuracy: {result['accuracy']:.2%}")
             self.nmodels = 1
             return self
@@ -366,6 +375,9 @@ class Matcher:
                 ) # balance=False if one class is empty
                 self.models.append(result['model'])
                 self.model_accuracy.append(result['accuracy'])
+                self.model_metrics.append(result.get('metrics', {"accuracy": result['accuracy']}))
+                self.validation_y = np.asarray(result.get('validation_y', []))
+                self.validation_scores = np.asarray(result.get('validation_scores', []))
                 self.nmodels = 1
             else:
                 with ThreadPool(n_jobs) as pool:
@@ -378,6 +390,10 @@ class Matcher:
                 for res in results:
                     self.models.append(res['model'])
                     self.model_accuracy.append(res['accuracy'])
+                    self.model_metrics.append(res.get('metrics', {"accuracy": res['accuracy']}))
+                if results:
+                    self.validation_y = np.asarray(results[0].get('validation_y', []))
+                    self.validation_scores = np.asarray(results[0].get('validation_scores', []))
         else:
             result = self.fit_model(
                 0,
@@ -391,6 +407,9 @@ class Matcher:
             )
             self.models.append(result['model'])
             self.model_accuracy.append(result['accuracy'])
+            self.model_metrics.append(result.get('metrics', {"accuracy": result['accuracy']}))
+            self.validation_y = np.asarray(result.get('validation_y', []))
+            self.validation_scores = np.asarray(result.get('validation_scores', []))
 
         if self.model_accuracy:
             if self.nmodels > 1:
@@ -451,7 +470,9 @@ class Matcher:
 
     def match(self, threshold: float = 0.001, nmatches: int = 1, method: str = 'min',
               replacement: bool = False, exhaustive_matching: Optional[bool] = None,
-              random_state: Optional[int] = None) -> pd.DataFrame:
+              random_state: Optional[int] = None,
+              distance: str = "probability",
+              exact: Optional[List[str]] = None) -> pd.DataFrame:
         """
         Performs matching based on estimated propensity scores.
 
@@ -469,6 +490,9 @@ class Matcher:
                                                             `self.exhaustive_matching_default`. Defaults to None.
             random_state (int, optional): Seed used when ``method="random"``. Defaults to
                                          the matcher's configured seed.
+            distance (str, optional): ``"probability"`` or ``"logit"`` propensity
+                                     distance. Defaults to ``"probability"``.
+            exact (list[str], optional): Covariates that must match exactly.
 
         Returns:
             pandas.DataFrame: The matched rows. An empty frame means that no pair met
@@ -511,6 +535,8 @@ class Matcher:
                 threshold=threshold,
                 nmatches=nmatches,
                 show_progress=True,
+                distance=distance,
+                exact=exact,
             )
 
             if self.matched_data.empty:
@@ -532,6 +558,8 @@ class Matcher:
                 method=method,
                 replacement=replacement,
                 random_state=self.random_state if random_state is None else random_state,
+                distance=distance,
+                exact=exact,
             )
             if self.matched_data.empty:
                 logging.info("No matches found using pysmatch.matching.perform_match.")
@@ -558,9 +586,28 @@ class Matcher:
                                   control_color=self.control_color,
                                   test_color=self.test_color)
 
+    def plot_love(self, threshold: float = 0.1, ax=None):
+        """Plot absolute SMDs before and after matching."""
+
+        return _visualization_module().plot_love(self, threshold=threshold, ax=ax)
+
+    def plot_overlap(self, scope: str = "before", ax=None):
+        """Plot treated/control propensity-score overlap."""
+
+        if scope not in {"before", "after"}:
+            raise ValueError("scope must be 'before' or 'after'.")
+        return _visualization_module().plot_overlap(self, scope=scope, ax=ax)
+
+    def plot_calibration(self, ax=None):
+        """Plot validation propensity-score calibration."""
+
+        return _visualization_module().plot_calibration(self, ax=ax)
+
     def tune_threshold(self, method: str, nmatches: int = 1,
                        rng: Optional[np.ndarray] = None,
-                       random_state: Optional[int] = None) -> tuple[np.ndarray, list[float]]:
+                       random_state: Optional[int] = None,
+                       distance: str = "probability",
+                       exact: Optional[List[str]] = None) -> tuple[np.ndarray, list[float]]:
         """
         Evaluates matching retention across a range of threshold values.
 
@@ -570,6 +617,8 @@ class Matcher:
             rng (Optional[np.ndarray], optional): Threshold values to test. Defaults to np.arange(0, 0.001, 0.0001).
             random_state (int, optional): Seed used for random matching during evaluation.
                                          Defaults to the matcher's configured seed.
+            distance (str, optional): ``"probability"`` or ``"logit"`` score distance.
+            exact (list[str], optional): Exact-matching columns.
 
         Returns:
             tuple: The tested thresholds and retained proportions.
@@ -589,7 +638,8 @@ class Matcher:
 
         thresholds, retained = matching.tune_threshold(self.data, self.treatment_col,
                                                        method=method, nmatches=nmatches, rng=rng,
-                                                       random_state=self.random_state if random_state is None else random_state)
+                                                       random_state=self.random_state if random_state is None else random_state,
+                                                       distance=distance, exact=exact)
         plt.figure(figsize=(10,6))
         plt.plot(thresholds, retained, marker='o')
         plt.title("Proportion of Minority Group Retained for Threshold Grid")
@@ -803,6 +853,313 @@ class Matcher:
             "abs_smd_before", "abs_smd_after", "treated_before",
             "control_before", "treated_after", "control_after",
         ])
+
+    def balance_summary(self) -> Dict[str, Any]:
+        """Return maximum and mean absolute SMD values for quick review."""
+
+        report = self.balance_report()
+
+        def finite_max(series: pd.Series) -> float:
+            values = pd.to_numeric(series, errors="coerce").replace([np.inf, -np.inf], np.nan).dropna()
+            return float(values.max()) if not values.empty else float("nan")
+
+        def finite_mean(series: pd.Series) -> float:
+            values = pd.to_numeric(series, errors="coerce").replace([np.inf, -np.inf], np.nan).dropna()
+            return float(values.mean()) if not values.empty else float("nan")
+
+        return {
+            "n_covariates": int(len(report)),
+            "max_abs_smd_before": finite_max(report.get("abs_smd_before", pd.Series(dtype=float))),
+            "max_abs_smd_after": finite_max(report.get("abs_smd_after", pd.Series(dtype=float))),
+            "mean_abs_smd_before": finite_mean(report.get("abs_smd_before", pd.Series(dtype=float))),
+            "mean_abs_smd_after": finite_mean(report.get("abs_smd_after", pd.Series(dtype=float))),
+        }
+
+    def score_report(self) -> pd.DataFrame:
+        """Return validation discrimination and calibration metrics per model."""
+
+        if not self.model_metrics:
+            raise RuntimeError("No validation metrics found; call fit_scores() first.")
+        rows = []
+        for index, metrics in enumerate(self.model_metrics, start=1):
+            rows.append({"model": index, **metrics})
+        return pd.DataFrame(rows, columns=["model", "accuracy", "auc", "brier"])
+
+    def calibration_report(self, n_bins: int = 10) -> pd.DataFrame:
+        """Return binned validation calibration statistics."""
+
+        if self.validation_y is None or self.validation_scores is None or len(self.validation_y) == 0:
+            raise RuntimeError("No validation predictions found; call fit_scores() first.")
+        if not isinstance(n_bins, (int, np.integer)) or not 2 <= n_bins <= 50:
+            raise ValueError("n_bins must be an integer between 2 and 50.")
+        y = np.asarray(self.validation_y, dtype=float)
+        scores = np.clip(np.asarray(self.validation_scores, dtype=float), 0, 1)
+        bins = np.linspace(0, 1, n_bins + 1)
+        assignments = np.minimum(np.digitize(scores, bins[1:-1], right=False), n_bins - 1)
+        rows = []
+        for index in range(n_bins):
+            mask = assignments == index
+            if not mask.any():
+                continue
+            observed = float(np.mean(y[mask]))
+            predicted = float(np.mean(scores[mask]))
+            rows.append({
+                "bin": index,
+                "lower": float(bins[index]),
+                "upper": float(bins[index + 1]),
+                "n": int(mask.sum()),
+                "mean_predicted": predicted,
+                "observed_rate": observed,
+                "calibration_gap": observed - predicted,
+            })
+        return pd.DataFrame(rows, columns=[
+            "bin", "lower", "upper", "n", "mean_predicted", "observed_rate", "calibration_gap"
+        ])
+
+    def effective_sample_size(self) -> pd.DataFrame:
+        """Report effective sample size (ESS) before and after matching."""
+
+        frames = [("before", self.data)]
+        if not self.matched_data.empty:
+            frames.append(("after", self.matched_data))
+        rows = []
+        for scope, frame in frames:
+            if self.treatment_col not in frame.columns:
+                continue
+            for group, label in [(1, "treated"), (0, "control")]:
+                subset = frame[frame[self.treatment_col] == group]
+                if subset.empty:
+                    rows.append({"scope": scope, "group": label, "n": 0, "weight_sum": 0.0, "ess": 0.0})
+                    continue
+                if "weight" in subset.columns:
+                    weights = pd.to_numeric(subset["weight"], errors="coerce").fillna(0).to_numpy(dtype=float)
+                elif "record_id" in subset.columns:
+                    counts = subset["record_id"].value_counts()
+                    weights = subset["record_id"].map(lambda value: 1.0 / counts[value]).to_numpy(dtype=float)
+                else:
+                    weights = np.ones(len(subset), dtype=float)
+                weight_sum = float(weights.sum())
+                ess = float(weight_sum ** 2 / np.square(weights).sum()) if np.square(weights).sum() else 0.0
+                rows.append({
+                    "scope": scope,
+                    "group": label,
+                    "n": int(len(subset)),
+                    "weight_sum": weight_sum,
+                    "ess": ess,
+                })
+        return pd.DataFrame(rows, columns=["scope", "group", "n", "weight_sum", "ess"])
+
+    def positivity_report(
+        self,
+        lower: Optional[float] = None,
+        upper: Optional[float] = None,
+    ) -> pd.DataFrame:
+        """Report common-support retention and optional propensity trimming."""
+
+        if "scores" not in self.data.columns:
+            raise RuntimeError("Propensity scores are missing; call predict_scores() first.")
+        if lower is not None and upper is not None and lower > upper:
+            raise ValueError("lower must be less than or equal to upper.")
+        frames = [("before", self.data)]
+        if not self.matched_data.empty:
+            frames.append(("after", self.matched_data))
+        rows = []
+        for scope, frame in frames:
+            if "scores" not in frame.columns or self.treatment_col not in frame.columns:
+                continue
+            treated = pd.to_numeric(frame.loc[frame[self.treatment_col] == 1, "scores"], errors="coerce").dropna()
+            control = pd.to_numeric(frame.loc[frame[self.treatment_col] == 0, "scores"], errors="coerce").dropna()
+            if treated.empty or control.empty:
+                continue
+            common_lower = max(float(treated.min()), float(control.min()))
+            common_upper = min(float(treated.max()), float(control.max()))
+            trim_lower = common_lower if lower is None else float(lower)
+            trim_upper = common_upper if upper is None else float(upper)
+            treated_keep = ((treated >= trim_lower) & (treated <= trim_upper)).sum()
+            control_keep = ((control >= trim_lower) & (control <= trim_upper)).sum()
+            rows.append({
+                "scope": scope,
+                "common_lower": common_lower,
+                "common_upper": common_upper,
+                "trim_lower": trim_lower,
+                "trim_upper": trim_upper,
+                "treated_n": int(len(treated)),
+                "control_n": int(len(control)),
+                "treated_kept": int(treated_keep),
+                "control_kept": int(control_keep),
+                "treated_trimmed": int(len(treated) - treated_keep),
+                "control_trimmed": int(len(control) - control_keep),
+                "treated_retention": float(treated_keep / len(treated)),
+                "control_retention": float(control_keep / len(control)),
+            })
+        return pd.DataFrame(rows)
+
+    def estimate_effect(
+        self,
+        outcome: str,
+        estimand: str = "ATT",
+        bootstrap: int = 1000,
+        alpha: float = 0.05,
+        random_state: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Estimate a mean outcome difference from the matched sample.
+
+        The method uses unique matched units as the analysis units. For ATT,
+        each treated unit is compared with the mean outcome of its matched
+        controls. ATC reverses that direction. ATE combines the unit-level
+        ATT and ATC contrasts over the matched sample. This is a descriptive
+        matched-sample estimate; it does not remove unmeasured confounding.
+
+        Args:
+            outcome: Numeric outcome column in ``matched_data``.
+            estimand: ``"ATT"``, ``"ATC"``, or ``"ATE"``.
+            bootstrap: Number of unit-level bootstrap draws for the confidence
+                       interval. Set to ``0`` to skip resampling.
+            alpha: Two-sided confidence level cutoff, between 0 and 1.
+            random_state: Seed for bootstrap resampling. Defaults to the
+                          matcher's configured seed.
+
+        Returns:
+            A dictionary containing the estimate, standard error, percentile
+            confidence interval, and matched-unit counts.
+
+        Raises:
+            RuntimeError: If matching has not been performed.
+            ValueError: If the outcome, estimand, or bootstrap settings are
+                        invalid, or if a matched outcome is missing/non-numeric.
+        """
+
+        if self.matched_data.empty:
+            raise RuntimeError("No matched data found; call match() before estimate_effect().")
+        if outcome not in self.matched_data.columns:
+            raise ValueError(f"Outcome column '{outcome}' was not found in matched_data.")
+        estimand = estimand.upper()
+        if estimand not in {"ATT", "ATC", "ATE"}:
+            raise ValueError("estimand must be one of 'ATT', 'ATC', or 'ATE'.")
+        if not isinstance(bootstrap, (int, np.integer)) or bootstrap < 0:
+            raise ValueError("bootstrap must be a non-negative integer.")
+        if not 0 < alpha < 1:
+            raise ValueError("alpha must be between 0 and 1.")
+        if self.treatment_col not in self.matched_data.columns:
+            raise ValueError(f"Treatment column '{self.treatment_col}' is missing from matched_data.")
+        if "match_id" not in self.matched_data.columns:
+            raise ValueError("matched_data must contain 'match_id' to estimate an effect.")
+
+        data = self.matched_data.copy()
+        data[outcome] = pd.to_numeric(data[outcome], errors="coerce")
+        if data[outcome].isna().any():
+            raise ValueError(f"Outcome column '{outcome}' must contain only numeric, non-missing values.")
+
+        record_id = "record_id" if "record_id" in data.columns else None
+        if record_id is None:
+            data["record_id"] = data.index
+            record_id = "record_id"
+
+        # A standard nmatches result may repeat a treated row inside one
+        # match_id. Deduplicate each unit within a match before constructing
+        # unit-level contrasts.
+        data = data.drop_duplicates(subset=["match_id", record_id], keep="first")
+        treated = data[data[self.treatment_col] == 1]
+        control = data[data[self.treatment_col] == 0]
+        if treated.empty or control.empty:
+            raise ValueError("Both treated and control units are required in matched_data.")
+
+        def unit_effects(target: pd.DataFrame, counterfactual: pd.DataFrame) -> np.ndarray:
+            target_values = target.groupby(record_id, sort=False)[outcome].first()
+            links = target[[record_id, "match_id"]].drop_duplicates()
+            counterfactual_by_match = counterfactual.groupby("match_id")[outcome].mean()
+            links["counterfactual"] = links["match_id"].map(counterfactual_by_match)
+            links = links.dropna(subset=["counterfactual"])
+            if links.empty:
+                return np.array([], dtype=float)
+            counterfactual_values = links.groupby(record_id, sort=False)["counterfactual"].mean()
+            common_ids = target_values.index.intersection(counterfactual_values.index)
+            return (target_values.loc[common_ids] - counterfactual_values.loc[common_ids]).to_numpy(dtype=float)
+
+        att_effects = unit_effects(treated, control)
+        # ATC targets controls but keeps the treatment-effect convention
+        # (treated outcome minus control outcome).
+        atc_effects = -unit_effects(control, treated)
+        if estimand == "ATT":
+            effects = att_effects
+        elif estimand == "ATC":
+            effects = atc_effects
+        else:
+            effects = np.concatenate([att_effects, atc_effects])
+        if len(effects) == 0:
+            raise ValueError("No complete treated/control matched units were available for the requested estimand.")
+
+        estimate = float(np.mean(effects))
+        std_error = float(np.std(effects, ddof=1) / np.sqrt(len(effects))) if len(effects) > 1 else float("nan")
+        ci_lower = ci_upper = float("nan")
+        if bootstrap:
+            seed = self.random_state if random_state is None else random_state
+            rng = np.random.default_rng(seed)
+            draws = np.empty(bootstrap, dtype=float)
+            for index in range(bootstrap):
+                draws[index] = np.mean(rng.choice(effects, size=len(effects), replace=True))
+            ci_lower, ci_upper = np.quantile(draws, [alpha / 2, 1 - alpha / 2]).astype(float)
+
+        matched_pairs = int(data["match_id"].nunique())
+        return {
+            "outcome": outcome,
+            "estimand": estimand,
+            "estimate": estimate,
+            "std_error": std_error,
+            "ci_lower": float(ci_lower),
+            "ci_upper": float(ci_upper),
+            "bootstrap": int(bootstrap),
+            "alpha": float(alpha),
+            "n_units": int(len(effects)),
+            "n_treated": int(att_effects.size),
+            "n_control": int(atc_effects.size),
+            "n_pairs": matched_pairs,
+        }
+
+    def overlap_report(self) -> pd.DataFrame:
+        """Summarize propensity-score overlap before and after matching.
+
+        The common-support interval is the intersection of the treated and
+        control score ranges. Counts inside that interval make it easier to
+        detect positivity problems before interpreting an effect estimate.
+        """
+
+        if "scores" not in self.data.columns:
+            raise RuntimeError("Propensity scores are missing; call predict_scores() first.")
+
+        frames = [("before", self.data)]
+        if not self.matched_data.empty:
+            frames.append(("after", self.matched_data))
+        rows: list[dict[str, Any]] = []
+        for scope, frame in frames:
+            if "scores" not in frame.columns or self.treatment_col not in frame.columns:
+                continue
+            treated = pd.to_numeric(
+                frame.loc[frame[self.treatment_col] == 1, "scores"], errors="coerce"
+            ).dropna()
+            control = pd.to_numeric(
+                frame.loc[frame[self.treatment_col] == 0, "scores"], errors="coerce"
+            ).dropna()
+            if treated.empty or control.empty:
+                rows.append({"scope": scope, "treated_n": int(len(treated)), "control_n": int(len(control))})
+                continue
+            lower = max(float(treated.min()), float(control.min()))
+            upper = min(float(treated.max()), float(control.max()))
+            rows.append({
+                "scope": scope,
+                "treated_n": int(len(treated)),
+                "control_n": int(len(control)),
+                "treated_min": float(treated.min()),
+                "treated_max": float(treated.max()),
+                "control_min": float(control.min()),
+                "control_max": float(control.max()),
+                "common_lower": lower,
+                "common_upper": upper,
+                "common_width": max(0.0, upper - lower),
+                "treated_in_common": int(((treated >= lower) & (treated <= upper)).sum()),
+                "control_in_common": int(((control >= lower) & (control <= upper)).sum()),
+            })
+        return pd.DataFrame(rows)
 
 
     def compare_continuous(self, save: bool = False, return_table: bool = False, plot_result: bool = True):

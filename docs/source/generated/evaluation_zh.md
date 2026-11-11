@@ -41,6 +41,42 @@ print(balance[["variable", "abs_smd_before", "abs_smd_after"]])
 
 绝对 SMD 应结合保留率和研究设计一起解释，不能只看显著性检验。
 
+解释效应前可以先检查倾向得分的共同支持区间：
+
+```python
+print(matcher.overlap_report())
+```
+
+其他结构化诊断也可以直接调用，无需解析图形：
+
+```python
+print(matcher.positivity_report())
+print(matcher.effective_sample_size())
+print(matcher.score_report())       # accuracy、AUC 和 Brier score
+print(matcher.calibration_report())
+matcher.plot_love(threshold=0.1)
+matcher.plot_overlap(scope="after")
+matcher.plot_calibration()
+```
+
+## 估计匹配后的处理效应
+
+确认重叠性和平衡性后，可以对匹配样本估计处理效应，并用 bootstrap
+计算可复现的区间：
+
+```python
+effect = matcher.estimate_effect(
+    outcome="outcome",
+    estimand="ATT",       # "ATT"、"ATC" 或 "ATE"
+    bootstrap=1000,
+    random_state=42,
+)
+print(effect["estimate"], effect["ci_lower"], effect["ci_upper"])
+```
+
+该结果仍依赖研究设计的识别假设，不能消除未观测混杂。报告时应同时说明
+estimand、保留率、平衡性和样本定义。
+
 ## 单变量比例检验
 
 ```python

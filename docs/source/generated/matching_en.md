@@ -13,7 +13,11 @@
 - `threshold`: max allowed score distance
 - `nmatches`: controls per treated unit
 - `replacement`: whether a control can be reused
-- `method`: `"min"` (closest) or `"random"` (random within threshold)
+- `method`: `"min"` (closest), `"random"` (random within threshold), or
+  `"optimal"` (minimum-cost one-to-one assignment)
+- `distance`: `"probability"` or `"logit"` propensity distance; the latter is
+  the usual logit-scale caliper
+- `exact`: columns that must have identical values within each matched pair
 
 ## Practical Guidance
 
@@ -24,3 +28,16 @@
 
 To compare matching performance across releases, run the separate benchmark
 harness: `python benchmarks/benchmark_matching.py --rows 10000`.
+
+Examples:
+
+```python
+# Logit propensity caliper
+matcher.match(threshold=0.2, distance="logit")
+
+# Exact matching within site, then nearest propensity score
+matcher.match(threshold=0.05, exact=["site"])
+
+# Minimum-cost one-to-one assignment (moderate data sizes)
+matcher.match(method="optimal", threshold=0.05)
+```

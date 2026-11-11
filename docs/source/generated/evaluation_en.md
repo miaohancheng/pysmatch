@@ -44,6 +44,43 @@ print(balance[["variable", "abs_smd_before", "abs_smd_after"]])
 As a rule of thumb, inspect absolute SMD values together with retention and
 the research design; statistical significance alone is not a balance target.
 
+Check common support before interpreting an effect:
+
+```python
+print(matcher.overlap_report())
+```
+
+The other structured diagnostics are available without parsing plots:
+
+```python
+print(matcher.positivity_report())
+print(matcher.effective_sample_size())
+print(matcher.score_report())       # accuracy, AUC, and Brier score
+print(matcher.calibration_report())
+matcher.plot_love(threshold=0.1)
+matcher.plot_overlap(scope="after")
+matcher.plot_calibration()
+```
+
+## Estimate a Matched Effect
+
+After checking overlap and balance, estimate a descriptive matched-sample
+contrast with a reproducible bootstrap interval:
+
+```python
+effect = matcher.estimate_effect(
+    outcome="outcome",
+    estimand="ATT",       # "ATT", "ATC", or "ATE"
+    bootstrap=1000,
+    random_state=42,
+)
+print(effect["estimate"], effect["ci_lower"], effect["ci_upper"])
+```
+
+This estimate still relies on the study's identification assumptions and does
+not remove unmeasured confounding. Report the estimand, retention, balance, and
+sample definition together.
+
 ## Single Variable Proportion Test
 
 ```python

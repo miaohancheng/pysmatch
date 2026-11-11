@@ -86,6 +86,69 @@ def plot_scores(data: pd.DataFrame, yvar: str, control_color: str = "#1F77B4", t
     plt.show()
 
 
+def plot_love(matcher, threshold: float = 0.1, ax=None):
+    """Plot absolute standardized mean differences before and after matching."""
+
+    report = matcher.balance_report().dropna(subset=["abs_smd_before", "abs_smd_after"])
+    if report.empty:
+        raise ValueError("No balance statistics are available for a Love plot.")
+    if ax is None:
+        _, ax = plt.subplots(figsize=(8, max(4, len(report) * 0.35)))
+    report = report.sort_values("abs_smd_after", ascending=True)
+    positions = np.arange(len(report))
+    ax.scatter(report["abs_smd_before"], positions, label="Before", color="#d95f02")
+    ax.scatter(report["abs_smd_after"], positions, label="After", color="#1b9e77")
+    ax.axvline(threshold, color="#555555", linestyle="--", linewidth=0.9, label=f"Threshold ({threshold:g})")
+    ax.set_yticks(positions, report["variable"])
+    ax.set_xlabel("Absolute standardized difference")
+    ax.set_title("Covariate balance (Love plot)")
+    ax.grid(axis="x", alpha=0.25)
+    ax.legend(frameon=False)
+    plt.tight_layout()
+    return ax
+
+
+def plot_overlap(matcher, scope: str = "before", ax=None):
+    """Plot treated/control propensity-score overlap."""
+
+    frame = matcher.data if scope == "before" else matcher.matched_data
+    if frame.empty or "scores" not in frame.columns:
+        raise ValueError(f"No propensity scores are available for scope='{scope}'.")
+    if ax is None:
+        _, ax = plt.subplots(figsize=(8, 4.5))
+    treated = frame.loc[frame[matcher.treatment_col] == 1, "scores"].dropna()
+    control = frame.loc[frame[matcher.treatment_col] == 0, "scores"].dropna()
+    ax.hist(control, bins=30, density=True, alpha=0.45, label="Control", color=matcher.control_color)
+    ax.hist(treated, bins=30, density=True, alpha=0.45, label="Treated", color=matcher.test_color)
+    ax.set_xlim(0, 1)
+    ax.set_xlabel("Propensity score")
+    ax.set_ylabel("Density")
+    ax.set_title(f"Propensity-score overlap ({scope})")
+    ax.legend(frameon=False)
+    plt.tight_layout()
+    return ax
+
+
+def plot_calibration(matcher, ax=None):
+    """Plot observed treatment rates against predicted propensity scores."""
+
+    calibration = matcher.calibration_report()
+    if calibration.empty:
+        raise ValueError("No calibration bins are available.")
+    if ax is None:
+        _, ax = plt.subplots(figsize=(5, 5))
+    ax.plot([0, 1], [0, 1], linestyle="--", color="#777777", label="Perfect calibration")
+    ax.plot(calibration["mean_predicted"], calibration["observed_rate"], marker="o", label="Observed")
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    ax.set_xlabel("Mean predicted propensity")
+    ax.set_ylabel("Observed treatment rate")
+    ax.set_title("Propensity-score calibration")
+    ax.legend(frameon=False)
+    plt.tight_layout()
+    return ax
+
+
 def compare_continuous(matcher, return_table: bool = False, plot_result: bool = True):
     """
     Compares continuous variables between groups before and after matching.
