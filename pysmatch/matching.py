@@ -61,7 +61,8 @@ def perform_match(data: pd.DataFrame, yvar: str, threshold: float = 0.001,
                   nmatches: int = 1, method: str = 'min', replacement: bool = False,
                   random_state: Optional[int] = None,
                   distance: str = "probability",
-                  exact: Optional[Sequence[str]] = None) -> pd.DataFrame:
+                  exact: Optional[Sequence[str]] = None,
+                  chunk_size: Optional[int] = None) -> pd.DataFrame:
     """
     Perform nearest-neighbor matching using propensity scores.
 
@@ -93,6 +94,10 @@ def perform_match(data: pd.DataFrame, yvar: str, threshold: float = 0.001,
         exact (Optional[Sequence[str]], optional): Covariate columns that must
                                                    have equal values in each pair.
                                                    Defaults to ``None``.
+        chunk_size (Optional[int], optional): Number of treated rows processed
+                                             per radius-neighbor query. ``None``
+                                             preserves the original all-at-once
+                                             behavior.
 
     Returns:
         pd.DataFrame: Matched treated/control rows with ``match_id`` and ``record_id``.
@@ -113,6 +118,8 @@ def perform_match(data: pd.DataFrame, yvar: str, threshold: float = 0.001,
         raise ValueError("Scores column not found in data.")
     if nmatches < 1:
         raise ValueError("nmatches must be at least 1.")
+    if chunk_size is not None and (not isinstance(chunk_size, (int, np.integer)) or chunk_size < 1):
+        raise ValueError("chunk_size must be a positive integer or None.")
 
     exact_columns = _validate_exact_columns(data, exact)
     normalized_method = 'min' if method == 'nearest' else method
@@ -161,60 +168,70 @@ def perform_match(data: pd.DataFrame, yvar: str, threshold: float = 0.001,
     else:
         nbrs = NearestNeighbors(n_neighbors=effective_n_neighbors, radius=threshold, algorithm='ball_tree')
         nbrs.fit(ctrl_scores_values)
-        distances, indices = nbrs.radius_neighbors(test_scores_values)
+        distances = indices = None
 
     matched_records = []
     current_match_id = 0
     used_ctrl_indices = set() if not replacement else None
 
-    for i in range(len(test_scores_values)):
+    step = chunk_size or len(test_scores_values)
+    for batch_start in range(0, len(test_scores_values), step):
+        batch_end = min(batch_start + step, len(test_scores_values))
         if exact_columns:
-            neighbors = np.asarray(control_positions.get(test_keys[i], []), dtype=int)
-            dists = np.abs(ctrl_scores_values[neighbors, 0] - test_scores_values[i, 0])
-            within = dists <= threshold
-            neighbors = neighbors[within]
-            dists = dists[within]
+            batch_distances = batch_indices = None
         else:
-            dists, neighbors = distances[i], indices[i]
-        if len(neighbors) == 0:
-            continue
-        if normalized_method == 'min':
-            sorted_order = np.argsort(dists)
-            selected = []
-            for idx in sorted_order:
-                ctrl_idx = ctrl_indices[neighbors[idx]]
-                if not replacement and ctrl_idx in used_ctrl_indices:
-                    continue
-                selected.append(ctrl_idx)
+            batch_distances, batch_indices = nbrs.radius_neighbors(
+                test_scores_values[batch_start:batch_end]
+            )
+        for local_index in range(batch_end - batch_start):
+            i = batch_start + local_index
+            if exact_columns:
+                neighbors = np.asarray(control_positions.get(test_keys[i], []), dtype=int)
+                dists = np.abs(ctrl_scores_values[neighbors, 0] - test_scores_values[i, 0])
+                within = dists <= threshold
+                neighbors = neighbors[within]
+                dists = dists[within]
+            else:
+                dists, neighbors = batch_distances[local_index], batch_indices[local_index]
+            if len(neighbors) == 0:
+                continue
+            if normalized_method == 'min':
+                sorted_order = np.argsort(dists)
+                selected = []
+                for idx in sorted_order:
+                    ctrl_idx = ctrl_indices[neighbors[idx]]
+                    if not replacement and ctrl_idx in used_ctrl_indices:
+                        continue
+                    selected.append(ctrl_idx)
+                    if not replacement:
+                        used_ctrl_indices.add(ctrl_idx)
+                    if len(selected) == nmatches:
+                        break
+                if selected:
+                    for ctrl_idx in selected:
+                        matched_records.append({
+                            'test_index': test_indices[i],
+                            'control_index': ctrl_idx,
+                            'match_id': current_match_id
+                        })
+                    current_match_id += 1
+            elif normalized_method == 'random':
+                possible = list(neighbors)
                 if not replacement:
-                    used_ctrl_indices.add(ctrl_idx)
-                if len(selected) == nmatches:
-                    break
-            if selected:
-                for ctrl_idx in selected:
+                    possible = [n for n in possible if ctrl_indices[n] not in used_ctrl_indices]
+                if len(possible) == 0:
+                    continue
+                selected = rng.choice(possible, size=min(nmatches, len(possible)), replace=False)
+                for n in selected:
+                    ctrl_idx = ctrl_indices[n]
                     matched_records.append({
                         'test_index': test_indices[i],
                         'control_index': ctrl_idx,
                         'match_id': current_match_id
                     })
+                    if not replacement:
+                        used_ctrl_indices.add(ctrl_idx)
                 current_match_id += 1
-        elif normalized_method == 'random':
-            possible = list(neighbors)
-            if not replacement:
-                possible = [n for n in possible if ctrl_indices[n] not in used_ctrl_indices]
-            if len(possible) == 0:
-                continue
-            selected = rng.choice(possible, size=min(nmatches, len(possible)), replace=False)
-            for n in selected:
-                ctrl_idx = ctrl_indices[n]
-                matched_records.append({
-                    'test_index': test_indices[i],
-                    'control_index': ctrl_idx,
-                    'match_id': current_match_id
-                })
-                if not replacement:
-                    used_ctrl_indices.add(ctrl_idx)
-            current_match_id += 1
     if matched_records:
         matched_df = pd.DataFrame(matched_records)
         matched_test = data.loc[matched_df['test_index']].copy()
@@ -319,6 +336,7 @@ def perform_exhaustive_match(
     show_progress: bool = False,
     distance: str = "probability",
     exact: Optional[Sequence[str]] = None,
+    chunk_size: Optional[int] = None,
 ) -> pd.DataFrame:
     """
     Perform exhaustive matching while prioritizing unused controls first.
@@ -341,6 +359,8 @@ def perform_exhaustive_match(
         raise ValueError("Scores column not found in data.")
     if nmatches < 1:
         raise ValueError("nmatches must be at least 1.")
+    if chunk_size is not None and (not isinstance(chunk_size, (int, np.integer)) or chunk_size < 1):
+        raise ValueError("chunk_size must be a positive integer or None.")
 
     exact_columns = _validate_exact_columns(data, exact)
     output_columns = _match_output_columns(data, ['match_id', 'matched_as', 'pair_score_diff'])
@@ -350,57 +370,69 @@ def perform_exhaustive_match(
     if test_df.empty or control_df.empty:
         return pd.DataFrame(columns=output_columns)
 
-    control_df = control_df.sort_values('scores', kind='mergesort').reset_index(drop=True)
-    control_scores = _transformed_scores(control_df['scores'], distance)
+    control_df = control_df.copy()
+    control_df['_distance_score'] = _transformed_scores(control_df['scores'], distance)
+    control_df = control_df.sort_values('_distance_score', kind='mergesort').reset_index(drop=True)
+    control_scores = control_df['_distance_score'].to_numpy()
     control_record_ids = control_df['record_id'].to_numpy()
     control_usage_counts = np.zeros(len(control_df), dtype=int)
 
-    pairs: list[dict[str, object]] = []
-    iterator = test_df[['record_id', 'scores']].itertuples(index=False, name=None)
-    if show_progress:
-        from tqdm import tqdm
+    test_df = test_df.copy()
+    test_df['_distance_score'] = _transformed_scores(test_df['scores'], distance)
 
-        iterator = tqdm(iterator, total=len(test_df), desc="Exhaustive Matching")
+    pairs: list[dict[str, object]] = []
+    test_key_by_id = {}
+    if exact_columns:
+        test_key_by_id = {
+            row['record_id']: _row_key(row, exact_columns)
+            for _, row in test_df.iterrows()
+        }
 
     exact_positions = {}
     if exact_columns:
         for position, (_, row) in enumerate(control_df.iterrows()):
             exact_positions.setdefault(_row_key(row, exact_columns), []).append(position)
 
-    for case_record_id, case_score in iterator:
-        case_score = _transformed_scores(pd.Series([case_score]), distance)[0]
-        if exact_columns:
-            case_row = test_df.loc[test_df['record_id'] == case_record_id].iloc[0]
-            positions = np.asarray(exact_positions.get(_row_key(case_row, exact_columns), []), dtype=int)
-            candidate_scores = control_scores[positions]
-            left = np.searchsorted(candidate_scores, case_score - threshold, side='left')
-            right = np.searchsorted(candidate_scores, case_score + threshold, side='right')
-            candidate_positions = positions[left:right]
-        else:
-            left = np.searchsorted(control_scores, case_score - threshold, side='left')
-            right = np.searchsorted(control_scores, case_score + threshold, side='right')
-            candidate_positions = np.arange(left, right)
+    step = chunk_size or len(test_df)
+    for batch_start in range(0, len(test_df), step):
+        batch = test_df.iloc[batch_start:min(batch_start + step, len(test_df))]
+        iterator = batch[['record_id', '_distance_score']].itertuples(index=False, name=None)
+        if show_progress and chunk_size is None:
+            from tqdm import tqdm
 
-        if len(candidate_positions) == 0:
-            continue
+            iterator = tqdm(iterator, total=len(test_df), desc="Exhaustive Matching")
+        for case_record_id, case_score in iterator:
+            if exact_columns:
+                positions = np.asarray(exact_positions.get(test_key_by_id[case_record_id], []), dtype=int)
+                candidate_scores = control_scores[positions]
+                left = np.searchsorted(candidate_scores, case_score - threshold, side='left')
+                right = np.searchsorted(candidate_scores, case_score + threshold, side='right')
+                candidate_positions = positions[left:right]
+            else:
+                left = np.searchsorted(control_scores, case_score - threshold, side='left')
+                right = np.searchsorted(control_scores, case_score + threshold, side='right')
+                candidate_positions = np.arange(left, right)
 
-        candidate_usage = control_usage_counts[candidate_positions]
-        candidate_diffs = np.abs(control_scores[candidate_positions] - case_score)
-        candidate_is_used = candidate_usage > 0
-        order = np.lexsort(
-            (candidate_positions, candidate_diffs, candidate_usage, candidate_is_used)
-        )
-        selected_positions = candidate_positions[order[:nmatches]]
+            if len(candidate_positions) == 0:
+                continue
 
-        for pos in selected_positions:
-            pairs.append(
-                {
-                    'case_record_id': case_record_id,
-                    'control_record_id': control_record_ids[pos],
-                    'pair_score_diff': float(abs(control_scores[pos] - case_score)),
-                }
+            candidate_usage = control_usage_counts[candidate_positions]
+            candidate_diffs = np.abs(control_scores[candidate_positions] - case_score)
+            candidate_is_used = candidate_usage > 0
+            order = np.lexsort(
+                (candidate_positions, candidate_diffs, candidate_usage, candidate_is_used)
             )
-        control_usage_counts[selected_positions] += 1
+            selected_positions = candidate_positions[order[:nmatches]]
+
+            for pos in selected_positions:
+                pairs.append(
+                    {
+                        'case_record_id': case_record_id,
+                        'control_record_id': control_record_ids[pos],
+                        'pair_score_diff': float(abs(control_scores[pos] - case_score)),
+                    }
+                )
+            control_usage_counts[selected_positions] += 1
 
     if not pairs:
         return pd.DataFrame(columns=output_columns)
@@ -434,7 +466,8 @@ def tune_threshold(data: pd.DataFrame, yvar: str, method: str = 'min',
                    nmatches: int = 1, rng: Union[np.ndarray, None] = None,
                    random_state: Optional[int] = None,
                    distance: str = "probability",
-                   exact: Optional[Sequence[str]] = None) -> tuple:
+                   exact: Optional[Sequence[str]] = None,
+                   chunk_size: Optional[int] = None) -> tuple:
     """
     Evaluates matching retention across a range of threshold values.
 
@@ -457,6 +490,8 @@ def tune_threshold(data: pd.DataFrame, yvar: str, method: str = 'min',
         distance (str, optional): Matching distance scale, ``"probability"`` or
                                  ``"logit"``. Defaults to ``"probability"``.
         exact (Optional[Sequence[str]], optional): Exact-matching columns.
+        chunk_size (Optional[int], optional): Treated-row chunk size passed to
+                                              ``perform_match``.
 
     Returns:
         Tuple[np.ndarray, list]: A tuple containing:
@@ -471,7 +506,8 @@ def tune_threshold(data: pd.DataFrame, yvar: str, method: str = 'min',
     for threshold in rng:
         matched_data = perform_match(data, yvar, threshold=threshold,
                                      nmatches=nmatches, method=method, replacement=False,
-                                     random_state=random_state, distance=distance, exact=exact)
+                                     random_state=random_state, distance=distance, exact=exact,
+                                     chunk_size=chunk_size)
         prop = prop_retained(data, matched_data, yvar)
         thresholds.append(threshold)
         retained.append(prop)

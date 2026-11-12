@@ -178,3 +178,13 @@ def test_logit_distance_exact_matching_and_optimal_assignment():
     optimal = perform_optimal_match(data, "treated", threshold=0.8, exact=["site"])
     assert optimal["match_id"].nunique() == 2
     assert optimal["pair_score_diff"].max() <= 0.8
+
+
+def test_chunked_matching_matches_all_at_once(sample_match_data):
+    full = perform_match(sample_match_data, "treated", threshold=0.03, method="min")
+    chunked = perform_match(sample_match_data, "treated", threshold=0.03, method="min", chunk_size=1)
+    pd.testing.assert_frame_equal(full, chunked)
+
+    exhaustive_full = perform_exhaustive_match(sample_match_data, "treated", threshold=0.03)
+    exhaustive_chunked = perform_exhaustive_match(sample_match_data, "treated", threshold=0.03, chunk_size=1)
+    pd.testing.assert_frame_equal(exhaustive_full, exhaustive_chunked)

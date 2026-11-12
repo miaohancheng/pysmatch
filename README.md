@@ -269,6 +269,22 @@ matcher.match(threshold=0.05, exact=["site"])
 matcher.match(method="optimal", threshold=0.05)
 ```
 
+### Large datasets
+
+The default behavior is unchanged. For large frames, process model scoring and
+radius-neighbor queries in bounded batches:
+
+```python
+matcher.predict_scores(batch_size=50_000)
+matcher.match(threshold=0.05, chunk_size=50_000)
+```
+
+`chunk_size` limits the treated rows held in each neighbor-query result;
+`batch_size` limits rows passed to each model prediction call. Exact matching
+and logit calipers can reduce candidate windows further. Exhaustive matching
+also accepts `chunk_size`. Global optimal matching still requires a quadratic
+cost matrix and should be limited to moderate blocks.
+
 ## Evaluation
 
 After matching, evaluate covariate balance before causal analysis.

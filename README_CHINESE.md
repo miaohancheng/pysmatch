@@ -268,6 +268,20 @@ matcher.match(threshold=0.05, exact=["site"])
 matcher.match(method="optimal", threshold=0.05)
 ```
 
+### 大规模数据集
+
+默认行为保持不变。对于大表，可以限制模型预测和最近邻查询的批次大小：
+
+```python
+matcher.predict_scores(batch_size=50_000)
+matcher.match(threshold=0.05, chunk_size=50_000)
+```
+
+`batch_size` 限制每次模型预测的行数，`chunk_size` 限制每次最近邻查询保留的
+treated 行数。Exact matching 和 logit caliper 可以进一步缩小候选窗口。
+Exhaustive matching 也支持 `chunk_size`；全局 optimal matching 仍需要二次规模
+成本矩阵，应限制在中等规模分块内。
+
 ## 评估
 
 匹配完成后，应先做平衡性评估，再做后续因果分析。

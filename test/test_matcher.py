@@ -197,6 +197,17 @@ def test_fit_scores_and_predict_scores(matcher_instance):
         logging.info("Skipping score prediction assertions as X was empty.")
 
 
+def test_predict_scores_supports_batches(matcher_instance_fitted):
+    matcher = matcher_instance_fitted
+    model = matcher.models[0]
+    model.predict_proba.side_effect = lambda frame: np.column_stack(
+        [np.full(len(frame), 0.4), np.full(len(frame), 0.6)]
+    )
+    matcher.predict_scores(batch_size=3)
+    assert len(matcher.data["scores"]) == len(matcher.data)
+    assert matcher.data["scores"].eq(0.6).all()
+
+
 def test_matcher_balance_report(matcher_instance_fitted):
     matcher = matcher_instance_fitted
     matcher.match(threshold=0.1, nmatches=1, exhaustive_matching=True)

@@ -423,10 +423,15 @@ class Matcher:
         return self
 
 
-    def predict_scores(self) -> "Matcher":
+    def predict_scores(self, batch_size: Optional[int] = None) -> "Matcher":
         """
         Predicts propensity scores using the fitted model(s).
         Scores are stored in `self.data['scores']`.
+
+        Args:
+            batch_size (int, optional): Number of rows scored per model call.
+                                       ``None`` preserves the original all-at-once
+                                       behavior.
 
         Returns:
             Matcher: The current matcher, allowing fluent workflows.
@@ -435,24 +440,29 @@ class Matcher:
             raise RuntimeError("No trained models found; call fit_scores() before predict_scores().")
         if self.X.empty:
             raise ValueError("Feature matrix (X) is empty; cannot predict propensity scores.")
+        if batch_size is not None and (not isinstance(batch_size, (int, np.integer)) or batch_size < 1):
+            raise ValueError("batch_size must be a positive integer or None.")
 
         try:
-            X_pred = self.X.copy()
-            for col in X_pred.columns:
-                if X_pred[col].dtype == 'object' or pd.api.types.is_string_dtype(X_pred[col]):
-                    try:
-                        X_pred[col] = pd.to_numeric(X_pred[col], errors='raise')
-                    except ValueError:
-                        # Keep genuine categorical values for the fitted
-                        # preprocessing pipeline (OneHotEncoder/CatBoost).
-                        logging.debug(
-                            "Keeping non-numeric categorical column '%s' for model '%s'.",
-                            col,
-                            self.model_type,
-                        )
-
-            model_preds = [model.predict_proba(X_pred)[:, 1] for model in self.models]
-            scores = np.mean(model_preds, axis=0)
+            scores_chunks = []
+            step = batch_size or len(self.X)
+            for start in range(0, len(self.X), step):
+                X_pred = self.X.iloc[start:start + step].copy()
+                for col in X_pred.columns:
+                    if X_pred[col].dtype == 'object' or pd.api.types.is_string_dtype(X_pred[col]):
+                        try:
+                            X_pred[col] = pd.to_numeric(X_pred[col], errors='raise')
+                        except ValueError:
+                            # Keep genuine categorical values for the fitted
+                            # preprocessing pipeline (OneHotEncoder/CatBoost).
+                            logging.debug(
+                                "Keeping non-numeric categorical column '%s' for model '%s'.",
+                                col,
+                                self.model_type,
+                            )
+                model_preds = [model.predict_proba(X_pred)[:, 1] for model in self.models]
+                scores_chunks.append(np.mean(model_preds, axis=0))
+            scores = np.concatenate(scores_chunks) if scores_chunks else np.array([], dtype=float)
             self.data['scores'] = scores
             # Update self.test_df and self.control_df (and self.test, self.control) to include scores
             self.test_df['scores'] = self.data.loc[self.test_df.index, 'scores']
@@ -472,7 +482,8 @@ class Matcher:
               replacement: bool = False, exhaustive_matching: Optional[bool] = None,
               random_state: Optional[int] = None,
               distance: str = "probability",
-              exact: Optional[List[str]] = None) -> pd.DataFrame:
+              exact: Optional[List[str]] = None,
+              chunk_size: Optional[int] = None) -> pd.DataFrame:
         """
         Performs matching based on estimated propensity scores.
 
@@ -493,6 +504,8 @@ class Matcher:
             distance (str, optional): ``"probability"`` or ``"logit"`` propensity
                                      distance. Defaults to ``"probability"``.
             exact (list[str], optional): Covariates that must match exactly.
+            chunk_size (int, optional): Number of treated rows processed per
+                                       matching query. Defaults to ``None``.
 
         Returns:
             pandas.DataFrame: The matched rows. An empty frame means that no pair met
@@ -537,6 +550,7 @@ class Matcher:
                 show_progress=True,
                 distance=distance,
                 exact=exact,
+                chunk_size=chunk_size,
             )
 
             if self.matched_data.empty:
@@ -560,6 +574,7 @@ class Matcher:
                 random_state=self.random_state if random_state is None else random_state,
                 distance=distance,
                 exact=exact,
+                chunk_size=chunk_size,
             )
             if self.matched_data.empty:
                 logging.info("No matches found using pysmatch.matching.perform_match.")
@@ -607,7 +622,8 @@ class Matcher:
                        rng: Optional[np.ndarray] = None,
                        random_state: Optional[int] = None,
                        distance: str = "probability",
-                       exact: Optional[List[str]] = None) -> tuple[np.ndarray, list[float]]:
+                       exact: Optional[List[str]] = None,
+                       chunk_size: Optional[int] = None) -> tuple[np.ndarray, list[float]]:
         """
         Evaluates matching retention across a range of threshold values.
 
@@ -619,6 +635,7 @@ class Matcher:
                                          Defaults to the matcher's configured seed.
             distance (str, optional): ``"probability"`` or ``"logit"`` score distance.
             exact (list[str], optional): Exact-matching columns.
+            chunk_size (int, optional): Treated-row chunk size for each threshold.
 
         Returns:
             tuple: The tested thresholds and retained proportions.
@@ -639,7 +656,8 @@ class Matcher:
         thresholds, retained = matching.tune_threshold(self.data, self.treatment_col,
                                                        method=method, nmatches=nmatches, rng=rng,
                                                        random_state=self.random_state if random_state is None else random_state,
-                                                       distance=distance, exact=exact)
+                                                       distance=distance, exact=exact,
+                                                       chunk_size=chunk_size)
         plt.figure(figsize=(10,6))
         plt.plot(thresholds, retained, marker='o')
         plt.title("Proportion of Minority Group Retained for Threshold Grid")

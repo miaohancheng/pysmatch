@@ -12,6 +12,7 @@ Version History
 * Add reproducible bootstrap confidence intervals and matched-unit counts.
 * Add overlap, positivity, ESS, calibration, AUC/Brier, Love-plot, and SMD summary diagnostics.
 * Add logit calipers, exact matching, and minimum-cost optimal one-to-one matching.
+* Add bounded-batch propensity scoring and chunked nearest/exhaustive matching.
 * Document estimand assumptions and outcome-analysis workflow.
 
 **v2.2.0** (2026-11-11)
