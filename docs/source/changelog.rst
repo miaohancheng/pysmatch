@@ -6,7 +6,7 @@ Changelog
 Version History
 ---------------
 
-**Unreleased**
+**v2.3.0** (2026-11-12)
 
 * Add ``Matcher.estimate_effect()`` for ATT, ATC, and matched-sample ATE contrasts.
 * Add reproducible bootstrap confidence intervals and matched-unit counts.
