@@ -87,14 +87,24 @@ matcher.fit_scores(
     model_type="linear",
     n_jobs=2,
 )
-matcher.predict_scores()
-matcher.match(method="min", nmatches=1, threshold=0.001, replacement=False)
+matcher.predict_scores(batch_size=128)
+matcher.match(
+    method="min",
+    distance="logit",
+    threshold=0.2,
+    nmatches=1,
+    replacement=False,
+    chunk_size=128,
+)
 
 print(matcher.matched_data.head())
 print(matcher.balance_report())
+print(matcher.overlap_report())
+print(matcher.effective_sample_size())
 ```
 
 The demo data is shipped with the package, so this example also works after a clean `pip install pysmatch`.
+For a complete plotting and diagnostics walkthrough, see [`Example.py`](https://github.com/miaohancheng/pysmatch/blob/main/Example.py) or [`Example.ipynb`](https://github.com/miaohancheng/pysmatch/blob/main/Example.ipynb).
 
 ## End-to-End Workflow
 

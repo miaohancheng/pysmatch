@@ -33,11 +33,21 @@ matcher.fit_scores(
     model_type="linear",
     n_jobs=2,
 )
-matcher.predict_scores()
-matcher.match(method="min", nmatches=1, threshold=0.001, replacement=False)
+matcher.predict_scores(batch_size=128)
+matcher.match(
+    method="min",
+    distance="logit",
+    threshold=0.2,
+    nmatches=1,
+    replacement=False,
+    chunk_size=128,
+)
 
 print(matcher.matched_data.head())
 print(matcher.balance_report())
+print(matcher.overlap_report())
+print(matcher.effective_sample_size())
 ```
 
 即使只执行干净的 `pip install pysmatch`，上面的示例也可以直接运行。
+完整的绘图和诊断流程请参阅 [`Example.py`](https://github.com/miaohancheng/pysmatch/blob/main/Example.py) 或 [`Example.ipynb`](https://github.com/miaohancheng/pysmatch/blob/main/Example.ipynb)。
